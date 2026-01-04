@@ -7,6 +7,7 @@ import Header from './Components/header'
 import Footer from './Components/footer'
 import Signup from './pages/auth/signup'
 import Home from './pages/Home'
+import {Routes, Route} from 'react-router-dom'
 
 
 function App() {
@@ -14,7 +15,11 @@ function App() {
 
   return (
     <>
-      <Home />
+      <Routes>
+        <Route path='/' element={<Home/>} />
+        <Route path='/login' element={<Login />} />
+        <Route path='/signup' element={<Signup />} />
+      </Routes>
       
     </>
   )

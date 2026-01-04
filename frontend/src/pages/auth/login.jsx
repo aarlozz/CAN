@@ -3,7 +3,7 @@ import React from 'react'
 function Login() {
   return (
     <>
-      {/* HEADER */}
+      {/* HEADER
       <header className="fixed w-full bg-white shadow-sm z-40 top-0">
         <div className="max-w-[1450px] max-h-[101px] mx-auto flex items-center justify-between px-12 py-6">
           <div className="shadow-md ring-2 ring-blue-400 ml-20">
@@ -29,12 +29,12 @@ function Login() {
             </ul>
           </nav>
         </div>
-      </header>
+      </header> */}
 
       {/* MAIN */}
       <main className="h-full mt-[150px]">
         <section
-          className="relative flex flex-col items-center justify-center w-[1380px] h-[998px] bg-cover bg-center rounded-3xl mx-[60px] overflow-hidden"
+          className="relative flex flex-col items-center justify-center bg-cover bg-center rounded-3xl mx-[60px] overflow-hidden"
           style={{
             backgroundImage: "url('assets/images/image 15.png')",
           }}
@@ -104,16 +104,6 @@ function Login() {
           </div>
         </section>
       </main>
-
-      {/* FOOTER */}
-      <footer>
-        <div className="flex items-center justify-center bg-red-600 h-[61px] mt-11 w-full">
-          <p className="text-white text-center">
-            Copyright © 2018 Federation of Computer Association Nepal (CAN
-            Federation) | All rights reserved
-          </p>
-        </div>
-      </footer>
 
       
     </>

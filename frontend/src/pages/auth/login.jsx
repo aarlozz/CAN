@@ -1,4 +1,8 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
+import Header from '../../Components/header'
+import Footer from '../../Components/footer'
+
 
 function Login() {
   return (
@@ -29,7 +33,11 @@ function Login() {
             </ul>
           </nav>
         </div>
+        
       </header> */}
+      
+      <Header />
+
 
       {/* MAIN */}
       <main className="h-full mt-[150px]">
@@ -105,7 +113,7 @@ function Login() {
         </section>
       </main>
 
-      
+      <Footer />
     </>
   )
 }

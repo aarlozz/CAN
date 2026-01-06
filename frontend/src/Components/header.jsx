@@ -8,18 +8,20 @@ function Header() {
     <>
       {/* HEADER */}
       
-<header className=" fixed top-0 left-0  bg-white shadow-sm z-40 ">
+<header className="fixed top-0 left-0 w-full bg-white shadow-sm z-40 ">
       
       <div
-        className="container mx-auto flex items-center justify-between py-3 px-6"
+        className="max-w-7xl mx-auto flex justify-between items-center"
       >
         <div className="shadow-md ring-2 ring-blue-400 ">
+         <ul> <li>
           <img
             src={CAN_logo}
             alt="Logo"
-            className="w-35 h-20 object-contain"
+            className="w-32 h-20 object-contain"
           />
-          
+          </li>
+          </ul>
         </div>
 
         <nav>
@@ -31,7 +33,8 @@ function Header() {
             <li className="hover:text-red-500">Partner</li>
             <li className="hover:text-red-500"> <Link to="/signup">Signup </Link> </li>
             <li className="hover:text-red-500"> <Link to="/login" >Login </Link> </li>
-            <img src={icon1} alt="homeicon"  />
+            <li> <Link to='/'><img src={icon1} alt="homeicon"  /> </Link></li>
+            
           </ul>
         </nav>
       </div>

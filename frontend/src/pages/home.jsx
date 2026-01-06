@@ -11,7 +11,7 @@ function Home() {
       <section className="">
         <div className="Container flex mx-20 px-8 py-24 md:flex-row flex-col items-center">
           <div className="md:w-1/2">
-            <h1 className="font-bold font-extrabold text-[2rem]">
+            <h1 className="font-bold text-[2rem]">
               Nepal Scholarship Site
             </h1>
             <p className="my-4 text-justify">
@@ -39,7 +39,7 @@ function Home() {
         <div className="Container flex mx-20 px-8 py-24 md:flex-row flex-col items-center">
           <div className="md:w-1/2">Image</div>
           <div className="md:w-1/2">
-            <h1 className="font-bold font-extrabold text-[2rem]">
+            <h1 className="font-bold text-[2rem]">
               Welcome to Scholarship Site of Nepal
             </h1>
             <p className="my-4 text-justify">

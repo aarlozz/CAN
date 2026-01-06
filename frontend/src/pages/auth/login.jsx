@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../../Components/header'
 import Footer from '../../Components/footer'
+import image15 from '../../assets/images/image/image15.png';
 
 
 function Login() {
@@ -44,7 +45,7 @@ function Login() {
         <section
           className="relative flex flex-col items-center justify-center bg-cover bg-center rounded-3xl mx-[60px] overflow-hidden"
           style={{
-            backgroundImage: "url('assets/images/image 15.png')",
+            backgroundImage: `url(${image15})`,
           }}
         >
           <div className="absolute inset-0 bg-white/40"></div>
@@ -61,11 +62,11 @@ function Login() {
 
               {/* EMAIL */}
               <div className="flex flex-col w-full">
-                <label className="ml-4" htmlFor="email">
+                <label  htmlFor="email">
                   Enter your Email:
                 </label>
                 <input
-                  className="border-white bg-slate-50 border-2 rounded-3xl w-[605px] h-[59px] ml-4 p-2"
+                  className="border-white bg-slate-50 border-2 rounded-3xl w-36rem h-4rem ml-4 p-2"
                   type="email"
                   id="email"
                   placeholder="Enter your email"
@@ -92,7 +93,7 @@ function Login() {
                   id="login-type"
                   className="bg-white w-[308px] h-[60px] rounded-lg ml-4 mt-4"
                 >
-                  <option value="">Select login type</option>
+                  <option value=""hidden selected disabled>Select login type</option>
                   <option value="student">Student</option>
                   <option value="college">College</option>
                 </select>

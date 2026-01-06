@@ -1,25 +1,41 @@
 import React from "react";
 import CAN_logo from "../assets/images/logo/CAN_logo.png";
+import icon1 from "..//assets/images/icons/icon1.png"
 import { Link } from "react-router-dom";
 
 function Header() {
   return (
     <>
       {/* HEADER */}
-      <header className="bg-white shadow-sm  top-0 mx-0">
-        <div className="max-h-[101px] flex items-center justify-between px-12 py-6">
-          <div>
-            <img src={CAN_logo} alt="CAN_logo" className="h-10 " />
-          </div>
-          <div className="flex gap-10 font-bold ">
-            <ul className="hover:text-gray-300 ">Services</ul>
-            <ul className="hover:text-gray-300 ">About</ul>
-            <ul className="hover:text-gray-300 ">Patner</ul>
-            <ul className="hover:text-gray-300 "><Link to="/signup">Signup</Link></ul>
-            <ul className="hover:text-gray-300 "><Link to="/login">Login</Link></ul>
-          </div>
+      
+<header className=" fixed top-0 left-0  bg-white shadow-sm z-40 ">
+      
+      <div
+        className="container mx-auto flex items-center justify-between py-3 px-6"
+      >
+        <div className="shadow-md ring-2 ring-blue-400 ">
+          <img
+            src={CAN_logo}
+            alt="Logo"
+            className="w-35 h-20 object-contain"
+          />
+          
         </div>
-      </header>
+
+        <nav>
+          <ul
+            className="flex text-xl text-gray-800 font-sans font-semibold gap-5 items-center "
+          >
+            <li className="hover:text-red-500">Services</li>
+            <li className="hover:text-red-500">About</li>
+            <li className="hover:text-red-500">Partner</li>
+            <li className="hover:text-red-500"> <Link to="/signup">Signup </Link> </li>
+            <li className="hover:text-red-500"> <Link to="/login" >Login </Link> </li>
+            <img src={icon1} alt="homeicon"  />
+          </ul>
+        </nav>
+      </div>
+    </header>
     </>
   );
 }

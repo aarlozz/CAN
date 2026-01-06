@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "../Components/header";
 import Footer from "../Components/footer";
+import image15 from "../assets/images/image/image15.png"
 
 function Home() {
   return (
@@ -29,7 +30,9 @@ function Home() {
               Read More...
             </button>
           </div>
-          <div className="md:w-1/2">Image</div>
+          <div className="md:w-1/2">
+            <img src={image15} alt="Background Image" />
+          </div>
         </div>
       </section>
       <section className=" bg-gray-100">
@@ -56,24 +59,29 @@ function Home() {
       </section>
       <section>
         <div>
+          <div>
+            <h1>Our Services</h1>
+          </div>
+          <div className="flex gap-10 mx-20 my-10 px-8 py-24 md:flex-row flex-col items-center">
             <div>
-                <h1>Our Services</h1>
+              <p>Search Scholarship</p>
+              <p>Search for the scholarship that’s best suited for you.</p>
             </div>
-            <div className="flex gap-10 mx-20 my-10 px-8 py-24 md:flex-row flex-col items-center">
-                <div >
-                    <p>Search Scholarship</p>
-                    <p>Search for the scholarship that’s best suited for you.</p>
-                </div>
-                <div>
-                    <p>Submit Scholarship</p>
-                    <p>Submit your organizational Scholarship without and manage them efficiently.</p>
-                </div>
-                <div>
-                    <p>Scholarship Filtering</p>
-                    <p>We filter Scholarships and post only the best, legit and viable scholarship on provincial scale.</p>
-                </div>
+            <div>
+              <p>Submit Scholarship</p>
+              <p>
+                Submit your organizational Scholarship without and manage them
+                efficiently.
+              </p>
             </div>
-
+            <div>
+              <p>Scholarship Filtering</p>
+              <p>
+                We filter Scholarships and post only the best, legit and viable
+                scholarship on provincial scale.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
       <Footer />

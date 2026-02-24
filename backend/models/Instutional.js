@@ -3,8 +3,9 @@ const mongoose = require("mongoose");
 
 const institutionalSchema = new mongoose.Schema(
     {
-            institutional_name: {
+        institutional_name: {
             type: String,
+            required: true,
         },
         province: {
             type: String,

@@ -4,13 +4,13 @@
 // server.js
 const app = require("./app");
 const connectionDM = require("./config/db");
-const User = require("./models/User");
+const Institutional = require("./models/Instutional");
 require("dotenv").config();
 
 
 connectionDM();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT ;
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

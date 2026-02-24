@@ -31,3 +31,6 @@ coverage/
 
 # ===== Optional =====
 *.pem
+
+node_modules/
+backend/node_modules/

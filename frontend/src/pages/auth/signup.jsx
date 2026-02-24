@@ -3,21 +3,48 @@ import Header from '../../Components/header'
 import Footer from '../../Components/footer'
 import { Link } from 'react-router-dom'
 import image15 from "../../assets/images/image/image15.png";
+import axios from "axios";
+
+
 
 function Signup() {
   const [form, setform] = React.useState({
-    name: '',
+    institutional_name: '',
+    province: '',
+    city: '',
+    street_address: '',
+    website: '',  
     email: '',
+    phone: '',
     password: '',
-  });
+  },
+);
 
   const handleChange = (e) => {
     setform({ ...form, [e.target.name]: e.target.value });
   }
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(form);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  console.log(form);
+  if (form.password !== form.confirm_password) {
+    alert("Passwords do not match");
+    return;
   }
+
+  try {
+    const response = await axios.post(
+      "http://localhost:5000/api/auth/signup/",
+      form
+    );
+
+    alert("Account created successfully!");
+    console.log(response.data);
+
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    alert("Registration failed!");
+  }
+};
 
   return (
 
@@ -52,12 +79,12 @@ function Signup() {
         >
           {/* Institution Name */}
           <div className="flex flex-col ml-4 w-full h-18">
-            <label htmlFor="institution_name"className='text-left'>Name of Institution</label>
+            <label htmlFor="institutional_name"className='text-left'>Name of Institution</label>
             <input
               className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
               type="text"
-              name="institution_name"
-              id="institution_name"
+              name="institutional_name"
+              id="institutional_name"
               placeholder="Enter your institution name"
               onChange={handleChange}
               required
@@ -141,12 +168,12 @@ function Signup() {
 
           {/* Phone */}
           <div className=" flex flex-col ml-4 w-75">
-            <label htmlFor="phone_number" className='block text-left'>Phone number:</label>
+            <label htmlFor="phone" className='block text-left'>Phone number:</label>
             <input
               className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
               type="tel"
-              name="phone_number"
-              id="phone_number"
+              name="phone"
+              id="phone"
               pattern="[0-9]{10}"
               maxLength={10}
               minLength={10}

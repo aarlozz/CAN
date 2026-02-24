@@ -1,6 +1,6 @@
 // Login & signup logic
 
-const User = require("../models/User");
+const User = require("../models/Instutional");
 const bcrypt = require("bcryptjs");
 
 
@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs");
 // Signup controller
 exports.signup = async (req,res) => {
     try{
-        const{name,email,password} = req.body;
+        const{institutional_name,province,address,website,email,phone,password} = req.body;
 
         // 1. Check is user already exists
         const userExists = await User.findOne({email});
@@ -21,16 +21,20 @@ exports.signup = async (req,res) => {
         const hashedPassword = await bcrypt.hash(password,salt);
 
         // 3.Create User
-        const user = await User.create({
-            name,
+        const Institutional = await Instutional.create({
+            institutional_name,
+            province,
+            address,
+            website,
             email,
+            phone,
             password: hashedPassword,
         });
 
         //4. Send response
         res.status(201).json({
-            message: "User created Successfully",
-            userId: user._id
+            message: "Institutional created Successfully",
+            institutionalId: Institutional._id
         });
     } catch (error){
         console.error("Signup error:", error);
@@ -41,6 +45,7 @@ exports.signup = async (req,res) => {
 
 // Login controller (to be implemented)
 const jwt = require("jsonwebtoken");
+const Instutional = require("../models/Instutional");
 require("dotenv").config();
 
 exports.login = async( req,res) => {

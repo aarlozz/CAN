@@ -1,22 +1,68 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import image15 from "../../assets/images/image/image15.png";
+import api from "../../services/api";                    // ✅ use central api instance, not raw axios
 
 function Login() {
+  // ─────────────────────────────────────────
+  // STATE
+  // ─────────────────────────────────────────
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");        // show error message in UI (not just alert)
+  const [loading, setLoading] = useState(false); // disable button while request is in flight
+
+  const navigate = useNavigate();                // redirect after login
+
+  // ─────────────────────────────────────────
+  // HANDLERS
+  // ─────────────────────────────────────────
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");                                // clear error on any input change
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Basic client-side validation
+    if (!form.email || !form.password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.post("/auth/login", form);
+
+      // Save token + institution info to localStorage
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("institution", JSON.stringify(response.data.institution));
+
+      // Redirect to dashboard
+      navigate("/dashboard");
+
+    } catch (err) {
+      const message = err.response?.data?.message || "Login failed. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────
   return (
     <>
-      {/* HEADER */}
-
       <Header />
 
       <main className="min-h-screen pt-24 flex justify-center items-start px-4 sm:px-6 md:px-8 lg:px-0">
         <section
-          className="relative flex flex-col items-center justify-center bg-cover bg-center rounded-3xl w-full max-h-3xl max-w-4xl md:max-w-5xl lg:max-w-6xl overflow-hidden"
-          style={{
-            backgroundImage: `url(${image15})`,
-          }}
+          className="relative flex flex-col items-center justify-center bg-cover bg-center rounded-3xl w-full max-w-4xl md:max-w-5xl lg:max-w-6xl overflow-hidden"
+          style={{ backgroundImage: `url(${image15})` }}
         >
           {/* Overlay */}
           <div className="absolute inset-0 bg-white/50"></div>
@@ -27,77 +73,84 @@ function Login() {
           </p>
 
           {/* Form Container */}
-          <div className="bg-red-400/55 w-full gap-y-6rem sm:w-[90%] md:w-[80%] lg:w-[70%] flex flex-col h-auto sm:h-40rem items-center rounded-3xl sm:rounded-4xl px-4 sm:px-6 md:px-8 py-6 mt-6 sm:mt-2">
-            <div className="relative w-full flex flex-col z-10 gap-4 sm:gap-6 gap-y-5rem">
+          <div className="bg-red-400/55 w-full sm:w-[90%] md:w-[80%] lg:w-[70%] flex flex-col items-center rounded-3xl px-4 sm:px-6 md:px-8 py-6 mt-6 sm:mt-2 mb-10">
+            <div className="relative w-full flex flex-col z-10 gap-4 sm:gap-6">
+
               {/* Welcome Text */}
-              <p className="text-2xl sm:text-3xl font-semibold text-center mt-6 sm:mt-12 px-2 sm:px-0">
+              <p className="text-2xl sm:text-3xl font-semibold text-center mt-6 sm:mt-12">
                 Welcome Back
               </p>
 
-              {/* EMAIL */}
-              <div className="flex flex-col w-full px-2 sm:px-0">
-                <label
-                  htmlFor="email"
-                  className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
-                >
-                  Enter your Email:
-                </label>
-                <input
-                  className="border-white bg-slate-50 border-2 rounded-3xl w-full sm:w-full md:w-[90%] lg:w-[90%] h-4 sm:h-16 mt-2 sm:mt-1 px-3 sm:px-4"
-                  type="email"
-                  id="email"
-                  placeholder="Enter your email"
-                />
-              </div>
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-sm text-center">
+                  {error}
+                </div>
+              )}
 
-              {/* PASSWORD */}
-              <div className="flex flex-col w-full px-2 sm:px-0">
-                <label
-                  htmlFor="password"
-                  className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
-                >
-                  Enter your password:
-                </label>
-                <input
-                  className="border-white bg-slate-50 border-2 rounded-3xl w-full sm:w-[90%] md:w-[90%] lg:w-[90%] h-14 sm:h-14.7 mt-2 sm:mt-1 px-3 sm:px-4"
-                  type="password"
-                  id="password"
-                  placeholder="Enter your password"
-                />
-              </div>
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
 
-              {/* LOGIN TYPE */}
-              <div className="px-2 flex flex-col sm:px-0">
-                <label
-                  htmlFor="login_type"
-                  className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
-                >
-                  Select login type
-                </label>
-                <select
-                  name="login-type"
-                  id="login-type"
-                  className="bg-white w-full sm:w-[50%] md:w-[40%] lg:w-[35%] h-16 sm:h-16 rounded-lg  px-3 text-left ml-2"
-                  defaultValue=""
-                >
-                  <option value="" disabled hidden selected>
-                    Choose login
-                  </option>
-                  <option value="student">Student</option>
-                  <option value="college">College</option>
-                </select>
-              </div>
+                {/* EMAIL */}
+                <div className="flex flex-col w-full px-2 sm:px-0">
+                  <label
+                    htmlFor="email"
+                    className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
+                  >
+                    Enter your Email:
+                  </label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-3xl w-full md:w-[90%] h-12 mt-1 px-3 sm:px-4"
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-              {/* BUTTONS */}
-              <div className="flex flex-col sm:flex-row justify-center sm:justify-end mt-6 sm:mt-20 gap-3 sm:gap-4 w-full px-2 sm:px-0">
-                <button className="bg-red-400 border-black text-white w-full sm:w-44 h-12.25 border-2 rounded-3xl p-1">
-                  Login
-                </button>
+                {/* PASSWORD */}
+                <div className="flex flex-col w-full px-2 sm:px-0">
+                  <label
+                    htmlFor="password"
+                    className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
+                  >
+                    Enter your password:
+                  </label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-3xl w-full md:w-[90%] h-12 mt-1 px-3 sm:px-4"
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
 
-                <button className="border-black text-black w-full sm:w-44 h-12.25 border-2 rounded-3xl p-1">
-                  Forgot Password?
-                </button>
-              </div>
+                {/* SUBMIT BUTTON */}
+                <div className="flex justify-center mt-2 mb-8">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-10 py-3 rounded-3xl transition-colors duration-200"
+                  >
+                    {loading ? "Logging in..." : "Login"}
+                  </button>
+                </div>
+
+                {/* SIGNUP LINK */}
+                <p className="text-center text-sm pb-4">
+                  Don't have an account?{" "}
+                  <Link to="/signup" className="text-red-700 font-semibold hover:underline">
+                    Sign up here
+                  </Link>
+                </p>
+
+              </form>
             </div>
           </div>
         </section>

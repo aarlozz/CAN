@@ -1,239 +1,269 @@
-import React from 'react'
-import Header from '../../Components/header'
-import Footer from '../../Components/footer'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react';
+import Header from '../../Components/header';
+import Footer from '../../Components/footer';
+import { Link, useNavigate } from 'react-router-dom';
 import image15 from "../../assets/images/image/image15.png";
-import axios from "axios";
-
-
+import api from "../../services/api";               // ✅ central api instance, not raw axios
 
 function Signup() {
-  const [form, setform] = React.useState({
+  // ─────────────────────────────────────────
+  // STATE
+  // ─────────────────────────────────────────
+  const [form, setForm] = useState({
     institutional_name: '',
     province: '',
     city: '',
     street_address: '',
-    website: '',  
+    website: '',
     email: '',
     phone: '',
     password: '',
-  },
-);
+    confirm_password: '',                           // ✅ field now exists in state
+  });
+  const [error, setError]     = useState('');      // ✅ inline errors instead of alert()
+  const [loading, setLoading] = useState(false);   // ✅ prevent double submit
 
+  const navigate = useNavigate();                  // ✅ redirect after signup
+
+  // ─────────────────────────────────────────
+  // HANDLERS
+  // ─────────────────────────────────────────
   const handleChange = (e) => {
-    setform({ ...form, [e.target.name]: e.target.value });
-  }
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  console.log(form);
-  if (form.password !== form.confirm_password) {
-    alert("Passwords do not match");
-    return;
-  }
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setError('');
+  };
 
-  try {
-    const response = await axios.post(
-      "http://localhost:5000/api/auth/signup/",
-      form
-    );
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-    alert("Account created successfully!");
-    console.log(response.data);
+    // Client-side validation
+    if (form.password !== form.confirm_password) {
+      setError('Passwords do not match.');
+      return;
+    }
 
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    alert("Registration failed!");
-  }
-};
+    try {
+      setLoading(true);
 
+      // Strip confirm_password — backend doesn't need it
+      const { confirm_password, ...payload } = form;
+
+      await api.post('/auth/signup', payload);     // ✅ no hardcoded URL
+
+      navigate('/login');                          // ✅ redirect to login after signup
+
+    } catch (err) {
+      const message = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────
   return (
-
     <>
       <Header />
       <main className="h-full mt-37.5">
-  <section
-    className="relative flex flex-col items-center justify-center w-340 h-300 bg-cover bg-center rounded-3xl mx-auto overflow-hidden"
-    style={{ backgroundImage: `url(${image15})` }}
-  >
-    <div className="absolute inset-0 bg-white/60"></div>
-
-    <p className="text-4xl text-center font-semibold z-10 mt-10">
-      Create your account
-    </p>
-
-    <div className="bg-red-400/55 w-200.75 flex flex-col h-280 items-center rounded-4xl px-4 py-4 p-10 mt-2">
-      <div className="relative w-full h-full flex flex-col z-10 gap-6">
-        <p className="text-2xl font-semibold text-left mt-12 mx-auto">
-          Sign Up to start your scholarship journey
-        </p>
-
-        <div className="text-1xl font-semibold text-left flex mx-auto">
-          <span>Student Signup / </span>
-          <span className="text-red-700">Institution Signup</span>
-        </div>
-
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto flex flex-col gap-y-5 w-140 h-12"
+        <section
+          className="relative flex flex-col items-center justify-center w-340 h-300 bg-cover bg-center rounded-3xl mx-auto overflow-hidden"
+          style={{ backgroundImage: `url(${image15})` }}
         >
-          {/* Institution Name */}
-          <div className="flex flex-col ml-4 w-full h-18">
-            <label htmlFor="institutional_name"className='text-left'>Name of Institution</label>
-            <input
-              className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-              type="text"
-              name="institutional_name"
-              id="institutional_name"
-              placeholder="Enter your institution name"
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <div className="absolute inset-0 bg-white/60"></div>
 
-          {/* Province */}
-          <div className="ml-4 w-109">
-            <select
-              name="province"
-              id="province"
-              className="bg-white w-full h-10 rounded-lg"
-              defaultValue=""
-              onChange={handleChange}
-            >
-              <option value="" disabled hidden>
-                Select Province
-              </option>
-              <option value="bagmati">Bagmati</option>
-              <option value="koshi">Koshi</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
+          <p className="text-4xl text-center font-semibold z-10 mt-10">
+            Create your account
+          </p>
 
-          {/* City & Street */}
-          <div className="flex flex-col-2 gap-12 w-full">
-            <div className="ml-4 w-46.5 h-17.5">
-              <label htmlFor="city" className='text-left block '>City:</label>
-              <input
-                className="bg-slate-50 rounded-sm w-full h-10 p-2"
-                type="text"
-                name="city"
-                id="city"
-                placeholder="Example: Kathmandu"
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="ml-4 w-46.5 h-">
-              <label htmlFor="street_address" className='block text-left'>Street Address:</label>
-              <input
-                className="bg-slate-50 rounded-sm w-full h-10 p-2"
-                type="text"
-                name="street_address"
-                id="street_address"
-                placeholder="Example: Putalisadak"
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
+          <div className="bg-red-400/55 w-200.75 flex flex-col h-auto items-center rounded-4xl px-4 py-4 p-10 mt-2 mb-10">
+            <div className="relative w-full h-full flex flex-col z-10 gap-6">
 
-          {/* Website */}
-          <div className=" flex flex-col ml-4 w-140.5 h-17.5">
-            <div>
-            <label htmlFor="website" className='text-left block'>Institution Website link</label>
-            <input
-              className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
-              type="url"
-              name="website"
-              id="website"
-              placeholder="https://www.example.edu/"
-              onChange={handleChange}
-            />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div className=" flex flex-col ml-4 w-140.5 h.17.5">
-            <label htmlFor="email" className='text-left block'>E-mail</label>
-            <input
-              className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
-              type="email"
-              name="email"
-              id="email"
-              placeholder="Enter your e-mail"
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Phone */}
-          <div className=" flex flex-col ml-4 w-75">
-            <label htmlFor="phone" className='block text-left'>Phone number:</label>
-            <input
-              className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
-              type="tel"
-              name="phone"
-              id="phone"
-              pattern="[0-9]{10}"
-              maxLength={10}
-              minLength={10}
-              placeholder="Phone Number"
-              onChange={handleChange}
-            />
-          </div>
-
-          {/* Password */}
-          <div className="ml-4 w-141.5 h-17.5">
-            <label htmlFor="password" className='block text-left'>Password:</label>
-            <input
-              className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
-              type="password"
-              name="password"
-              id="password"
-              placeholder="**********"
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Confirm Password */}
-          <div className="ml-4 w-141.5 h-10">
-            <label htmlFor="confirm_password" className='block text-left'>Confirm Password:</label>
-            <input
-              className="rounded-sm border-white bg-slate-50 w-full h-10 p-2"
-              type="password"
-              name="confirm_password"
-              id="confirm_password"
-              placeholder="**********"
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          {/* Submit Button */}
-          <div className="w-150 h-26 mx-auto flex flex-col justify-center items-center gap-y-2">
-            <button
-              type="submit"
-              className="w-89.5 h-11 rounded-3xl bg-red-500 text-white"
-            >
-              Create Account
-            </button>
-            <div className="w-125 mt-4 text-center">
-              <p>
-                By continuing, you agree to our Terms of Service and Privacy Policy.
+              <p className="text-2xl font-semibold text-left mt-12 mx-auto">
+                Sign Up to start your scholarship journey
               </p>
+
+              <div className="text-1xl font-semibold text-left flex mx-auto">
+                <span>Student Signup / </span>
+                <span className="text-red-700">Institution Signup</span>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-sm text-center mx-auto w-full max-w-lg">
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <form
+                onSubmit={handleSubmit}
+                className="mx-auto flex flex-col gap-y-5 w-140"
+              >
+                {/* Institution Name */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="institutional_name" className="text-left">
+                    Name of Institution
+                  </label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="text"
+                    id="institutional_name"
+                    name="institutional_name"
+                    value={form.institutional_name}
+                    onChange={handleChange}
+                    placeholder="Institution name"
+                    required
+                  />
+                </div>
+
+                {/* Province */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="province" className="text-left">Province</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="text"
+                    id="province"
+                    name="province"
+                    value={form.province}
+                    onChange={handleChange}
+                    placeholder="Province"
+                    required
+                  />
+                </div>
+
+                {/* City */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="city" className="text-left">City</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={form.city}
+                    onChange={handleChange}
+                    placeholder="City"
+                  />
+                </div>
+
+                {/* Street Address */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="street_address" className="text-left">Street Address</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="text"
+                    id="street_address"
+                    name="street_address"
+                    value={form.street_address}
+                    onChange={handleChange}
+                    placeholder="Street address"
+                  />
+                </div>
+
+                {/* Website */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="website" className="text-left">Website</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="url"
+                    id="website"
+                    name="website"
+                    value={form.website}
+                    onChange={handleChange}
+                    placeholder="https://example.com"
+                    required
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="email" className="text-left">Email</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="email@example.com"
+                    required
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="phone" className="text-left">Phone</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="Phone number"
+                    required
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="password" className="text-left">Password</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="Create a password"
+                    required
+                  />
+                </div>
+
+                {/* Confirm Password */}
+                <div className="flex flex-col ml-4 w-full h-18">
+                  <label htmlFor="confirm_password" className="text-left">Confirm Password</label>
+                  <input
+                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    value={form.confirm_password}
+                    onChange={handleChange}
+                    placeholder="Repeat your password"
+                    required
+                  />
+                </div>
+
+                {/* Submit */}
+                <div className="flex justify-center mt-4 mb-8">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-10 py-3 rounded-3xl transition-colors duration-200"
+                  >
+                    {loading ? 'Registering...' : 'Sign Up'}
+                  </button>
+                </div>
+
+                {/* Login Link */}
+                <p className="text-center text-sm pb-4">
+                  Already have an account?{' '}
+                  <Link to="/login" className="text-red-700 font-semibold hover:underline">
+                    Login here
+                  </Link>
+                </p>
+
+              </form>
             </div>
           </div>
-        </form>
-      </div>
-    </div>
-  </section>
-</main>
-
-
+        </section>
+      </main>
       <Footer />
     </>
-  )
+  );
 }
 
-export default Signup
+export default Signup;

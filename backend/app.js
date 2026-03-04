@@ -3,10 +3,13 @@
 const express     = require('express');
 const cors        = require('cors');
 const authRoutes      = require('./routes/authRoutes');
-const userRoutes      = require('./routes/userRoutes');
 const locationRoutes  = require('./routes/locationRoutes');  // ✅ Step 4 — public location data
 const collegeRoutes   = require('./routes/collegeRoutes');   // ✅ Step 5 — college profile
 const studentRoutes   = require('./routes/studentRoutes');   // ✅ Step 6 — student profile + docs
+const scholarshipRoutes = require('./routes/scholarshipRoutes'); // ✅ Step 7 — scholarships
+const applicationRoutes = require('./routes/applicationRoutes'); // ✅ Step 8 — applications
+const adminRoutes       = require('./routes/adminRoutes');       // ✅ Step 9 — admin
+const notificationRoutes = require('./routes/notificationRoutes'); // ✅ Step 10 — notifications
 const errorHandler    = require('./middleware/errorHandler');
 
 require('dotenv').config();
@@ -45,10 +48,13 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 // ─────────────────────────────────────────
 app.use('/api/auth',          authRoutes);      // POST /api/auth/register/student|college, /login, /logout
-app.use('/api/institutional', userRoutes);      // GET  /api/institutional/profile (placeholder)
 app.use('/api/locations',     locationRoutes);  // GET  /api/locations/provinces|districts|municipalities
 app.use('/api/college',       collegeRoutes);   // GET/PUT /api/college/profile, /list, /:id
 app.use('/api/student',       studentRoutes);   // GET/PUT /api/student/profile, documents
+app.use('/api/scholarships',  scholarshipRoutes); // GET /api/scholarships, POST, PUT, DELETE
+app.use('/api/applications',  applicationRoutes); // POST /api/applications, GET /my, PUT /:id/review
+app.use('/api/admin',         adminRoutes);       // GET /api/admin/colleges/pending, stats
+app.use('/api/notifications', notificationRoutes); // GET /api/notifications, PUT /read-all, /:id/read
 
 // ─────────────────────────────────────────
 // Health Check

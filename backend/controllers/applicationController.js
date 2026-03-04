@@ -11,7 +11,7 @@
 
 const asyncHandler           = require('../utils/asyncHandler');
 const paginate               = require('../utils/paginate');
-const ScholarshipApplication = require('../models/Scholarshipapplication');
+const ScholarshipApplication = require('../models/ScholarshipApplication');
 const Scholarship            = require('../models/Scholarship');
 const Student                = require('../models/Student');
 const College                = require('../models/College');
@@ -396,4 +396,14 @@ exports.reviewApplication = asyncHandler(async (req, res) => {
       reviewedAt:        application.review.reviewedAt,
     },
   });
+});
+
+// applicationController.js — after submitApplication creates the app:
+createNotification({ userId: req.user._id, notificationType: 'application_submitted',
+  title: 'Application submitted', message: `Applied to ${scholarship.scholarshipTitle}`, priority: 'medium'
+});
+  
+// applicationController.js — after reviewApplication (approved):
+createNotification({ userId: studentUser._id, notificationType: 'application_approved',
+  title: 'Application approved!', message: `Your application to ${scholarship.scholarshipTitle} has been approved.`, priority: 'high'
 });

@@ -1,52 +1,63 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Header from "../../Components/header";
-import Footer from "../../Components/footer";
-import image15 from "../../assets/images/image/image15.png";
-import api from "../../services/api";                    // ✅ use central api instance, not raw axios
+// login.jsx — Login page (all roles)
+//
+// Fixes from old version:
+//   ✅ Uses AuthContext.login() instead of raw localStorage
+//   ✅ Parses correct response shape: { token, user, profile }
+//   ✅ Redirects to role-specific dashboard (not always /dashboard)
+//   ✅ Loading spinner on button instead of just disabled
+
+import { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Header from '../Components/header';
+import Footer from '../Components/footer';
+import image15 from '../assets/images/image/image15.png';
+import api from '../services/api';
+import { useAuth, DASHBOARD_ROUTES } from '../context/AuthContext';
 
 function Login() {
-  // ─────────────────────────────────────────
-  // STATE
-  // ─────────────────────────────────────────
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");        // show error message in UI (not just alert)
-  const [loading, setLoading] = useState(false); // disable button while request is in flight
+  const [form,    setForm]    = useState({ email: '', password: '' });
+  const [error,   setError]   = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();                // redirect after login
+  const navigate = useNavigate();
+  const location  = useLocation();
+  const { login } = useAuth();
+
+  // Show success banner when redirected here after college registration
+  const justRegistered = new URLSearchParams(location.search).get('registered');
 
   // ─────────────────────────────────────────
   // HANDLERS
   // ─────────────────────────────────────────
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError("");                                // clear error on any input change
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
-    // Basic client-side validation
     if (!form.email || !form.password) {
-      setError("Please fill in all fields.");
+      setError('Please fill in all fields.');
       return;
     }
 
     try {
       setLoading(true);
-      const response = await api.post("/auth/login", form);
+      const res = await api.post('/auth/login', form);
 
-      // Save token + institution info to localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("institution", JSON.stringify(response.data.institution));
+      // Backend returns: { message, token, user: { id, email, userType }, profile }
+      const { token, user, profile } = res.data;
 
-      // Redirect to dashboard
-      navigate("/dashboard");
+      // Store in context + localStorage
+      login(token, user, profile);
+
+      // Redirect to the correct dashboard for this role
+      navigate(DASHBOARD_ROUTES[user.userType] ?? '/dashboard');
 
     } catch (err) {
-      const message = err.response?.data?.message || "Login failed. Please try again.";
-      setError(message);
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -65,94 +76,89 @@ function Login() {
           style={{ backgroundImage: `url(${image15})` }}
         >
           {/* Overlay */}
-          <div className="absolute inset-0 bg-white/50"></div>
+          <div className="absolute inset-0 bg-white/50" />
 
           {/* Heading */}
-          <p className="text-3xl sm:text-4xl text-center font-semibold z-10 mt-8 sm:mt-10 px-2 sm:px-4">
-            Login to your account
+          <p className="text-3xl font-bold z-10 mt-10 mb-2 text-center px-4">
+            Login to CAN Scholarship
+          </p>
+          <p className="text-sm text-gray-600 z-10 mb-6">
+            Students, Colleges, and Admins all log in here
           </p>
 
-          {/* Form Container */}
-          <div className="bg-red-400/55 w-full sm:w-[90%] md:w-[80%] lg:w-[70%] flex flex-col items-center rounded-3xl px-4 sm:px-6 md:px-8 py-6 mt-6 sm:mt-2 mb-10">
-            <div className="relative w-full flex flex-col z-10 gap-4 sm:gap-6">
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="relative z-10 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-8 w-full max-w-md mx-4 mb-10"
+          >
+            {/* College registration success banner */}
+            {justRegistered === 'college' && (
+              <div className="mb-4 px-4 py-3 bg-green-50 border border-green-200 text-green-800 rounded-xl text-sm">
+                ✅ College registered successfully! Your account is <strong>pending verification</strong> by a provincial admin. You can log in once verified.
+              </div>
+            )}
 
-              {/* Welcome Text */}
-              <p className="text-2xl sm:text-3xl font-semibold text-center mt-6 sm:mt-12">
-                Welcome Back
-              </p>
+            {/* Error banner */}
+            {error && (
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+                {error}
+              </div>
+            )}
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-sm text-center">
-                  {error}
-                </div>
-              )}
-
-              {/* FORM */}
-              <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
-
-                {/* EMAIL */}
-                <div className="flex flex-col w-full px-2 sm:px-0">
-                  <label
-                    htmlFor="email"
-                    className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
-                  >
-                    Enter your Email:
-                  </label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-3xl w-full md:w-[90%] h-12 mt-1 px-3 sm:px-4"
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* PASSWORD */}
-                <div className="flex flex-col w-full px-2 sm:px-0">
-                  <label
-                    htmlFor="password"
-                    className="ml-2 sm:ml-4 text-sm sm:text-base text-left"
-                  >
-                    Enter your password:
-                  </label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-3xl w-full md:w-[90%] h-12 mt-1 px-3 sm:px-4"
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    value={form.password}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-
-                {/* SUBMIT BUTTON */}
-                <div className="flex justify-center mt-2 mb-8">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-10 py-3 rounded-3xl transition-colors duration-200"
-                  >
-                    {loading ? "Logging in..." : "Login"}
-                  </button>
-                </div>
-
-                {/* SIGNUP LINK */}
-                <p className="text-center text-sm pb-4">
-                  Don't have an account?{" "}
-                  <Link to="/signup" className="text-red-700 font-semibold hover:underline">
-                    Sign up here
-                  </Link>
-                </p>
-
-              </form>
+            {/* Email */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                required
+                autoComplete="email"
+              />
             </div>
-          </div>
+
+            {/* Password */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {loading && (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {loading ? 'Logging in…' : 'Login'}
+            </button>
+
+            {/* Links */}
+            <p className="mt-4 text-center text-sm text-gray-600">
+              Don&apos;t have an account?{' '}
+              <Link to="/signup" className="text-red-600 font-medium hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </form>
         </section>
       </main>
 

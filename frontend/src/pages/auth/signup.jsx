@@ -1,266 +1,85 @@
-import React, { useState } from 'react';
+// signup.jsx — Role selector page at /signup
+//
+// Simple card UI: pick Student or College, then route to the
+// dedicated registration form.
+
+import { Link } from 'react-router-dom';
 import Header from '../../Components/header';
 import Footer from '../../Components/footer';
-import { Link, useNavigate } from 'react-router-dom';
-import image15 from "../../assets/images/image/image15.png";
-import api from "../../services/api";               // ✅ central api instance, not raw axios
 
 function Signup() {
-  // ─────────────────────────────────────────
-  // STATE
-  // ─────────────────────────────────────────
-  const [form, setForm] = useState({
-    institutional_name: '',
-    province: '',
-    city: '',
-    street_address: '',
-    website: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirm_password: '',                           // ✅ field now exists in state
-  });
-  const [error, setError]     = useState('');      // ✅ inline errors instead of alert()
-  const [loading, setLoading] = useState(false);   // ✅ prevent double submit
-
-  const navigate = useNavigate();                  // ✅ redirect after signup
-
-  // ─────────────────────────────────────────
-  // HANDLERS
-  // ─────────────────────────────────────────
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setError('');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    // Client-side validation
-    if (form.password !== form.confirm_password) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Strip confirm_password — backend doesn't need it
-      const { confirm_password, ...payload } = form;
-
-      await api.post('/auth/signup', payload);     // ✅ no hardcoded URL
-
-      navigate('/login');                          // ✅ redirect to login after signup
-
-    } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ─────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────
   return (
     <>
       <Header />
-      <main className="h-full mt-37.5">
-        <section
-          className="relative flex flex-col items-center justify-center w-340 h-300 bg-cover bg-center rounded-3xl mx-auto overflow-hidden"
-          style={{ backgroundImage: `url(${image15})` }}
-        >
-          <div className="absolute inset-0 bg-white/60"></div>
 
-          <p className="text-4xl text-center font-semibold z-10 mt-10">
-            Create your account
-          </p>
+      <main className="min-h-screen pt-24 pb-16 flex flex-col items-center justify-center px-4">
 
-          <div className="bg-red-400/55 w-200.75 flex flex-col h-auto items-center rounded-4xl px-4 py-4 p-10 mt-2 mb-10">
-            <div className="relative w-full h-full flex flex-col z-10 gap-6">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-gray-900">Create an account</h1>
+          <p className="text-gray-500 mt-2">Who are you registering as?</p>
+        </div>
 
-              <p className="text-2xl font-semibold text-left mt-12 mx-auto">
-                Sign Up to start your scholarship journey
-              </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
 
-              <div className="text-1xl font-semibold text-left flex mx-auto">
-                <span>Student Signup / </span>
-                <span className="text-red-700">Institution Signup</span>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-sm text-center mx-auto w-full max-w-lg">
-                  {error}
-                </div>
-              )}
-
-              {/* Form */}
-              <form
-                onSubmit={handleSubmit}
-                className="mx-auto flex flex-col gap-y-5 w-140"
-              >
-                {/* Institution Name */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="institutional_name" className="text-left">
-                    Name of Institution
-                  </label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="text"
-                    id="institutional_name"
-                    name="institutional_name"
-                    value={form.institutional_name}
-                    onChange={handleChange}
-                    placeholder="Institution name"
-                    required
-                  />
-                </div>
-
-                {/* Province */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="province" className="text-left">Province</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="text"
-                    id="province"
-                    name="province"
-                    value={form.province}
-                    onChange={handleChange}
-                    placeholder="Province"
-                    required
-                  />
-                </div>
-
-                {/* City */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="city" className="text-left">City</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={form.city}
-                    onChange={handleChange}
-                    placeholder="City"
-                  />
-                </div>
-
-                {/* Street Address */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="street_address" className="text-left">Street Address</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="text"
-                    id="street_address"
-                    name="street_address"
-                    value={form.street_address}
-                    onChange={handleChange}
-                    placeholder="Street address"
-                  />
-                </div>
-
-                {/* Website */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="website" className="text-left">Website</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="url"
-                    id="website"
-                    name="website"
-                    value={form.website}
-                    onChange={handleChange}
-                    placeholder="https://example.com"
-                    required
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="email" className="text-left">Email</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="email@example.com"
-                    required
-                  />
-                </div>
-
-                {/* Phone */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="phone" className="text-left">Phone</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    placeholder="Phone number"
-                    required
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="password" className="text-left">Password</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="Create a password"
-                    required
-                  />
-                </div>
-
-                {/* Confirm Password */}
-                <div className="flex flex-col ml-4 w-full h-18">
-                  <label htmlFor="confirm_password" className="text-left">Confirm Password</label>
-                  <input
-                    className="border-white bg-slate-50 border-2 rounded-sm w-full h-12 p-2"
-                    type="password"
-                    id="confirm_password"
-                    name="confirm_password"
-                    value={form.confirm_password}
-                    onChange={handleChange}
-                    placeholder="Repeat your password"
-                    required
-                  />
-                </div>
-
-                {/* Submit */}
-                <div className="flex justify-center mt-4 mb-8">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-10 py-3 rounded-3xl transition-colors duration-200"
-                  >
-                    {loading ? 'Registering...' : 'Sign Up'}
-                  </button>
-                </div>
-
-                {/* Login Link */}
-                <p className="text-center text-sm pb-4">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-red-700 font-semibold hover:underline">
-                    Login here
-                  </Link>
-                </p>
-
-              </form>
+          {/* Student Card */}
+          <Link
+            to="/signup/student"
+            className="group flex flex-col items-center justify-center gap-4 bg-white border-2 border-gray-200 hover:border-red-500 rounded-2xl p-10 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
+              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14c3.866 0 7 1.343 7 3v1H5v-1c0-1.657 3.134-3 7-3zm0-2a4 4 0 100-8 4 4 0 000 8z" />
+              </svg>
             </div>
-          </div>
-        </section>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
+                I am a Student
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Search and apply for scholarships
+              </p>
+            </div>
+            <span className="mt-2 text-sm font-medium text-red-600 group-hover:underline">
+              Register as Student →
+            </span>
+          </Link>
+
+          {/* College Card */}
+          <Link
+            to="/signup/college"
+            className="group flex flex-col items-center justify-center gap-4 bg-white border-2 border-gray-200 hover:border-red-500 rounded-2xl p-10 shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-full bg-red-50 group-hover:bg-red-100 flex items-center justify-center transition-colors">
+              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3L2 9l10 6 10-6-10-6zM2 17l10 6 10-6M2 13l10 6 10-6" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
+                I am a College
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Post scholarships and review applications
+              </p>
+            </div>
+            <span className="mt-2 text-sm font-medium text-red-600 group-hover:underline">
+              Register as College →
+            </span>
+          </Link>
+
+        </div>
+
+        <p className="mt-8 text-sm text-gray-500">
+          Already have an account?{' '}
+          <Link to="/login" className="text-red-600 font-medium hover:underline">
+            Log in
+          </Link>
+        </p>
+
       </main>
+
       <Footer />
     </>
   );

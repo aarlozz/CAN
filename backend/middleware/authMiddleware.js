@@ -1,26 +1,31 @@
-// JWT verification
+import jwt from "jsonwebtoken";
 
-const jwt = require("jsonwebtoken");
+//protext esari use garrepaxi paxi sabbai ma hamle protect use garna apauxam aaba
 
-const protect = (req,res,next) => {
-    let token;
-    if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith("Bearer")
-    ) {
-        token = req.headers.authorization.split(" ")[1];
-    }
-    if (!token) {
-        return res.status(401).json({message: "Not authorized, no token"});
-    }
+    //hamro jaile panni frontend ko request header ko architecture:
+    // request header Authorization : Bearer <token> hunxa
+    // so yo code le suthorization ma Bearera bata suru hunxa ki hunna hera
+    // Bearer bata suru vako xa vane aaba teslai split garxa aani token matra linxa
+    // condition ? if-true : if-false condition rakheko ho
+  
 
-    try{
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (error){
-        res.status(401).json({message: "Token failed to verify"});
-    }
+export const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized Access, No token" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
 };
 
-module.exports = protect;
+

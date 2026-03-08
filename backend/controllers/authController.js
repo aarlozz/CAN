@@ -1,82 +1,107 @@
-// Login & signup logic
 
-const User = require("../models/User");
-const bcrypt = require("bcryptjs");
+import InstitutionProfile from "../models/InstitutionProfile.js";
+import User from "../models/User.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
+export const newInstitutionSignup = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      institutionName,
+      institutionType,
+      establishedYear,
+      location,
+      website,
+      description,
+      contactPerson,
+    } = req.body;
 
+    //now we check if there is existing insititution by checking the email fo the institution in user
 
-// Signup controller
-exports.signup = async (req,res) => {
-    try{
-        const{name,email,password} = req.body;
-
-        // 1. Check is user already exists
-        const userExists = await User.findOne({email});
-        if (userExists){
-            return res.status(400).json({message: "User already exists"});
-        }
-
-        // 2. Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password,salt);
-
-        // 3.Create User
-        const user = await User.create({
-            name,
-            email,
-            password: hashedPassword,
-        });
-
-        //4. Send response
-        res.status(201).json({
-            message: "User created Successfully",
-            userId: user._id
-        });
-    } catch (error){
-        console.error("Signup error:", error);
-        res.status(500).json({message: error.message});
+    const existingInstitution = await User.findOne({ email });
+    if (existingInstitution) {
+      return res.status(400).json({ message: "User already exists" });
     }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    //suru ma role"institution" rakhera user baanyo
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "institution",
+    });
+    //tyo user lai reference le link gareko xa
+    //esma user: user._id le aaba tya baneko user sanga connect garyo
+    await InstitutionProfile.create({
+  user: user._id,
+  institutionName,
+  institutionType,
+  establishedYear,
+  website,
+  location: {
+    province: location?.province || "",
+    district: location?.district || "",
+    municipality: location?.municipality || "",
+    ward: location?.ward || "",
+    street: location?.street || "",
+  },
+  description: description || "",
+  contactPerson: {
+    name: contactPerson?.name || "",
+    phone: contactPerson?.phone || "",
+    email: contactPerson?.email || "",
+    designation: contactPerson?.designation || "",
+  },
+
+    });
+
+   return  res
+      .status(201)
+      .json({ message: "Your institution has been registered successfully" });
+  } catch (error) {
+    console.error("Signup error:", error);
+    return res.status(500).json({ message: "There has been a problem. " });
+  }
 };
+// yo chai login ko lagi
 
-
-// Login controller (to be implemented)
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
-
-exports.login = async( req,res) => {
-    try{
-        const{ email,password} = req.body;
-
-        // Check if user exists
-        const user = await User.findOne({email});
-        if (!user){
-            return res.status(400).json({message:"Invalid Credentials"});
-        }
-        // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch){
-            return res.status(400).json({message: "Invalid Credentails"});
-        }
-        // Generate JWT
-        const token = jwt.sign(
-            {id: user._id},
-            process.env.JWT_SECRET,
-            {expiresIn: "1h"}
-            
-        );
-        // Send response
-        res.json({
-            message: "Login Successful",
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email
-            }
-        });
-
-
-    } catch (error){
-        res.status(500).json({message: error.message});
+export const institutionLogin = async (req, res) => {
+  try {
+    //user ko email password liyo suruma
+    const { email, password } = req.body;
+    //email ma existing user ma xaina vane invalid vanne
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid Credentials. Please try again!" });
     }
+    if (user.role !== "institution") {
+      return res.status(400).json({ message: "Access Denied " });
+    }
+
+    //aba password match hunxa ki hunna herney if hunna vane invalid vanne
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid Credentials" });
+    }
+
+    //now we used JWT token to create token for each user after login and send it to frontend
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
+    res.json({
+      token,
+      role: user.role,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 };

@@ -1,16 +1,12 @@
-// Express configuration
+import express from "express";
+import cors from "cors";
 
+import authroutes from "../backend/routes/authRoutes.js";
+import institutionroutes from "../backend/routes/institutionRoutes.js";
 
+import dotenv from "dotenv";
 
-
-// app.js
-const express = require("express");
-const cors = require("cors");
-
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
-
-require("dotenv").config();
+dotenv.config();
 
 const app = express();
 
@@ -18,12 +14,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth",authRoutes);
-app.use("/api/user",userRoutes);
+
+app.use("/api/auth", authroutes);
+app.use("/api/institution", institutionroutes);
 
 // Test route
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-module.exports = app;
+export default app;

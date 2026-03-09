@@ -25,17 +25,22 @@ const {
 
 const router = express.Router();
 
-// ── Public routes — no auth needed ────────────────────────────────
-// IMPORTANT: /list must be defined BEFORE /:id
-// otherwise Express matches "list" as an :id param
-router.get('/list', listColleges);
-router.get('/:id',  getCollegeById);
+// ── IMPORTANT: All specific named routes MUST be defined BEFORE /:id ──────────
+// Express matches routes in order. If /:id comes first, requests to
+// /profile, /verification, /list, /courses will be caught with those
+// words treated as the :id param — causing ObjectId cast errors or wrong handlers.
 
-// ── Protected routes — college role only ──────────────────────────
+// ── Public named route ─────────────────────────────────────────────────────────
+router.get('/list', listColleges);
+
+// ── Protected named routes (college role only) ─────────────────────────────────
 router.get('/profile',               protect, authorize('college'), getMyProfile);
 router.put('/profile',               protect, authorize('college'), updateMyProfile);
 router.get('/verification',          protect, authorize('college'), getVerification);
 router.post('/courses',              protect, authorize('college'), addCourse);
 router.delete('/courses/:courseId',  protect, authorize('college'), removeCourse);
+
+// ── Public wildcard — MUST be last ────────────────────────────────────────────
+router.get('/:id', getCollegeById);
 
 module.exports = router;

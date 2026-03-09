@@ -3,12 +3,12 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',  // ✅ VITE_ prefix (not REACT_APP_)
-  timeout: 10000,            // prevent hanging requests
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,     // enables cookies/auth headers
+  withCredentials: true,
 });
 
 // ─────────────────────────────────────────
@@ -16,7 +16,7 @@ const api = axios.create({
 // ─────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('can_token'); // ✅ matches AuthContext key
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,7 +32,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem('can_token');   // ✅ matches AuthContext key
+      localStorage.removeItem('can_user');
+      localStorage.removeItem('can_profile');
       window.location.href = '/login';
     }
     return Promise.reject(error);

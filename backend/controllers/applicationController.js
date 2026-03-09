@@ -397,13 +397,3 @@ exports.reviewApplication = asyncHandler(async (req, res) => {
     },
   });
 });
-
-// applicationController.js — after submitApplication creates the app:
-createNotification({ userId: req.user._id, notificationType: 'application_submitted',
-  title: 'Application submitted', message: `Applied to ${scholarship.scholarshipTitle}`, priority: 'medium'
-});
-  
-// applicationController.js — after reviewApplication (approved):
-createNotification({ userId: studentUser._id, notificationType: 'application_approved',
-  title: 'Application approved!', message: `Your application to ${scholarship.scholarshipTitle} has been approved.`, priority: 'high'
-});

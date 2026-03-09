@@ -334,9 +334,3 @@ exports.getStats = asyncHandler(async (req, res) => {
     },
   });
 });
-
-// adminController.js — after verifyCollege:
-createNotification({ userId: college.userId, notificationType: 'college_verified',
-    title: 'Your college has been verified', priority: 'high'
-});
-  

@@ -8,11 +8,11 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import Header from '../Components/header';
-import Footer from '../Components/footer';
-import image15 from '../assets/images/image/image15.png';
-import api from '../services/api';
-import { useAuth, DASHBOARD_ROUTES } from '../context/AuthContext';
+import Header from '../../Components/header';
+import Footer from '../../Components/footer';
+import image15 from '../../assets/images/image/image15.png';
+import api from '../../services/api';
+import { useAuth, DASHBOARD_ROUTES } from '../../context/AuthContext';
 
 function Login() {
   const [form,    setForm]    = useState({ email: '', password: '' });

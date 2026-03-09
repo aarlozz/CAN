@@ -1,9 +1,9 @@
 import mongoose from "mongoose"
+//yo sababi schema haru ko name milaunu xa ahile
 
-
-new studentSchema = new mongoose.Schema({
+const studentSchema = new mongoose.Schema({
     user:{
-        type: mongoose. Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
         unique: true
@@ -70,7 +70,7 @@ guardian_info:{
 }, {timestamps: true});
 
 studentSchema.index({ 'address.province': 1})
-studentSchema.index({ 'address.address': 1})
+studentSchema.index({ 'address.districtt': 1})
 
 export default mongoose.model('StudentProfile', studentSchema)
 

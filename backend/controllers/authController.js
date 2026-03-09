@@ -4,6 +4,8 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+
+
 export const newInstitutionSignup = async (req, res) => {
   try {
     const {

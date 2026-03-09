@@ -60,9 +60,9 @@ export const signup = async (req, res) => {
         },
 
         guardian_info: {
-          guardian_name: guardian_info?.guardian_name || "",
+          name: guardian_info?.name || "",
           relation: guardian_info?.relation || "",
-          guardian_phone: guardian_info?.guardian_phone || "",
+          phone_number: guardian_info?.phone_number || "",
           occupation: guardian_info?.occupation || "",
         },
       });
@@ -85,6 +85,7 @@ export const signup = async (req, res) => {
       //aba Institution banaune huss
 
       await InstitutionProfile.create({
+        user: user._id,
         institutionName,
         institutionType,
         establishedYear,
@@ -98,33 +99,67 @@ export const signup = async (req, res) => {
         },
         description: description || "",
         contactPerson: {
-          contact_name: contactPerson?.name || "",
-          contact_phone: contactPerson?.phone || "",
-          contact_email: contactPerson?.email || "",
-          contact_designation: contactPerson?.designation || "",
+          name: contactPerson?.name || "",
+          phone: contactPerson?.phone || "",
+          email: contactPerson?.email || "",
+          designation: contactPerson?.designation || "",
         },
       });
     }
 
-
     return res.status(201).json({
-      message:"Signup successful"
+      message: "Signup successful",
+    });
+  } catch (error) {
+    console.error(error);
 
-    })
-  } catch (error) {console.error(error)
-
-    return res.status(500).json({messsage: "server error"})
+    return res.status(500).json({ messsage: "server error" });
   }
 };
 
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    //user xa ki xaina match xaina vane invalid credentila vanne
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    //password check garney user ko paaword ra hale hash gareko password change gareny
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invlaid credentials" });
+    }
 
-export const login = async(req, res)=>{
-  cons
-  
+    let profile = null;
+    //user ko role anushar find gareny
+    //harek ko studemt profile ko remaining data like dob, guardian_info is held by profile
+    //profile chai temporary variable ho
+    // ani user:user._id herera hamle tya tyo user xa ki xaina hernu parxa
+    if (user.role === "student") {
+      profile = await StudentProfile.findOne({ user: user._id });
+    }
 
+    if (user.role === "institution") {
+      profile = await InstitutionProfile.findOne({ user: user._id });
+    }
 
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "1d" },
+    );
 
-
-
-
-}
+    //esle chai frontend lai message, create gareko jwt token pathayo ani
+    // // user ko role ani profile( user ko credential bahek remaining data pathat)
+    res.json({
+      message: "Login successful",
+      token,
+      role: user.role,
+      profile,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(400).json({ message: "Server error" });
+  }
+};

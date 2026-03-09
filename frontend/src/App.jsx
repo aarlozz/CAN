@@ -1,18 +1,50 @@
-import { Routes, Route } from "react-router-dom";
-import Signup from "./pages/auth/signup";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import InstitutionSignup from "./pages/auth/institutionsignup";
-import InstitutionLogin from "./pages/auth/institutionallogin";
-import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
+import Login from "./pages/Login";
+import StudentSignup from "./pages/StudentSignup";
+import InstitutionSignup from "./pages/InstitutionSignup";
+
+import StudentDashboard from "./pages/StudentDashboard";
+import InstitutionDashboard from "./pages/InstitutionDashboard";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+
 function App() {
+
   return (
-    <Routes>
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/" element={<InstitutionSignup />} />
-      <Route path="/login-institution" element={<InstitutionLogin />} />
-     <Route path="/dashboard-institution" element={<InstitutionalDashboard />} />
-      
-    </Routes>
+
+    <BrowserRouter>
+
+      <Routes>
+
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/student/signup" element={<StudentSignup />} />
+
+        <Route path="/institution/signup" element={<InstitutionSignup />} />
+
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedRoute role="student">
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/institution/dashboard"
+          element={
+            <ProtectedRoute role="institution">
+              <InstitutionDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+      </Routes>
+
+    </BrowserRouter>
+
   );
 }
 

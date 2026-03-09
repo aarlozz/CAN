@@ -70,7 +70,7 @@ guardian_info:{
 }, {timestamps: true});
 
 studentSchema.index({ 'address.province': 1})
-studentSchema.index({ 'address.districtt': 1})
+studentSchema.index({ 'address.district': 1})
 
 export default mongoose.model('StudentProfile', studentSchema)
 

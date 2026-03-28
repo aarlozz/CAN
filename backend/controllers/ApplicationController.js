@@ -1,5 +1,5 @@
-import Application from "../models/Application";
-import StudentProfile from "../models/StudentProfile";
+import Application from "../models/Application.js";
+import StudentProfile from "../models/StudentProfile.js";
 
 export const applytToInstitution = async (req, res) => {
   try {

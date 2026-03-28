@@ -1,4 +1,4 @@
-import mongoose, { now } from "mongoose";
+import mongoose from "mongoose";
 
 const applicationSchema = new mongoose.Schema(
   {
@@ -6,14 +6,14 @@ const applicationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "StudentProfile",
       required: true,
-      unique: true,
+      
     },
 
-    institution:{
-      type: mongoose.Schema.Typesd.ObjectId,
+    institution: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "InstitutionProfile",
       required: true,
-      unique: true,
+      
     },
 
     status: {
@@ -22,7 +22,7 @@ const applicationSchema = new mongoose.Schema(
       default: "pending",
     },
     appliedAt: {
-      date: now,
+      type: Date,
       default: Date.now,
     },
   },

@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export default function Header() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
+  const role = localStorage.getItem("role");
+  const userType = !token ? "guest" : role;
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -17,32 +18,71 @@ export default function Header() {
 
   const isActive = (path) => location.pathname === path;
 
-  const navLink = (to, label) => (
-    <Link
-      to={to}
-      className={`text-sm font-medium transition-colors ${
-        isActive(to) ? "text-red-500 border-b-2 border-red-500 pb-0.5" : "text-gray-700 hover:text-red-500"
-      }`}
-      onClick={() => setMenuOpen(false)}
-    >
-      {label}
-    </Link>
-  );
+  const navLink = (to, label) => {
+    const isHashLink = to.includes("#");
+
+    // For section scrolling (About, Contact)
+    if (isHashLink) {
+      return (
+        <a
+          href={to}
+          className="text-sm font-medium text-gray-700 hover:text-red-500 transition-colors"
+          onClick={() => setMenuOpen(false)}
+        >
+          {label}
+        </a>
+      );
+    }
+
+    // Normal route navigation
+    return (
+      <Link
+        to={to}
+        className={`text-sm font-medium transition-colors ${
+          isActive(to)
+            ? "text-red-500 border-b-2 border-red-500 pb-0.5"
+            : "text-gray-700 hover:text-red-500"
+        }`}
+        onClick={() => setMenuOpen(false)}
+      >
+        {label}
+      </Link>
+    );
+  };
+  const navConfig = {
+    guest: [
+      { path: "/#home", label: "Home" },
+      { path: "/#about", label: "About Us" },
+      { path: "/#contact", label: "Contact" },
+    ],
+    student: [
+      { path: "/", label: "Home" },
+      { path: "/institutions", label: "Institutions" },
+      { path: "/dashboard-student", label: "Dashboard" },
+    ],
+    institution: [
+      { path: "/", label: "Home" },
+      { path: "/dashboard-institution", label: "Dashboard" },
+      { path: "/manage-scholarships", label: "Manage Scholarships" },
+    ],
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-red-600 font-extrabold text-xl tracking-tight">CAN</span>
-          <span className="text-gray-500 text-xs font-medium hidden sm:inline">Scholarship Portal</span>
+          <span className="text-red-600 font-extrabold text-xl tracking-tight">
+            CAN
+          </span>
+          <span className="text-gray-500 text-xs font-medium hidden sm:inline">
+            Scholarship Portal
+          </span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLink("/", "Home")}
-          {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
-          {token && navLink("/institutions", "Institutions")}
+          {navConfig[userType]?.map((item) => navLink(item.path, item.label))}
         </nav>
 
         {/* Auth Actions */}
@@ -78,11 +118,27 @@ export default function Header() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {menuOpen
-              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            }
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {menuOpen ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            )}
           </svg>
         </button>
       </div>
@@ -90,9 +146,7 @@ export default function Header() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
-          {navLink("/", "Home")}
-          {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
-          {token && navLink("/institutions", "Institutions")}
+          {navConfig[userType]?.map((item) => navLink(item.path, item.label))}
           {!token ? (
             <>
               {navLink("/login", "Login")}

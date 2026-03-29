@@ -9,8 +9,10 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -24,7 +26,7 @@ export default function Login() {
       if (res.data.role === "institution") {
         navigate("/dashboard-institution");
       } else if (res.data.role === "student") {
-        navigate("/");           // placeholder until student dashboard exists
+        navigate("/dashboard-student");
       } else {
         navigate("/");
       }

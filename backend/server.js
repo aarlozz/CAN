@@ -1,17 +1,21 @@
-// Server entry point
+
+import dotenv from "dotenv"
+dotenv.config()
+
+import app from "../backend/app.js"
+import connectionDM from "../backend/config/db.js"
 
 
-// server.js
-const app = require("./app");
-const connectionDM = require("./config/db");
-const Institutional = require("./models/Instutional");
-require("dotenv").config();
-
+const PORT = process.env.PORT||5000
 
 connectionDM();
 
-const PORT = process.env.PORT ;
+app.listen(PORT, ()=> 
+  
+    {
+  console.log(`server running on ${PORT}`)})
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+
+
+
+

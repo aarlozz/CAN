@@ -1,28 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Login from './pages/auth/login'
-import Header from './Components/header'
-import Footer from './Components/footer'
-import Signup from './pages/auth/signup'
-import Home from './pages/home'
-import {Routes, Route} from 'react-router-dom'
-
+import { Routes, Route } from "react-router-dom";
+import Home from "./pages/home";
+import Login from "./pages/auth/login";
+import Signup from "./pages/auth/signup";
+import InstitutionSignup from "./pages/auth/institutionsignup";
+import InstitutionLogin from "./pages/auth/institutionallogin";
+import InstitutionList from "./pages/auth/InstitutionList";
+import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord"; // keep your existing filename
+import StudentDashboard from "./pages/Dashboard/studentdashboard";
+import ProtectedRoute from "./Components/ProtectedRoute";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/signup' element={<Signup />} />
-      </Routes>
-      
-    </>
-  )
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/signup-institution" element={<InstitutionSignup />} />
+      <Route path="/login-institution" element={<InstitutionLogin />} />
+
+      {/* Protected — Institution */}
+      <Route
+        path="/dashboard-institution"
+        element={
+          <ProtectedRoute allowedRoles={["institution"]}>
+            <InstitutionalDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected — Student */}
+      <Route
+        path="/dashboard-student"
+        element={
+          <ProtectedRoute allowedRoles={["student"]}>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected — any logged-in user */}
+      <Route
+        path="/institutions"
+        element={
+          <ProtectedRoute allowedRoles={["student", "institution", "district_admin", "province_admin", "super_admin"]}>
+            <InstitutionList />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

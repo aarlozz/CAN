@@ -1,6 +1,7 @@
 //   MongoDB connection
 
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
 
 const connectionDM = async () => {
     try {
@@ -12,4 +13,4 @@ const connectionDM = async () => {
     }
 };
 
-module.exports = connectionDM;
+export default connectionDM

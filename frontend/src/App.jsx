@@ -16,6 +16,9 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/all-institutions" element={<InstitutionList />} />
+      
+
 
 
       {/* Protected — Institution */}
@@ -38,7 +41,7 @@ function App() {
         }
       />
 
-      {/* Protected — any logged-in user */}
+      {/* Protected — any logged-in user
       <Route
         path="/institutions"
         element={
@@ -46,7 +49,7 @@ function App() {
             <InstitutionList />
           </ProtectedRoute>
         }
-      />
+      /> */}
     </Routes>
   );
 }

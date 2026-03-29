@@ -1,5 +1,5 @@
-import InstitutionProfile from "../models/InstitutionProfile";
-import Scholarship from "../models/Scholarship";
+import InstitutionProfile from "../models/InstitutionProfile.js";
+import Scholarship from "../models/Scholarship.js";
 
 export const createScholarship = async (req, res) => {
   try {
@@ -14,16 +14,36 @@ export const createScholarship = async (req, res) => {
       user: req.user.id,
     });
     if (!insititution) {
-      return res.status(500).json({ message: "Institution not found" });
+      return res.status(404).json({ message: "Institution not found" });
     }
 
-    const { scholarshipTitle } = req.body;
-
-    Scholarship.create({
-      insititution: insititution._id,
+    const {
       scholarshipTitle,
+      coverage,
+      eligibilityCriteria,
+      totalSeats,
+      remainingSeats,
+      description,
+      termsandCondition,
+      deadline,
+    } = req.body;
+
+    await Scholarship.create({
+      institution: institution._id,
+      scholarshipTitle,
+      coverage,
+      eligibilityCriteria,
+      totalSeats,
+      remainingSeats,
+      description,
+      termsandCondition,
+      deadline,
     });
 
-    return res.status(200).json({message:"Scholarship added successfully"})
-  } catch {error}
+    return res.status(200).json({ message: "Scholarship added successfully" });
+  } catch (error) {
+    return res.status(400).json({
+      message: "internal server error institution cant create scholarship",
+    });
+  }
 };

@@ -14,7 +14,7 @@ const scholarshipSchema = new mongoose.Schema(
     },
     //Coverage of Schoalrship
     coverage: {
-      scholarshiptype: {
+      scholarshipType: {
         type: String,
         enum: [
           "full_tuition",
@@ -98,12 +98,10 @@ const scholarshipSchema = new mongoose.Schema(
       min: 0,
 
       validate: {
-        validate: {
-          validator: function (val) {
-            return val <= this.totalSeats;
-          },
-          message: "remainingSeats cannot exceed totalSeats",
+        validator: function (val) {
+          return val <= this.totalSeats;
         },
+        message: "remainingSeats cannot exceed totalSeats",
       },
     },
 
@@ -118,7 +116,7 @@ scholarshipSchema.index({ institution: 1 });
 scholarshipSchema.index({ scholarshipTitle: 1 });
 scholarshipSchema.index({ "coverage.scholarshipAmountNpr": 1 });
 scholarshipSchema.index({ "coverage.scholarshipType": 1 });
-scholarshipSchema.index({ "location.province": 1 });
-scholarshipSchema.index({ "location.district": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.location.province": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.location.district": 1 });
 
 export default mongoose.model("Scholarship", scholarshipSchema);

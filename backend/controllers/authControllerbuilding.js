@@ -26,6 +26,7 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      
     });
 
     // ============================  Student Signup  ============================
@@ -65,6 +66,7 @@ export const signup = async (req, res) => {
         website,
         description,
         contactPerson,
+        status, 
       } = req.body;
 
       await InstitutionProfile.create({
@@ -86,8 +88,9 @@ export const signup = async (req, res) => {
           phone: contactPerson?.phone || "",
           email: contactPerson?.email || "",
           designation: contactPerson?.designation || "",
+          password: contactPerson?.password ? await bcrypt.hash(contactPerson.password, 12) : "",
         },
-        isApproved: true, // ✅ Auto-approve on creation
+        status: status || "pending",
       });
     }
 

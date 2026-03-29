@@ -56,12 +56,10 @@ export default function Header() {
       { path: "/#contact", label: "Contact" },
     ],
     student: [
-      { path: "/", label: "Home" },
       { path: "/institutions", label: "Institutions" },
       { path: "/dashboard-student", label: "Dashboard" },
     ],
     institution: [
-      { path: "/", label: "Home" },
       { path: "/dashboard-institution", label: "Dashboard" },
       { path: "/manage-scholarships", label: "Manage Scholarships" },
     ],

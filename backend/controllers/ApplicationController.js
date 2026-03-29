@@ -1,6 +1,9 @@
 import Application from "../models/Application.js";
 import StudentProfile from "../models/StudentProfile.js";
 
+
+
+
 export const applytToInstitution = async (req, res) => {
   try {
     //fronetend bata hamro institutionid aauxa user le institution click garepaxi

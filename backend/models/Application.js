@@ -6,14 +6,12 @@ const applicationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "StudentProfile",
       required: true,
-      
     },
 
     institution: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "InstitutionProfile",
       required: true,
-      
     },
 
     status: {
@@ -28,5 +26,9 @@ const applicationSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+applicationSchema.index({ student: 1 });
+applicationSchema.index({ institution: 1 });
+applicationSchema.index({ status: 1 });
 
 export default mongoose.model("Appplication", applicationSchema);

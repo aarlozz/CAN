@@ -12,7 +12,7 @@ const scholarshipSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
+    //Coverage of Schoalrship
     coverage: {
       scholarshiptype: {
         type: String,
@@ -26,21 +26,23 @@ const scholarshipSchema = new mongoose.Schema(
           "ethnic",
         ],
         required: true,
+      },
 
-        scholarshipAmountNpr: {
-          type: Number,
-          min: 0,
-        },
+      scholarshipAmountNpr: {
+        type: Number,
+        min: 0,
+      },
 
-        scholarshipPercentage: {
-          type: Number,
-          min: 0,
-          max: 100,
-        },
+      scholarshipPercentage: {
+        type: Number,
+        min: 0,
+        max: 100,
       },
     },
 
-    eligilityCriteria: {
+    //Eligibilitycriteria
+
+    eligibilityCriteria: {
       targetlevel: {
         type: String,
         enum: ["plus_two", "bachelor", "master", "mphil", "phd", "diploma"],
@@ -57,6 +59,17 @@ const scholarshipSchema = new mongoose.Schema(
         required: true,
       },
 
+      location: {
+        province: {
+          type: String,
+          required: true,
+        },
+        district: {
+          type: String,
+          required: true,
+        },
+      },
+
       gender: {
         type: String,
         enum: ["male", "female", "other"],
@@ -64,13 +77,34 @@ const scholarshipSchema = new mongoose.Schema(
       },
 
       isNepali: {
-        type: Booelan,
-        default: true
+        type: Boolean,
+        default: true,
       },
 
-      hasdisability:{
+      hasDisability: {
+        type: Boolean,
+        default: false,
+      },
+    },
 
-      }
+    //Application details
+
+    totalSeats: {
+      type: Number,
+      min: 1,
+    },
+    remainingSeats: {
+      type: Number,
+      min: 0,
+
+      validate: {
+        validate: {
+          validator: function (val) {
+            return val <= this.totalSeats;
+          },
+          message: "remainingSeats cannot exceed totalSeats",
+        },
+      },
     },
 
     description: String,
@@ -82,6 +116,9 @@ const scholarshipSchema = new mongoose.Schema(
 );
 scholarshipSchema.index({ institution: 1 });
 scholarshipSchema.index({ scholarshipTitle: 1 });
-scholarshipSchema.index({ scholarshipAmount: 1 });
+scholarshipSchema.index({ "coverage.scholarshipAmountNpr": 1 });
+scholarshipSchema.index({ "coverage.scholarshipType": 1 });
+scholarshipSchema.index({ "location.province": 1 });
+scholarshipSchema.index({ "location.district": 1 });
 
 export default mongoose.model("Scholarship", scholarshipSchema);

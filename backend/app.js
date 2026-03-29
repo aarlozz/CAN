@@ -18,7 +18,7 @@ app.use(express.json());
 app.use("/api/auth", authroutes);
 app.use("/api/institution", institutionroutes);
 app.use("/api/authbuild", authbuildingroutes);
-app.use("/api/instituionall", institutionbuildingroutes);
+app.use("/api/institutional", institutionbuildingroutes);
 app.use("/api/student", studentroutes); // ✅ new — GET /api/student/dashboard-student
 
 app.get("/", (req, res) => {

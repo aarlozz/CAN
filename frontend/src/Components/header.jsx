@@ -56,10 +56,10 @@ export default function Header() {
                 Login
               </Link>
               <Link
-                to="/signup-institution"
+                to="/signup"
                 className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
               >
-                Register Institution
+                Register
               </Link>
             </>
           ) : (
@@ -96,7 +96,7 @@ export default function Header() {
           {!token ? (
             <>
               {navLink("/login", "Login")}
-              {navLink("/signup-institution", "Register Institution")}
+              {navLink("/signup", "Register")}
             </>
           ) : (
             <button

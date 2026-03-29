@@ -144,6 +144,7 @@ console.log(data);
               {data?.institutionType} · {loc.district}, {loc.province}
             </p>
           </div>
+
         </div>
 
         {/* Stats Row */}

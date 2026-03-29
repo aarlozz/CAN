@@ -47,7 +47,7 @@ export default function Home() {
                 Get Started
               </Link>
               <Link
-                to="/institutions"
+                to="/all-institutions"
                 className="bg-white border border-gray-200 hover:border-red-300 text-gray-700 font-semibold px-6 py-3 rounded-lg transition-colors shadow-sm"
               >
                 Browse Institutions
@@ -62,10 +62,10 @@ export default function Home() {
                 Hundreds of scholarships from verified institutions across all provinces.
               </p>
               <Link
-                to="/signup-institution"
+                to="/signup"
                 className="block text-center bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
-                Register as Institution →
+                Register →
               </Link>
             </div>
           </div>

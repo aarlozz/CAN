@@ -49,12 +49,24 @@ export default function Signup() {
       ward: "",
       street: "",
     },
-    contactPerson: { name: "", phone: "", email: "", designation: "" },
+    contactPerson: { name: "", phone: "", email: "", designation: "",password: "" },
   });
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
-  const setNested = (section, field, value) =>
-    setForm((f) => ({ ...f, [section]: { ...f[section], [field]: value } }));
+  const setNested = (section, field, value) => {
+    setForm((f) => {
+      let updated = { ...f, [section]: { ...f[section], [field]: value, },};
+
+    // 🔥 Sync logic
+    if (section === "contactPerson") {
+      if (field === "name") updated.name = value;
+      if (field === "email") updated.email = value;
+      if (field === "password") updated.password = value;
+    }
+
+    return updated;
+  });
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -475,7 +487,7 @@ export default function Signup() {
                   {sectionTitle("Contact Person")}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className={labelCls}>Name</label>
+                      <label className={labelCls}>Full Name</label>
                       <input
                         className={inputCls}
                         placeholder="Contact person name"
@@ -521,6 +533,17 @@ export default function Signup() {
                         onChange={(e) =>
                           setNested("contactPerson", "email", e.target.value)
                         }
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className={labelCls}>Password</label>
+                      <input
+                        className={inputCls}
+                        type="password"
+                        placeholder="••••••••"
+                        value={form.contactPerson.password}
+                        onChange={(e) => setNested("contactPerson","password", e.target.value)}
+                        required
                       />
                     </div>
                   </div>

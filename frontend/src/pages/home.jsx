@@ -26,7 +26,7 @@ export default function Home() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-red-50 to-white py-24">
+      <section id="home" className="bg-gradient-to-br from-red-50 to-white py-24">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
           <div className="md:w-1/2">
             <span className="inline-block bg-red-100 text-red-600 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
@@ -73,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* About */}
-      <section className="bg-gray-50 py-20">
+      <section id="about" className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
           <div className="md:w-1/2 flex justify-center">
             <div className="w-64 h-64 bg-red-100 rounded-full flex items-center justify-center text-8xl">

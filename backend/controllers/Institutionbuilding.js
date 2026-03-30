@@ -1,19 +1,6 @@
 import InstitutionProfile from "../models/InstitutionProfile.js";
 import Application from "../models/Application.js";
 
-<<<<<<< HEAD
-
-export const getAllInstitutions = async (req, res) => {
-  try {
-    const institutions = await InstitutionProfile
-      .find()
-      .populate("user", "name email");
-
-    res.json({ institutions });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error" });
-=======
 export const getInstitutionData = async (req, res) => {
   try {
     const institution = await InstitutionProfile.findOne({
@@ -52,7 +39,6 @@ export const getApplicationData = async (req, res) => {
     return res.status(400).json({
       message: console.message,
     });
->>>>>>> kiran
   }
 };
 

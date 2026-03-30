@@ -28,7 +28,6 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      
     });
 
     // ============================  Student Signup  ============================
@@ -68,7 +67,7 @@ export const signup = async (req, res) => {
         website,
         description,
         contactPerson,
-        status, 
+        status,
       } = req.body;
 
       await InstitutionProfile.create({
@@ -90,7 +89,9 @@ export const signup = async (req, res) => {
           phone: contactPerson?.phone || "",
           email: contactPerson?.email || "",
           designation: contactPerson?.designation || "",
-          password: contactPerson?.password ? await bcrypt.hash(contactPerson.password, 12) : "",
+          password: contactPerson?.password
+            ? await bcrypt.hash(contactPerson.password, 12)
+            : "",
         },
         status: status || "pending",
       });
@@ -127,7 +128,7 @@ export const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET_KEY,
+      process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 

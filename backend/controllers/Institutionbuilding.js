@@ -14,7 +14,7 @@ export const getInstitutionData = async (req, res) => {
     //hamle esma insituton ko individual data like
     // res.json({ institutionName: institution.institutuionName, institutionType: institution.institutionType})
     // vanera aafnai chailyeko data matra lida hunxa
-    res.json({ institution });
+    res.json(institution);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -42,7 +42,6 @@ export const getApplicationData = async (req, res) => {
   }
 };
 
-
 // export const getInstitutionData = async (req, res) => {
 
 //     try{
@@ -60,6 +59,6 @@ export const getApplicationData = async (req, res) => {
 // catch(error){
 //     console.error(error)
 //     return res.status(500).json({message:"Internal server error"})
-        
+
 // }
 // };

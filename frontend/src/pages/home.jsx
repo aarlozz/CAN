@@ -128,10 +128,10 @@ export default function Home() {
             Register today and connect with thousands of students seeking scholarships.
           </p>
           <Link
-            to="/signup-institution"
+            to="/signup"
             className="bg-white text-red-500 hover:bg-red-50 font-bold px-8 py-3 rounded-lg transition-colors shadow-sm inline-block"
           >
-            Register Institution
+            Register
           </Link>
         </div>
       </section>

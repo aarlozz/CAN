@@ -1,4 +1,3 @@
-import { getAllInstitutions } from "../controllers/Institutionbuilding.js";
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import { getApplicationData } from "../controllers/Institutionbuilding.js";

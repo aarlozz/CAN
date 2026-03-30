@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+
 import dotenv from "dotenv";
 
 import authroutes from "./routes/authRoutes.js";
@@ -15,12 +16,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", authroutes);
-app.use("/api/institution", institutionroutes);
-app.use("/api/authbuild", authbuildingroutes);
-app.use("/api/institutional", institutionbuildingroutes);
-app.use("/api/student", studentroutes); // ✅ new — GET /api/student/dashboard-student
 
+app.use("/api/authbuild", authbuildingroutes);
+app.use("/api/instituion", institutionbuildingroutes);
+app.use("/api/scholarship", scholarshiproutes);
+
+// Test route
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

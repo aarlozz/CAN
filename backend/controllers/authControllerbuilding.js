@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export const signup = async (req, res) => {
+  //we crreate a universal signup for all of these
+
   try {
     const { name, email, password, role } = req.body;
 
@@ -125,8 +127,8 @@ export const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: "1d" },
     );
 
     res.json({

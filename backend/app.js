@@ -3,11 +3,10 @@ import cors from "cors";
 
 import dotenv from "dotenv";
 
-import authroutes from "./routes/authRoutes.js";
-import institutionroutes from "./routes/institutionRoutes.js";
-import authbuildingroutes from "./routes/authbuildingRoutes.js";
-import institutionbuildingroutes from "./routes/InstitutionbuildingRoutes.js";
-import studentroutes from "./routes/studentRoutes.js"; // ✅ new
+
+import authbuildingroutes from "../backend/routes/authbuildingRoutes.js"
+import institutionbuildingroutes from "../backend/routes/InstitutionbuildingRoutes.js"
+import scholarshiproutes from "../backend/routes/Scholarshiproutes.js"
 
 dotenv.config();
 
@@ -15,7 +14,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
 
 app.use("/api/authbuild", authbuildingroutes);
 app.use("/api/instituion", institutionbuildingroutes);

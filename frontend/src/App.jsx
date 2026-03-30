@@ -16,8 +16,10 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/signup-institution" element={<InstitutionSignup />} />
-      <Route path="/login-institution" element={<InstitutionLogin />} />
+      <Route path="/all-institutions" element={<InstitutionList />} />
+      
+
+
 
       {/* Protected — Institution */}
       <Route
@@ -39,7 +41,7 @@ function App() {
         }
       />
 
-      {/* Protected — any logged-in user */}
+      {/* Protected — any logged-in user
       <Route
         path="/institutions"
         element={
@@ -47,7 +49,7 @@ function App() {
             <InstitutionList />
           </ProtectedRoute>
         }
-      />
+      /> */}
     </Routes>
   );
 }

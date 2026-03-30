@@ -20,12 +20,10 @@ export default function InstitutionList() {
   const [filterType, setFilterType] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { navigate("/login"); return; }
 
-    // Correct backend route: GET /api/instituionall/all-institution (protected)
-    fetch(`${API}/api/instituionall/all-institution`, {
-      headers: { Authorization: `Bearer ${token}` },
+
+    // Correct backend route: GET /api/instituional/all-institution ( not protected)
+    fetch(`${API}/api/institutional/all-institution`, {
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch institutions");
@@ -34,6 +32,7 @@ export default function InstitutionList() {
       .then((data) => {
         // Backend returns { institution: {...} } (single) — adjust if returns array
         const list = data.institutions || (data.institution ? [data.institution] : []);
+        console.log("Fetched institutions:", list);
         setInstitutions(list);
       })
       .catch((err) => setError(err.message))

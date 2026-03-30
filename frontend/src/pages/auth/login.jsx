@@ -101,12 +101,6 @@ export default function Login() {
                 Sign up
               </Link>
             </p>
-            <p>
-              Institution account?{" "}
-              <Link to="/login-institution" className="text-red-500 hover:underline font-medium">
-                Login here
-              </Link>
-            </p>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import CAN_logo from "../assets/images/logo/CAN_logo.png"; // Assuming you have a logo image
 
 export default function Header() {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <span className="text-red-600 font-extrabold text-xl tracking-tight">
-            CAN
+            <img src={CAN_logo} alt="CAN Logo" className="w-15 h-8" />
           </span>
           <span className="text-gray-500 text-xs font-medium hidden sm:inline">
             Scholarship Portal

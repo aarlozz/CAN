@@ -383,9 +383,9 @@ export default function Signup() {
                         onChange={(e) => set("institutionType", e.target.value)}
                       >
                         <option value="">Select Type</option>
-                        <option>School</option>
-                        <option>College</option>
-                        <option>University</option>
+                        <option>Private</option>
+                        <option>Government</option>
+                        <option>Community</option>
                       </select>
                     </div>
                     <div>

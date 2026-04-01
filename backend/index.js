@@ -1,12 +1,11 @@
 
 // esle .env ma vako environment variable lai load garna help garxa
-require("dotenv").config();
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
 
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const path = require("path");
+dotenv.config();
 
 const app = express();
-app.use.cors(cors())
+app.use(cors());           
 app.use(express.json());

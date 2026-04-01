@@ -1,4 +1,3 @@
-import jwt from "jsonwebtoken";
 
 //protext esari use garrepaxi paxi sabbai ma hamle protect use garna apauxam aaba
 
@@ -8,24 +7,40 @@ import jwt from "jsonwebtoken";
     // Bearer bata suru vako xa vane aaba teslai split garxa aani token matra linxa
     // condition ? if-true : if-false condition rakheko ho
   
+import jwt from "jsonwebtoken";
 
+// Verifies JWT and attaches decoded user to req.user
 export const protect = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith("Bearer ")
-    ? authHeader.split(" ")[1]
-    : null;
+  const token =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
   if (!token) {
-    return res.status(401).json({ message: "Unauthorized Access, No token" });
+    return res.status(401).json({ message: "Unauthorized — no token provided." });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // { id, role }
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Unauthorized — invalid token." });
   }
 };
 
-
+//  requireRole("student", "institution")  checks all args
+export const requireRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized." });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: `Access denied. Required: ${roles.join(" or ")}.`,
+      });
+    }
+    next();
+  };
+};

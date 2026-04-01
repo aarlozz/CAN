@@ -1,22 +1,21 @@
 import InstitutionProfile from "../models/InstitutionProfile.js";
 
 export const getInstitutionData = async (req, res) => {
+  try {
 
-    try{
-  const institution = await InstitutionProfile.findOne({ user: req.user.id }).populate("user","name email");
-  //or we can use .select("iinstitutuionName institutionType") rakhda ni hunxa muni ko nagari kana
-  if(!institution){
-    return res.status(404).json({message:"Institution not found"})
+    const institutions = await InstitutionProfile.find({
+      isDeleted: { $ne: true },
+    })
+      .populate("user", "name email")
+      .select(
+        "institutionName institutionType location contactPerson website isApproved verification establishedYear description"
+      )
+      .sort({ institutionName: 1 })
+      .lean();
+
+    res.json({ institutions });
+  } catch (error) {
+    console.error("getInstitutionData error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-//esle chai whole data nai pathauxa
-//hamle esma insituton ko individual data like
-// res.json({ institutionName: institution.institutuionName, institutionType: institution.institutionType})
-// vanera aafnai chailyeko data matra lida hunxa
-  res.json({institution})
-}
-catch(error){
-    console.error(error)
-    return res.status(500).json({message:"Internal server error"})
-        
-}
 };

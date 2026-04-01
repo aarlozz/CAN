@@ -15,15 +15,18 @@ export default function Header() {
     navigate("/");
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(path + "/");
 
   const navLink = (to, label) => (
     <Link
       to={to}
-      className={`text-sm font-medium transition-colors ${
-        isActive(to) ? "text-red-500 border-b-2 border-red-500 pb-0.5" : "text-gray-700 hover:text-red-500"
-      }`}
       onClick={() => setMenuOpen(false)}
+      className={`text-sm font-medium transition-colors ${
+        isActive(to)
+          ? "text-red-500 border-b-2 border-red-500 pb-0.5"
+          : "text-gray-700 hover:text-red-500"
+      }`}
     >
       {label}
     </Link>
@@ -41,7 +44,9 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
           {navLink("/", "Home")}
+          {navLink("/scholarships", "Scholarships")}
           {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
+          {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
           {token && navLink("/institutions", "Institutions")}
         </nav>
 
@@ -49,35 +54,25 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-3">
           {!token ? (
             <>
-              <Link
-                to="/login"
-                className="text-sm font-medium text-gray-700 hover:text-red-500 transition-colors"
-              >
+              <Link to="/login"
+                className="text-sm font-medium text-gray-700 hover:text-red-500 transition-colors">
                 Login
               </Link>
-              <Link
-                to="/signup-institution"
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-              >
+              <Link to="/signup-institution"
+                className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 Register Institution
               </Link>
             </>
           ) : (
-            <button
-              onClick={handleLogout}
-              className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
+            <button onClick={handleLogout}
+              className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
               Logout
             </button>
           )}
         </div>
 
         {/* Mobile Hamburger */}
-        <button
-          className="md:hidden text-gray-600 focus:outline-none"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-        >
+        <button className="md:hidden text-gray-600" onClick={() => setMenuOpen(!menuOpen)}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {menuOpen
               ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -91,21 +86,14 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
           {navLink("/", "Home")}
+          {navLink("/scholarships", "Scholarships")}
           {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
+          {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
           {token && navLink("/institutions", "Institutions")}
-          {!token ? (
-            <>
-              {navLink("/login", "Login")}
-              {navLink("/signup-institution", "Register Institution")}
-            </>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="text-left text-sm font-medium text-red-500 hover:text-red-700"
-            >
-              Logout
-            </button>
-          )}
+          {!token
+            ? <>{navLink("/login", "Login")}{navLink("/signup-institution", "Register Institution")}</>
+            : <button onClick={handleLogout} className="text-left text-sm font-medium text-red-500">Logout</button>
+          }
         </div>
       )}
     </header>

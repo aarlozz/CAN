@@ -28,34 +28,34 @@ export const signup = async (req, res) => {
       role,
     });
 
-    // ============================  Student Signup  ============================
+    // Student signup
     if (user.role === "student") {
       const { personal_info, address, guardian_info } = req.body;
 
       await StudentProfile.create({
         user: user._id,
         personal_info: {
-          dob: personal_info?.dob || "",
+          dob:    personal_info?.dob    || "",
           gender: personal_info?.gender || "",
-          phone: personal_info?.phone || "",
+          phone:  personal_info?.phone  || "",
         },
         address: {
-          province: address?.province || "",
-          district: address?.district || "",
+          province:     address?.province     || "",
+          district:     address?.district     || "",
           municipality: address?.municipality || "",
-          ward: address?.ward || "",
-          street: address?.street || "",
+          ward:         address?.ward         || "",
+          street:       address?.street       || "",
         },
         guardian_info: {
-          name: guardian_info?.name || "",
-          relation: guardian_info?.relation || "",
-          phone_number: guardian_info?.phone_number || "",
-          occupation: guardian_info?.occupation || "",
+          name:         guardian_info?.name         || "",
+          relation:     guardian_info?.relation      || "",
+          phone_number: guardian_info?.phone_number  || "",
+          occupation:   guardian_info?.occupation    || "",
         },
       });
     }
 
-    // ============================  Institution Signup  ========================
+    // ── Institution signup 
     if (role === "institution") {
       const {
         institutionName,
@@ -74,20 +74,21 @@ export const signup = async (req, res) => {
         establishedYear,
         website,
         location: {
-          province: location?.province || "",
-          district: location?.district || "",
+          province:     location?.province     || "",
+          district:     location?.district     || "",
           municipality: location?.municipality || "",
-          ward: location?.ward || "",
-          street: location?.street || "",
+          ward:         location?.ward         || "",
+          street:       location?.street       || "",
         },
-        description: description || "",
+        description:   description || "",
         contactPerson: {
-          name: contactPerson?.name || "",
-          phone: contactPerson?.phone || "",
-          email: contactPerson?.email || "",
+          name:        contactPerson?.name        || "",
+          phone:       contactPerson?.phone       || "",
+          email:       contactPerson?.email       || "",
           designation: contactPerson?.designation || "",
         },
-        isApproved: true, // ✅ Auto-approve on creation
+        isApproved: true,                    
+        verification: { status: "verified" }, // approve
       });
     }
 
@@ -126,12 +127,7 @@ export const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({
-      message: "Login successful",
-      token,
-      role: user.role,
-      profile,
-    });
+    res.json({ message: "Login successful", token, role: user.role, profile });
   } catch (error) {
     console.error(error);
     return res.status(400).json({ message: "Server error" });

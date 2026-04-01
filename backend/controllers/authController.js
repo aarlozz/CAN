@@ -39,25 +39,26 @@ export const newInstitutionSignup = async (req, res) => {
       establishedYear,
       website,
       location: {
-        province: location?.province || "",
-        district: location?.district || "",
+        province:     location?.province     || "",
+        district:     location?.district     || "",
         municipality: location?.municipality || "",
-        ward: location?.ward || "",
-        street: location?.street || "",
+        ward:         location?.ward         || "",
+        street:       location?.street       || "",
       },
-      description: description || "",
+      description:   description   || "",
       contactPerson: {
-        name: contactPerson?.name || "",
-        phone: contactPerson?.phone || "",
-        email: contactPerson?.email || "",
+        name:        contactPerson?.name        || "",
+        phone:       contactPerson?.phone       || "",
+        email:       contactPerson?.email       || "",
         designation: contactPerson?.designation || "",
       },
-      isApproved: true, // ✅ Auto-approve on creation
+      isApproved: true,                      
+      verification: { status: "verified" },    // approve
     });
 
-    return res
-      .status(201)
-      .json({ message: "Your institution has been registered successfully" });
+    return res.status(201).json({
+      message: "Your institution has been registered successfully",
+    });
   } catch (error) {
     console.error("Signup error:", error);
     return res.status(500).json({ message: "There has been a problem." });

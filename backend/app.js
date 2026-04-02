@@ -19,34 +19,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-<<<<<<< HEAD
-// ─────────────────────────────────────────
-// Routes
-// ─────────────────────────────────────────
-app.use('/api/auth',          authRoutes);      // POST /api/auth/register/student|college, /login, /logout
-app.use('/api/locations',     locationRoutes);  // GET  /api/locations/provinces|districts|municipalities
-app.use('/api/college',       collegeRoutes);   // GET/PUT /api/college/profile, /list, /:id
-app.use('/api/student',       studentRoutes);   // GET/PUT /api/student/profile, documents
-app.use('/api/scholarships',  scholarshipRoutes); // GET /api/scholarships, POST, PUT, DELETE
-app.use('/api/applications',  applicationRoutes); // POST /api/applications, GET /my, PUT /:id/review
-app.use('/api/admin',         adminRoutes);       // GET /api/admin/colleges/pending, stats
-app.use('/api/notifications', notificationRoutes); // GET /api/notifications, PUT /read-all, /:id/read
-
-// ─────────────────────────────────────────
-// Health Check
-// ─────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.send('✅ CAN API is running...');
-});
-
-// ─────────────────────────────────────────
-// Global Error Handler — MUST be last
-// Catches any error passed via next(err) or thrown inside asyncHandler
-// ─────────────────────────────────────────
-app.use(errorHandler);
-
-module.exports = app;
-=======
 app.use("/api/auth", authroutes);
 app.use("/api/institution", institutionroutes);
 app.use("/api/authbuild", authbuildingroutes);
@@ -71,4 +43,3 @@ app.get("/", (req, res) => {
 });
 
 export default app;
->>>>>>> e1fa25b551d5fdef7fb993a20ed4a57e87c8f083

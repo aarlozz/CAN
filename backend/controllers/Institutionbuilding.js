@@ -8,7 +8,7 @@ export const getAllInstitutions = async (req, res) => {
       .find()
       .populate("user", "name email");
 
-    res.json({ institutions });
+    res.json( institutions );
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -27,7 +27,7 @@ export const getInstitutionData = async (req, res) => {
     }
 
     // Send full institution data; can customize to send only required fields
-    res.json({ institution });
+    res.json( institution );
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });

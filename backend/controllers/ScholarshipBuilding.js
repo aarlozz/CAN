@@ -10,11 +10,11 @@ export const createScholarship = async (req, res) => {
       });
     }
 
-    if (req.user.status !== "approved") {
-      return res.status(403).json({
-        message: "Only approved institution can add scholarship",
-      });
-    }
+    // if (req.user.status !== "approved") {
+    //   return res.status(403).json({
+    //     message: "Only approved institution can add scholarship",
+    //   });
+    // }
     //aba tyo user kun institution vanera vettaune
     const institution = await InstitutionProfile.findOne({
       user: req.user.id,

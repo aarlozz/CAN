@@ -74,9 +74,6 @@ export default function Header() {
           <span className="text-red-600 font-extrabold text-xl tracking-tight">
             <img src={CAN_logo} alt="CAN Logo" className="w-15 h-8" />
           </span>
-          <span className="text-gray-500 text-xs font-medium hidden sm:inline">
-            Scholarship Portal
-          </span>
         </Link>
 
         {/* Desktop Nav */}

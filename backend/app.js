@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 import authbuildingroutes from "../backend/routes/authbuildingRoutes.js"
 import institutionbuildingroutes from "../backend/routes/InstitutionbuildingRoutes.js"
-import scholarshiproutes from "../backend/routes/Scholarshiproutes.js"
+import scholarshiproutes from "../backend/routes/scholarshipRoutes.js"
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/authbuild", authbuildingroutes);
-app.use("/api/instituion", institutionbuildingroutes);
+app.use("/api/institution", institutionbuildingroutes);
 app.use("/api/scholarship", scholarshiproutes);
 
 // Test route

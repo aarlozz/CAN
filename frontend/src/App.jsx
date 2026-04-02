@@ -8,6 +8,7 @@ import InstitutionList from "./pages/auth/InstitutionList";
 import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord"; // keep your existing filename
 import StudentDashboard from "./pages/Dashboard/studentdashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";
+import CreateScholarship from "./pages/scholarship/scholarshipCreate";
 
 function App() {
   return (
@@ -27,6 +28,15 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={["institution"]}>
             <InstitutionalDashboard />
+          </ProtectedRoute>
+        }
+      />
+      {/* Protected — Institution */}
+      <Route
+        path="/manage-scholarships"
+        element={
+          <ProtectedRoute allowedRoles={["institution"]}>
+            <CreateScholarship />
           </ProtectedRoute>
         }
       />

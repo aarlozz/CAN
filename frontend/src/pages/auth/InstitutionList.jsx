@@ -22,8 +22,8 @@ export default function InstitutionList() {
   useEffect(() => {
 
 
-    // Correct backend route: GET /api/instituional/all-institution ( not protected)
-    fetch(`${API}/api/institutional/all-institution`, {
+    // Correct backend route: GET /api/instituion/all-institution ( not protected)
+    fetch(`${API}/api/institution/all-institution`, {
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch institutions");

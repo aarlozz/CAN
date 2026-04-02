@@ -33,9 +33,24 @@ export const createScholarship = async (req, res) => {
       termsandCondition,
       deadline,
     } = req.body;
-    if (!scholarshipTitle || !coverage || !deadline) {
+
+    if (!scholarshipTitle || !coverage || !totalSeats || !deadline) {
       return res.status(400).json({
         message: "Required fields missing",
+      });
+    }
+
+    if (!coverage || !coverage.scholarshipType) {
+      return res.status(400).json({ message: "Scholarship type required" });
+    }
+
+    if (
+      !coverage ||
+      (coverage.scholarshipAmountNpr == null &&
+        coverage.scholarshipPercentage == null)
+    ) {
+      return res.status(400).json({
+        message: "Provide amount or percentage",
       });
     }
 
@@ -45,14 +60,16 @@ export const createScholarship = async (req, res) => {
       coverage,
       eligibilityCriteria,
       totalSeats,
-      remainingSeats,
+      remainingSeats: remainingSeats || totalSeats,
+
       description,
       termsandCondition,
       deadline,
     });
 
-    return res.status(200).json({ message: "Scholarship added successfully" });
+    return res.status(201).json({ message: "Scholarship added successfully" });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       message: "internal server error institution cant create scholarship",
     });
@@ -87,7 +104,7 @@ export const getmyScholarship = async (req, res) => {
       scholarshipTitle: { $regex: search, $options: "i" },
     };
     // instituion._id =>only scholarship of looged in institution
-    //$regex => pattern matching //pattern haru e=herxa like eng in engineering etc
+    //$regex => pattern matching //pattern haru eherxa like eng in engineering etc
     //$options :"i" upper ra lower case herdaina
 
     const foundscholarship = await Scholarship.find(filter).sort({

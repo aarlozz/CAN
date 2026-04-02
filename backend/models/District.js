@@ -1,30 +1,26 @@
-// District.js — Districts linked to Province
-
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const districtSchema = new mongoose.Schema(
   {
     provinceId: {
-      type:     mongoose.Schema.Types.ObjectId,
-      ref:      'Province',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Province",
       required: true,
     },
-    provinceName: String,   // denormalized for fast reads
+    provinceName: {
+      type: String,
+      trim: true,
+    }, // Denormalized for quick reads
     districtName: {
-      type:     String,
+      type: String,
       required: true,
-      trim:     true,
+      trim: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// ─────────────────────────────────────────
-// Indexes
-// ─────────────────────────────────────────
-districtSchema.index({ provinceId:   1 });
+districtSchema.index({ provinceId: 1 });
 districtSchema.index({ districtName: 1 });
 
-module.exports = mongoose.model('District', districtSchema);
+export default mongoose.model("District", districtSchema);

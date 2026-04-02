@@ -1,35 +1,36 @@
-// Municipality.js — Municipalities linked to District
-
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const municipalitySchema = new mongoose.Schema(
   {
     districtId: {
-      type:     mongoose.Schema.Types.ObjectId,
-      ref:      'District',
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "District",
       required: true,
     },
-    districtName:     String,   // denormalized for fast reads
+    districtName: {
+      type: String,
+      trim: true,
+    }, // Denormalized
     municipalityName: {
-      type:     String,
+      type: String,
       required: true,
-      trim:     true,
+      trim: true,
     },
     municipalityType: {
-      type:     String,
-      enum:     ['Metropolitan', 'Sub-Metropolitan', 'Municipality', 'Rural Municipality'],
+      type: String,
+      enum: [
+        "Metropolitan",
+        "Sub-Metropolitan",
+        "Municipality",
+        "Rural Municipality",
+      ],
       required: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// ─────────────────────────────────────────
-// Indexes
-// ─────────────────────────────────────────
-municipalitySchema.index({ districtId:       1 });
+municipalitySchema.index({ districtId: 1 });
 municipalitySchema.index({ municipalityName: 1 });
 
-module.exports = mongoose.model('Municipality', municipalitySchema);
+export default mongoose.model("Municipality", municipalitySchema);

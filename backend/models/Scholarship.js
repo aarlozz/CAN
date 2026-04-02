@@ -1,103 +1,107 @@
-// Scholarship.js — Scholarship listings posted by colleges
-
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const scholarshipSchema = new mongoose.Schema(
   {
-    collegeId: {
-      type:     mongoose.Schema.Types.ObjectId,
-      ref:      'College',
+    // Owner institution 
+    institutionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "InstitutionProfile",
       required: true,
     },
-    collegeName: String,   // denormalized for fast listing without populate
+    institutionName: { type: String, trim: true }, // Denormalized for fast list reads
 
+    // Core details
     scholarshipTitle: {
-      type:     String,
-      required: true,
-      trim:     true,
+      type: String,
+      required: [true, "Scholarship title is required"],
+      trim: true,
     },
-    description: String,
+    description: { type: String, trim: true },
 
     scholarshipType: {
-      type:     String,
-      enum:     ['merit', 'reservation', 'both'],
-      required: true,
+      type: String,
+      enum: ["merit", "reservation", "both"],
+      required: [true, "Scholarship type is required"],
     },
 
-    // ── Financial details ──
+    // Financial details 
     financialDetails: {
-      amount:         { type: Number, min: 0 },
-      totalSlots:     { type: Number, min: 1 },
-      availableSlots: { type: Number, min: 0 },
+      amount: {
+        type: Number,
+        min: [0, "Amount cannot be negative"],
+      },
+      totalSlots: {
+        type: Number,
+        min: [1, "Must have at least 1 slot"],
+      },
+      availableSlots: {
+        type: Number,
+        min: [0, "Available slots cannot be negative"],
+      },
     },
 
-    // ── Eligibility ──
+    // Requirements
     requirements: {
-      eligibilityCriteria:    String,
-      requiredDocuments:      [String],
-      additionalRequirements: String,
+      eligibilityCriteria: { type: String, trim: true },
+      requiredDocuments:   [{ type: String }], // e.g. ["slc_marksheet", "plus2_gradesheet"]
+      additionalRequirements: { type: String, trim: true },
     },
 
+    // Deadline
     applicationDeadline: {
-      type:     Date,
-      required: true,
+      type: Date,
+      required: [true, "Application deadline is required"],
     },
 
-    // ── Geographic filter (null = open to all locations) ──
+    // Location filter (null = open to all)
     locationFilter: {
       province: {
-        provinceId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Province' },
-        provinceName: String,
+        provinceId:   { type: mongoose.Schema.Types.ObjectId, ref: "Province" },
+        provinceName: { type: String },
       },
       district: {
-        districtId:   { type: mongoose.Schema.Types.ObjectId, ref: 'District' },
-        districtName: String,
+        districtId:   { type: mongoose.Schema.Types.ObjectId, ref: "District" },
+        districtName: { type: String },
       },
       municipality: {
-        municipalityId:   { type: mongoose.Schema.Types.ObjectId, ref: 'Municipality' },
-        municipalityName: String,
+        municipalityId:   { type: mongoose.Schema.Types.ObjectId, ref: "Municipality" },
+        municipalityName: { type: String },
       },
     },
 
+    // Status 
     isActive: { type: Boolean, default: true },
 
-    // ── Application statistics (updated via $inc) ──
+    // Running stats (incremented on application actions) 
     statistics: {
-      totalApplications:    { type: Number, default: 0 },
-      approvedApplications: { type: Number, default: 0 },
-      pendingApplications:  { type: Number, default: 0 },
+      totalApplications:   { type: Number, default: 0 },
+      approvedApplications:{ type: Number, default: 0 },
+      pendingApplications: { type: Number, default: 0 },
     },
 
-    // ── Soft delete ──
-    isDeleted: { type: Boolean, default: false },
-    deletedAt: Date,
+    // Soft delete
+    isDeleted:  { type: Boolean, default: false },
+    deletedAt:  { type: Date },
   },
-  {
-    timestamps: true,
-    toJSON:   { virtuals: true },
-    toObject: { virtuals: true },
-  }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-// ─────────────────────────────────────────
-// Indexes
-// ─────────────────────────────────────────
-scholarshipSchema.index({ collegeId:                              1 });
-scholarshipSchema.index({ scholarshipType:                        1 });
-scholarshipSchema.index({ applicationDeadline:                    1 });
-scholarshipSchema.index({ isActive:                               1 });
-scholarshipSchema.index({ 'locationFilter.province.provinceId':   1 });
-scholarshipSchema.index({ scholarshipTitle: 'text', description: 'text' }); // full-text search
+// Indexes 
+scholarshipSchema.index({ institutionId: 1 });
+scholarshipSchema.index({ scholarshipType: 1 });
+scholarshipSchema.index({ applicationDeadline: 1 });
+scholarshipSchema.index({ isActive: 1 });
+scholarshipSchema.index({ "locationFilter.province.provinceId": 1 });
+scholarshipSchema.index({ isActive: 1, applicationDeadline: 1 }); // compound — most common query
+scholarshipSchema.index({ institutionId: 1, isActive: 1 });       // compound — institution's active scholarships
+scholarshipSchema.index(
+  { scholarshipTitle: "text", description: "text" },
+  { name: "scholarship_text_search" }
+);
 
-// Compound indexes for most common queries
-scholarshipSchema.index({ isActive: 1, applicationDeadline: 1 });
-scholarshipSchema.index({ collegeId: 1, isActive: 1 });
-
-// ─────────────────────────────────────────
-// Virtual — is deadline passed?
-// ─────────────────────────────────────────
-scholarshipSchema.virtual('isExpired').get(function () {
+//  is the deadline already past? 
+scholarshipSchema.virtual("isExpired").get(function () {
   return new Date() > this.applicationDeadline;
 });
 
-module.exports = mongoose.model('Scholarship', scholarshipSchema);
+export default mongoose.model("Scholarship", scholarshipSchema);

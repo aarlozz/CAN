@@ -1,24 +1,15 @@
-// locationRoutes.js — Public location data endpoints
-// No auth required — used to populate signup/profile dropdowns.
-//
-//   GET /api/locations/provinces
-//   GET /api/locations/districts/:provinceId
-//   GET /api/locations/municipalities/:districtId
-//   GET /api/locations/all
-
-const express = require('express');
-const {
+import express from "express";
+import {
   getProvinces,
   getDistricts,
   getMunicipalities,
-  getAllLocations,
-} = require('../controllers/locationController');
+} from "../controllers/locationController.js";
 
 const router = express.Router();
 
-router.get('/provinces',                  getProvinces);
-router.get('/districts/:provinceId',      getDistricts);
-router.get('/municipalities/:districtId', getMunicipalities);
-router.get('/all',                        getAllLocations);
+// Public — no auth needed, used by frontend dropdowns
+router.get("/provinces", getProvinces);
+router.get("/districts", getDistricts);         // ?provinceId=<id>
+router.get("/municipalities", getMunicipalities); // ?districtId=<id>
 
-module.exports = router;
+export default router;

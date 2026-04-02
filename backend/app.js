@@ -1,49 +1,25 @@
-// app.js — Express application configuration
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
-const express     = require('express');
-const cors        = require('cors');
-const authRoutes      = require('./routes/authRoutes');
-const locationRoutes  = require('./routes/locationRoutes');  // ✅ Step 4 — public location data
-const collegeRoutes   = require('./routes/collegeRoutes');   // ✅ Step 5 — college profile
-const studentRoutes   = require('./routes/studentRoutes');   // ✅ Step 6 — student profile + docs
-const scholarshipRoutes = require('./routes/scholarshipRoutes'); // ✅ Step 7 — scholarships
-const applicationRoutes = require('./routes/applicationRoutes'); // ✅ Step 8 — applications
-const adminRoutes       = require('./routes/adminRoutes');       // ✅ Step 9 — admin
-const notificationRoutes = require('./routes/notificationRoutes'); // ✅ Step 10 — notifications
-const errorHandler    = require('./middleware/errorHandler');
+import authroutes from "./routes/authRoutes.js";
+import institutionroutes from "./routes/institutionRoutes.js";
+import authbuildingroutes from "./routes/authbuildingRoutes.js";
+import institutionbuildingroutes from "./routes/InstitutionbuildingRoutes.js";
+import studentroutes from "./routes/studentRoutes.js";
+import locationroutes from "./routes/locationRoutes.js";
+import scholarshiproutes from "./routes/scholarshipRoutes.js";
+import applicationroutes from "./routes/applicationRoutes.js";
 
-require('dotenv').config();
+dotenv.config();
 
 const app = express();
 
-// ─────────────────────────────────────────
-// CORS — only allow Vite frontend (dev) or production URL
-// ─────────────────────────────────────────
-const allowedOrigins = [
-  'http://localhost:5173',          // Vite dev server
-  process.env.FRONTEND_URL,         // production URL from .env
-].filter(Boolean);                  // removes undefined if FRONTEND_URL not set
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, mobile apps, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked: ${origin} not allowed`));
-      }
-    },
-    credentials: true,              // allow Authorization header / cookies
-  })
-);
-
-// ─────────────────────────────────────────
-// Body Parsing
-// ─────────────────────────────────────────
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+<<<<<<< HEAD
 // ─────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────
@@ -70,3 +46,29 @@ app.get('/', (req, res) => {
 app.use(errorHandler);
 
 module.exports = app;
+=======
+app.use("/api/auth", authroutes);
+app.use("/api/institution", institutionroutes);
+app.use("/api/authbuild", authbuildingroutes);
+app.use("/api/instituionall", institutionbuildingroutes);
+app.use("/api/student", studentroutes);
+app.use("/api/location", locationroutes);
+
+// FIX: was "/api/scholarships" (plural) — every single frontend call and every
+// controller comment uses "/api/scholarship" (singular). This one typo caused
+// ALL scholarship API calls across the entire app to return 404, breaking:
+//   - scholarshipList page ("Failed to load scholarships")
+//   - institution dashboard ("Failed to load dashboard" via Promise.all crash)
+//   - student dashboard (empty scholarships tab)
+//   - scholarship detail page (blank on load)
+//   - apply form (all submissions failed)
+app.use("/api/scholarship", scholarshiproutes);
+
+app.use("/api/application", applicationroutes);
+
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
+export default app;
+>>>>>>> e1fa25b551d5fdef7fb993a20ed4a57e87c8f083

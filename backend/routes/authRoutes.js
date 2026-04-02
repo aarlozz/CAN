@@ -1,28 +1,10 @@
-// authRoutes.js — Authentication endpoints
-//
-//   POST /api/auth/register/student  — new student account
-//   POST /api/auth/register/college  — new college account (starts pending)
-//   POST /api/auth/login             — all roles
-//   POST /api/auth/logout            — protected, clears refresh tokens
+import express from "express"
+import { newInstitutionSignup } from "../controllers/authController.js"
+import { institutionLogin } from "../controllers/authController.js"
 
-const express = require('express');
-const {
-  registerStudent,
-  registerCollege,
-  login,
-  logout,
-} = require('../controllers/authController');
+const router = express.Router()
 
-const { protect } = require('../middleware/authMiddleware');
+router.post("/signup-institution", newInstitutionSignup)
+router.post("/login-institution", institutionLogin)
 
-const router = express.Router();
-
-// ── Public routes ─────────────────────────────────────────────────
-router.post('/register/student', registerStudent);
-router.post('/register/college', registerCollege);
-router.post('/login',            login);
-
-// ── Protected routes ──────────────────────────────────────────────
-router.post('/logout', protect, logout);
-
-module.exports = router;
+export default router

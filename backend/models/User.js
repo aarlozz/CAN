@@ -1,20 +1,20 @@
-// User.js — Base authentication model (polymorphic pattern)
-// One User document per account. Role-specific data lives in
-// College / Student / Admin / ProvincialAdmin collections via userId ref.
+import mongoose, { now } from "mongoose";
 
-const mongoose = require('mongoose');
-const bcrypt   = require('bcryptjs');
-
-const userSchema = new mongoose.Schema(
+const finaluserSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
     email: {
       type:     String,
       required: true,
-      unique:   true,
-      lowercase: true,
-      trim:     true,
-      match:    [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+      unique: true,
+      trim: true,
     },
+
     password: {
       type:      String,
       required:  true,
@@ -26,51 +26,27 @@ const userSchema = new mongoose.Schema(
       enum:     ['admin', 'provincial_admin', 'college', 'student'],
       required: true,
     },
-    isActive: {
-      type:    Boolean,
+
+    role: {
+      type: String,
+      enum: [
+        "student",
+        "institution",
+        "district_admin",
+        "province_admin",
+        "super_admin",
+      ],
+      required: true,
+    },
+
+    isVerified: {
+      type: Boolean,
       default: true,
     },
-    emailVerified: {
-      type:    Boolean,
-      default: false,
-    },
-    emailVerificationToken: String,
-    lastLogin:              Date,
-    refreshTokens: [
-      {
-        token:     String,
-        createdAt: { type: Date, default: Date.now },
-        expiresAt: Date,
-      },
-    ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true },
 );
 
-// ─────────────────────────────────────────
-// Indexes
-// ─────────────────────────────────────────
-userSchema.index({ email:    1 });
-userSchema.index({ userType: 1 });
-userSchema.index({ isActive: 1 });
+finaluserSchema.index({ email: 1 });
 
-// ─────────────────────────────────────────
-// Pre-save hook — hash password before saving
-// ─────────────────────────────────────────
-userSchema.pre("save", async function () {
-  if (!this.isModified("password") || !this.password) return;
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-});
-
-// ─────────────────────────────────────────
-// Instance method — compare password
-// ─────────────────────────────────────────
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model("User", finaluserSchema);

@@ -1,24 +1,20 @@
-// Province.js — Nepal's 7 provinces (reference / seed data)
-
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const provinceSchema = new mongoose.Schema(
   {
     provinceName: {
-      type:     String,
+      type: String,
       required: true,
-      unique:   true,
-      trim:     true,
+      unique: true,
+      trim: true,
     },
     provinceCode: {
-      type:   String,
+      type: String,
       unique: true,
-      trim:   true,
+      trim: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model('Province', provinceSchema);
+export default mongoose.model("Province", provinceSchema);

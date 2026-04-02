@@ -1,87 +1,39 @@
-// locationController.js — Public location data endpoints
-// All routes are public (no auth required) — used for signup dropdowns.
+import Province from "../models/Province.js";
+import District from "../models/District.js";
+import Municipality from "../models/Municipality.js";
 
-const asyncHandler = require('../utils/asyncHandler');
-const Province     = require('../models/Province');
-const District     = require('../models/District');
-const Municipality = require('../models/Municipality');
+// GET /api/location/provinces
+export const getProvinces = async (req, res) => {
+  try {
+    const provinces = await Province.find().sort({ provinceName: 1 });
+    res.json({ provinces });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
-// ─────────────────────────────────────────────────────────────────
-// GET /api/locations/provinces
-// Returns all 7 provinces sorted by provinceCode
-// ─────────────────────────────────────────────────────────────────
-exports.getProvinces = asyncHandler(async (req, res) => {
-  const provinces = await Province
-    .find({})
-    .select('provinceName provinceCode')
-    .sort({ provinceCode: 1 })
-    .lean();
+// GET /api/location/districts?provinceId=<id>
+export const getDistricts = async (req, res) => {
+  try {
+    const { provinceId } = req.query;
+    const filter = provinceId ? { provinceId } : {};
+    const districts = await District.find(filter).sort({ districtName: 1 });
+    res.json({ districts });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
-  res.json({
-    success: true,
-    count:   provinces.length,
-    data:    provinces,
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────
-// GET /api/locations/districts/:provinceId
-// Returns all districts for a given province, sorted alphabetically
-// ─────────────────────────────────────────────────────────────────
-exports.getDistricts = asyncHandler(async (req, res) => {
-  const { provinceId } = req.params;
-
-  const districts = await District
-    .find({ provinceId })
-    .select('districtName provinceName')
-    .sort({ districtName: 1 })
-    .lean();
-
-  res.json({
-    success: true,
-    count:   districts.length,
-    data:    districts,
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────
-// GET /api/locations/municipalities/:districtId
-// Returns all municipalities for a given district, sorted by type then name
-// ─────────────────────────────────────────────────────────────────
-exports.getMunicipalities = asyncHandler(async (req, res) => {
-  const { districtId } = req.params;
-
-  const municipalities = await Municipality
-    .find({ districtId })
-    .select('municipalityName municipalityType districtName')
-    .sort({ municipalityType: 1, municipalityName: 1 })
-    .lean();
-
-  res.json({
-    success: true,
-    count:   municipalities.length,
-    data:    municipalities,
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────
-// GET /api/locations/all
-// Returns full hierarchy in one call — for forms that want to
-// pre-load all location data client-side (small dataset, cacheable)
-// ─────────────────────────────────────────────────────────────────
-exports.getAllLocations = asyncHandler(async (req, res) => {
-  const [provinces, districts, municipalities] = await Promise.all([
-    Province.find({}).select('provinceName provinceCode').sort({ provinceCode: 1 }).lean(),
-    District.find({}).select('districtName provinceId provinceName').sort({ districtName: 1 }).lean(),
-    Municipality.find({}).select('municipalityName municipalityType districtId districtName').sort({ municipalityName: 1 }).lean(),
-  ]);
-
-  res.json({
-    success: true,
-    data: {
-      provinces,
-      districts,
-      municipalities,
-    },
-  });
-});
+// GET /api/location/municipalities?districtId=<id>
+export const getMunicipalities = async (req, res) => {
+  try {
+    const { districtId } = req.query;
+    const filter = districtId ? { districtId } : {};
+    const municipalities = await Municipality.find(filter).sort({
+      municipalityName: 1,
+    });
+    res.json({ municipalities });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

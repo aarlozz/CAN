@@ -1,41 +1,51 @@
-// studentRoutes.js — Student profile and document endpoints
-//
-// All routes require: protect + authorize('student')
-//
-//   GET    /api/student/profile               — own full profile
-//   PUT    /api/student/profile               — update own profile
-//   GET    /api/student/profile/completion    — section completion breakdown
-//   POST   /api/student/documents             — upload a document (multipart/form-data)
-//   DELETE /api/student/documents/:docId      — remove a document
-
-const express = require('express');
-const { protect, authorize }  = require('../middleware/authMiddleware');
-const upload                  = require('../middleware/upload');
-const {
-  getMyProfile,
-  updateMyProfile,
-  getCompletion,
-  uploadDocument,
+import express from "express";
+import {
+  getStudentDashboard,
+  updateEducation,
+  updateReservation,
+  addDocument,
   removeDocument,
-} = require('../controllers/studentController');
+} from "../controllers/StudentProfileController.js";
+import { protect, requireRole } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All student routes require authentication as a student
-const studentAuth = [protect, authorize('student')];
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+router.get(
+  "/dashboard-student",
+  protect,
+  requireRole("student"),
+  getStudentDashboard
+);
 
-// ── Profile routes ─────────────────────────────────────────────────────────
-// IMPORTANT: /profile/completion must be defined BEFORE /profile
-// to prevent Express matching "completion" as a sub-path collision.
-// (Both are GET on /profile* — more specific route first.)
-router.get('/profile/completion', ...studentAuth, getCompletion);
-router.get('/profile',            ...studentAuth, getMyProfile);
-router.put('/profile',            ...studentAuth, updateMyProfile);
+// ── Profile sections ──────────────────────────────────────────────────────────
+router.patch(
+  "/education",
+  protect,
+  requireRole("student"),
+  updateEducation
+);
 
-// ── Document routes ────────────────────────────────────────────────────────
-// upload.single('document') runs AFTER auth checks, BEFORE the controller.
-// multer errors (size limit, bad type) are caught by the global errorHandler.
-router.post('/documents',         ...studentAuth, upload.single('document'), uploadDocument);
-router.delete('/documents/:docId',...studentAuth, removeDocument);
+router.patch(
+  "/reservation",
+  protect,
+  requireRole("student"),
+  updateReservation
+);
 
-module.exports = router;
+// ── Documents ─────────────────────────────────────────────────────────────────
+router.post(
+  "/documents",
+  protect,
+  requireRole("student"),
+  addDocument
+);
+
+router.delete(
+  "/documents/:docId",
+  protect,
+  requireRole("student"),
+  removeDocument
+);
+
+export default router;

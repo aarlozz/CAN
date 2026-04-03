@@ -4,5 +4,5 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/all-institution", protect, getInstitutionData);
+router.get("/all-institution", getInstitutionData);
 export default router

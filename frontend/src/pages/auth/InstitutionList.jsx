@@ -20,13 +20,10 @@ export default function InstitutionList() {
   const [filterType, setFilterType] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) { navigate("/login"); return; }
+
 
     // Correct backend route: GET /api/instituionall/all-institution (protected)
-    fetch(`${API}/api/instituionall/all-institution`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${API}/api/instituionall/all-institution`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch institutions");
         return res.json();

@@ -1,5 +1,5 @@
 import StudentProfile from "../models/StudentProfile.js";
-
+import ScholarshipApplication from "../models/ScholarshipApplication.js";
 // GET /api/student/dashboard-student
 export const getStudentDashboard = async (req, res) => {
   try {
@@ -18,7 +18,49 @@ export const getStudentDashboard = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// GET /api/student/my-applications
+export const getStudentApplications = async (req, res) => {
+  try {
+    // 1. Find student profile
+    const student = await StudentProfile.findOne({
+      user: req.user.id,
+    });
 
+    if (!student) {
+      return res.status(404).json({
+        message: "Student profile not found.",
+      });
+    }
+
+    // 2. Fetch applications
+    const applications = await ScholarshipApplication.find({
+      studentId: student._id,
+    })
+      .populate({
+        path: "scholarshipId",
+        select: "scholarshipTitle institutionName",
+      })
+      .sort({ createdAt: -1 });
+
+    // 3. Format for frontend
+    const formattedApplications = applications.map((app) => ({
+      _id: app._id,
+      scholarshipName: app.scholarshipId?.scholarshipTitle || "N/A",
+      institutionName: app.scholarshipId?.institutionName || "N/A",
+      status: app.applicationStatus,
+      appliedAt: app.appliedAt,
+    }));
+
+    return res.status(200).json(formattedApplications);
+
+  } catch (error) {
+    console.error("getStudentApplications error:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
 // PATCH /api/student/education
 export const updateEducation = async (req, res) => {
   try {

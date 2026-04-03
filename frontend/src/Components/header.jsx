@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import CANlogo from "../assets/images/logo/CAN_logo.png";
 
 export default function Header() {
   const navigate  = useNavigate();
@@ -37,8 +38,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-red-600 font-extrabold text-xl tracking-tight">CAN</span>
-          <span className="text-gray-500 text-xs font-medium hidden sm:inline">Scholarship Portal</span>
+          <img src={CANlogo} alt="CAN Logo" className="w-15 h-8" />
+          <span className="text-gray-500 text-xs font-medium hidden sm:inline">CAN Federation</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -58,9 +59,9 @@ export default function Header() {
                 className="text-sm font-medium text-gray-700 hover:text-red-500 transition-colors">
                 Login
               </Link>
-              <Link to="/signup-institution"
+              <Link to="/signup"
                 className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-                Register Institution
+                Register
               </Link>
             </>
           ) : (

@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getStudentDashboard,
+  getStudentApplications,
   updateEducation,
   updateReservation,
   addDocument,
@@ -16,6 +17,13 @@ router.get(
   protect,
   requireRole("student"),
   getStudentDashboard
+);
+// ── My Applications ─────────────────────────────────────────────────────────────────
+router.get(
+  "/my-applications",
+  protect,
+  requireRole("student"),
+  getStudentApplications
 );
 
 // ── Profile sections ──────────────────────────────────────────────────────────

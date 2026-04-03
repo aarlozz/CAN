@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import Header from "../../Components/header";
+import Footer from "../../Components/footer";
+import CANlogo from "../../assets/images/logo/CAN_logo.png";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -38,12 +41,14 @@ export default function Login() {
   };
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="text-center mb-8">
-            <span className="text-red-500 font-extrabold text-2xl">CAN</span>
+            <img src={CANlogo} alt="CAN Logo" className="mx-auto h-10 w-auto" />
             <h1 className="text-2xl font-bold text-gray-900 mt-2">Welcome back</h1>
             <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
           </div>
@@ -101,15 +106,12 @@ export default function Login() {
                 Sign up
               </Link>
             </p>
-            <p>
-              Institution account?{" "}
-              <Link to="/login-institution" className="text-red-500 hover:underline font-medium">
-                Login here
-              </Link>
-            </p>
           </div>
         </div>
       </div>
     </div>
+    <Footer />
+    </>
+    
   );
 }

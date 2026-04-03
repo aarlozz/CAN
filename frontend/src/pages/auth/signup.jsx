@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import Header from "../../Components/header";
+import Footer from "../../Components/footer";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -62,6 +64,8 @@ export default function Signup() {
   );
 
   return (
+    <>
+    <Header />
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-2xl">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -304,5 +308,7 @@ export default function Signup() {
         </div>
       </div>
     </div>
+    <Footer/>
+    </>
   );
 }

@@ -216,12 +216,6 @@ export default function InstitutionalDashboard() {
               {data?.institutionType} · {loc.district}, {loc.province}
             </p>
           </div>
-          <button
-            onClick={() => { localStorage.clear(); navigate("/login-institution"); }}
-            className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            Logout
-          </button>
         </div>
 
         {/* Stats */}

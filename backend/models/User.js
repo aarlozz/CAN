@@ -21,7 +21,7 @@ const finaluserSchema = new mongoose.Schema(
       minlength: 6,
       select:    false,   // never returned by default — must explicitly .select('+password')
     },
-    userType: {
+    role: {
       type:     String,
       enum:     ['admin', 'provincial_admin', 'college', 'student'],
       required: true,

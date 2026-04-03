@@ -62,10 +62,10 @@ export default function Home() {
                 Hundreds of scholarships from verified institutions across all provinces.
               </p>
               <Link
-                to="/signup-institution"
+                to="/scholarships"
                 className="block text-center bg-red-500 hover:bg-red-600 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
-                Register as Institution →
+                Scholarships →
               </Link>
             </div>
           </div>

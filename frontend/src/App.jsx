@@ -24,9 +24,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/signup-institution" element={<InstitutionSignup />} />
-      <Route path="/login-institution" element={<InstitutionLogin />} />
-
+    
       {/* Public scholarship pages — no login needed to browse */}
       <Route path="/scholarships" element={<ScholarshipList />} />
       <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
@@ -55,17 +53,7 @@ function App() {
       <Route
         path="/institutions"
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              "student",
-              "institution",
-              "district_admin",
-              "province_admin",
-              "super_admin",
-            ]}
-          >
             <InstitutionList />
-          </ProtectedRoute>
         }
       />
     </Routes>

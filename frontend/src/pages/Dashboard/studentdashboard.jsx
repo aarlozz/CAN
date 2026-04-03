@@ -35,29 +35,42 @@ export default function StudentDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [applications, setApplications] = useState([]);
+  const [appLoading, setAppLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
 
-    if (!token) { navigate("/login"); return; }
-    if (role !== "student") { navigate("/"); return; }
+  if (!token) { navigate("/login"); return; }
+  if (role !== "student") { navigate("/"); return; }
 
-    axios
-      .get(`${API}/api/student/dashboard-student`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setData(res.data))
-      .catch((err) => {
-        if (err.response?.status === 401) {
-          localStorage.clear();
-          navigate("/login");
-        } else {
-          setError(err.response?.data?.message || "Failed to load your profile.");
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [navigate]);
+  // Dashboard data
+  axios
+    .get(`${API}/api/student/dashboard-student`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => setData(res.data))
+    .catch((err) => {
+      if (err.response?.status === 401) {
+        localStorage.clear();
+        navigate("/login");
+      } else {
+        setError(err.response?.data?.message || "Failed to load your profile.");
+      }
+    })
+    .finally(() => setLoading(false));
+
+  // 🔥 Applications API
+  axios
+    .get(`${API}/api/student/my-applications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => setApplications(res.data))
+    .catch((err) => console.error(err))
+    .finally(() => setAppLoading(false));
+
+}, [navigate]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -134,12 +147,6 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            Logout
-          </button>
         </div>
 
         {/* Stats Row */}
@@ -197,22 +204,52 @@ export default function StudentDashboard() {
             )}
           </Card>
 
-          {/* Quick Links / placeholder */}
-          <Card title="Scholarships" icon="🎓">
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="text-4xl mb-3">🔍</div>
-              <p className="text-gray-600 font-medium mb-1">Browse Available Scholarships</p>
-              <p className="text-gray-400 text-sm mb-5">
-                Find scholarships from institutions across Nepal.
-              </p>
-              <a
-                href="/institutions"
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
-              >
-                View Institutions →
-              </a>
-            </div>
-          </Card>
+          <Card title="My Scholarships" icon="🎓">
+  {appLoading ? (
+    <p className="text-gray-400 text-sm">Loading applications...</p>
+  ) : applications.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-6 text-center">
+      <div className="text-3xl mb-2">📭</div>
+      <p className="text-gray-500 text-sm mb-3">No applications yet</p>
+      <a
+        href="/institutions"
+        className="text-red-500 text-sm font-semibold hover:underline"
+      >
+        Browse Scholarships →
+      </a>
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {applications.map((app) => (
+        <div
+          key={app._id}
+          className="flex justify-between items-center p-3 border border-gray-100 rounded-lg"
+        >
+          <div>
+            <p className="text-sm font-semibold text-gray-800">
+              {app.scholarshipName}
+            </p>
+            <p className="text-xs text-gray-400">
+              {app.institutionName}
+            </p>
+          </div>
+
+          <span
+            className={`text-xs font-medium px-2 py-1 rounded ${
+              app.status === "approved"
+                ? "bg-green-100 text-green-600"
+                : app.status === "rejected"
+                ? "bg-red-100 text-red-600"
+                : "bg-yellow-100 text-yellow-600"
+            }`}
+          >
+            {app.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  )}
+</Card>
         </div>
       </main>
       <Footer />

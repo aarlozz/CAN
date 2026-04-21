@@ -7,7 +7,7 @@
 // Features:
 //   • Verification status banner (pending / rejected / verified)
 //   • Live stat cards: total scholarships, active, total applications
-//   • Scholarship table with status badges + application counts
+//   • Scholarship table OR grid — toggle with the view switcher in the header
 //   • Empty state with CTA to post first scholarship
 //   • Profile completion nudge if location/contact info missing
 
@@ -17,6 +17,7 @@ import Header from '../../Components/header';
 import Footer from '../../Components/footer';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import ViewToggle from '../../Components/ViewToggle';
 
 // ── Helpers ──────────────────────────────────────────────────────
 const STATUS_BADGE = {
@@ -29,6 +30,12 @@ const VERIFY_BADGE = {
   pending:  { bg: 'bg-yellow-50 border-yellow-200 text-yellow-800', icon: '⏳', label: 'Pending Verification' },
   verified: { bg: 'bg-green-50 border-green-200 text-green-800',   icon: '✅', label: 'Verified' },
   rejected: { bg: 'bg-red-50 border-red-200 text-red-800',         icon: '❌', label: 'Rejected' },
+};
+
+const TYPE_COLORS = {
+  merit:       'bg-blue-50 text-blue-700',
+  reservation: 'bg-purple-50 text-purple-700',
+  both:        'bg-green-50 text-green-700',
 };
 
 function StatCard({ label, value, sub }) {
@@ -45,6 +52,51 @@ function StatCard({ label, value, sub }) {
   );
 }
 
+// ── Scholarship Grid Card ────────────────────────────────────────
+function ScholarshipGridCard({ s }) {
+  const isExpired = new Date(s.applicationDeadline) < new Date();
+  const statusKey = s.isDeleted ? 'deleted' : s.isActive ? 'active' : 'inactive';
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="font-bold text-gray-900 text-sm leading-snug flex-1">
+          {s.scholarshipTitle}
+        </h4>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${TYPE_COLORS[s.scholarshipType] ?? 'bg-gray-100 text-gray-500'}`}>
+          {s.scholarshipType}
+        </span>
+      </div>
+
+      <div className="text-sm text-gray-500 space-y-1">
+        <p className={isExpired ? 'text-red-500' : ''}>
+          📅 {s.applicationDeadline
+            ? new Date(s.applicationDeadline).toLocaleDateString('en-NP', { day: 'numeric', month: 'short', year: 'numeric' })
+            : '—'}
+          {isExpired && <span className="ml-1 text-xs">(expired)</span>}
+        </p>
+        <p>📝 {s.statistics?.totalApplications ?? 0} applications
+          {s.statistics?.pendingApplications > 0 && (
+            <span className="ml-1 text-yellow-600 text-xs">({s.statistics.pendingApplications} pending)</span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
+        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_BADGE[statusKey]}`}>
+          {statusKey}
+        </span>
+        <Link
+          to={`/scholarships/${s._id}`}
+          className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
+        >
+          View →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function CollegeDashboard() {
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +107,9 @@ function CollegeDashboard() {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
   const [page,         setPage]         = useState(1);
+
+  // ── View mode: 'table' | 'grid' ─────────────────────────────
+  const [viewMode, setViewMode] = useState('table');
 
   // ── Fetch all data on mount ──────────────────────────────────
   const fetchData = useCallback(async (p = 1) => {
@@ -89,6 +144,56 @@ function CollegeDashboard() {
   const verifyStatus  = profile?.verification?.status ?? 'pending';
   const collegeName   = profile?.collegeName ?? user?.email ?? '…';
   const verifyBadge   = VERIFY_BADGE[verifyStatus] ?? VERIFY_BADGE.pending;
+
+  // ── Skeleton loader ──────────────────────────────────────────
+  const SkeletonRows = () => (
+    <div className="divide-y divide-gray-50">
+      {[1,2,3].map(i => (
+        <div key={i} className="px-6 py-4 flex items-center gap-4">
+          <div className="flex-1 h-4 bg-gray-100 rounded animate-pulse" />
+          <div className="w-20 h-4 bg-gray-100 rounded animate-pulse" />
+          <div className="w-16 h-4 bg-gray-100 rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+
+  const SkeletonGrid = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+      {[1,2,3,4,5,6].map(i => (
+        <div key={i} className="bg-gray-50 rounded-xl p-5 space-y-3 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 rounded w-1/2" />
+          <div className="h-3 bg-gray-200 rounded w-2/3" />
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── Pagination bar ───────────────────────────────────────────
+  const PaginationBar = () => (
+    pagination && pagination.pages > 1 ? (
+      <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm">
+        <p className="text-gray-400">Page {pagination.page} of {pagination.pages}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setPage(p => p - 1)}
+            disabled={!pagination.hasPrev}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            ← Prev
+          </button>
+          <button
+            onClick={() => setPage(p => p + 1)}
+            disabled={!pagination.hasNext}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next →
+          </button>
+        </div>
+      </div>
+    ) : null
+  );
 
   // ─────────────────────────────────────────
   // RENDER
@@ -146,29 +251,31 @@ function CollegeDashboard() {
 
           {/* ── Stat cards ───────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <StatCard label="Total Scholarships"  value={loading ? null : totalScholarships} />
-            <StatCard label="Active Scholarships"  value={loading ? null : (pagination ? activeScholarships : null)} sub="on this page" />
+            <StatCard label="Total Scholarships"    value={loading ? null : totalScholarships} />
+            <StatCard label="Active Scholarships"   value={loading ? null : (pagination ? activeScholarships : null)} sub="on this page" />
             <StatCard label="Applications Received" value={loading ? null : totalApplications} sub="across all scholarships" />
           </div>
 
-          {/* ── Scholarships table ────────────────────────────── */}
+          {/* ── Scholarships panel ────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
+
+            {/* Panel header with view toggle */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">My Scholarships</h2>
-              <span className="text-sm text-gray-400">{pagination ? `${pagination.total} total` : ''}</span>
+              <div className="flex items-center gap-3">
+                <h2 className="font-semibold text-gray-900">My Scholarships</h2>
+                <span className="text-sm text-gray-400">{pagination ? `${pagination.total} total` : ''}</span>
+              </div>
+              {/* View toggle — only shown when there are scholarships */}
+              {!loading && scholarships.length > 0 && (
+                <ViewToggle viewMode={viewMode} onToggle={setViewMode} />
+              )}
             </div>
 
+            {/* ── Loading state ──────────────────────────── */}
             {loading ? (
-              /* Skeleton rows */
-              <div className="divide-y divide-gray-50">
-                {[1,2,3].map(i => (
-                  <div key={i} className="px-6 py-4 flex items-center gap-4">
-                    <div className="flex-1 h-4 bg-gray-100 rounded animate-pulse" />
-                    <div className="w-20 h-4 bg-gray-100 rounded animate-pulse" />
-                    <div className="w-16 h-4 bg-gray-100 rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
+              viewMode === 'table' ? <SkeletonRows /> : <SkeletonGrid />
+
+            /* ── Empty state ──────────────────────────── */
             ) : scholarships.length === 0 ? (
               <div className="px-6 py-16 text-center">
                 <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
@@ -191,7 +298,9 @@ function CollegeDashboard() {
                   </Link>
                 )}
               </div>
-            ) : (
+
+            /* ── TABLE VIEW ────────────────────────────── */
+            ) : viewMode === 'table' ? (
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -202,6 +311,7 @@ function CollegeDashboard() {
                         <th className="text-left px-6 py-3 font-medium">Deadline</th>
                         <th className="text-right px-6 py-3 font-medium">Applications</th>
                         <th className="text-center px-6 py-3 font-medium">Status</th>
+                        <th className="text-center px-6 py-3 font-medium">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -213,8 +323,10 @@ function CollegeDashboard() {
                             <td className="px-6 py-4 font-medium text-gray-900 max-w-xs truncate">
                               {s.scholarshipTitle}
                             </td>
-                            <td className="px-6 py-4 text-gray-500 capitalize">
-                              {s.scholarshipType}
+                            <td className="px-6 py-4">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${TYPE_COLORS[s.scholarshipType] ?? 'bg-gray-100 text-gray-500'}`}>
+                                {s.scholarshipType}
+                              </span>
                             </td>
                             <td className={`px-6 py-4 ${isExpired ? 'text-red-500' : 'text-gray-500'}`}>
                               {s.applicationDeadline
@@ -235,37 +347,32 @@ function CollegeDashboard() {
                                 {statusKey}
                               </span>
                             </td>
+                            <td className="px-6 py-4 text-center">
+                              <Link
+                                to={`/scholarships/${s._id}`}
+                                className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                View →
+                              </Link>
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
+                <PaginationBar />
+              </>
 
-                {/* Pagination */}
-                {pagination && pagination.pages > 1 && (
-                  <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm">
-                    <p className="text-gray-400">
-                      Page {pagination.page} of {pagination.pages}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setPage(p => p - 1)}
-                        disabled={!pagination.hasPrev}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        ← Prev
-                      </button>
-                      <button
-                        onClick={() => setPage(p => p + 1)}
-                        disabled={!pagination.hasNext}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  </div>
-                )}
+            /* ── GRID VIEW ─────────────────────────────── */
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                  {scholarships.map(s => (
+                    <ScholarshipGridCard key={s._id} s={s} />
+                  ))}
+                </div>
+                <PaginationBar />
               </>
             )}
           </div>

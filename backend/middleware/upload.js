@@ -1,72 +1,86 @@
-// upload.js — Multer file upload middleware
-//
-// Saves files to: uploads/students/{userId}/{fieldname}/{timestamp}_{originalname}
-// Allowed types: PDF, JPEG, PNG
-// Max size: 5MB per file
-//
-// Usage in routes:
-//   const upload = require('../middleware/upload');
-//   router.post('/documents', protect, authorize('student'), upload.single('document'), uploadDocument);
-//
-// After multer runs, req.file is available in the controller:
-//   req.file.path      — full path on disk
-//   req.file.filename  — just the filename
-//   req.file.size      — bytes
-//   req.file.mimetype  — e.g. 'application/pdf'
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
-const multer = require('multer');
-const path   = require('path');
-const fs     = require('fs');
+/* =========================================================
+   📁 STORAGE CONFIG
+   Saves files to:
+   uploads/students/{userId}/{fieldname}/{timestamp_filename}
+========================================================= */
 
-// ─────────────────────────────────────────────────────────────────
-// Storage — saves to uploads/students/{userId}/{fieldname}/
-// ─────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // req.user is attached by protect() middleware before multer runs
-    const uploadPath = path.join(
-      'uploads',
-      'students',
-      req.user._id.toString(),
-      file.fieldname               // 'document' — keeps uploads organised by field
-    );
+    try {
+      const userId = req.user?._id?.toString();
 
-    // Create directory tree if it doesn't exist
-    fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
+      if (!userId) {
+        return cb(new Error("User not authenticated"), null);
+      }
+
+      const uploadPath = path.join(
+        "uploads",
+        "students",
+        userId,
+        file.fieldname
+      );
+
+      // Create folder if not exists
+      fs.mkdirSync(uploadPath, { recursive: true });
+
+      cb(null, uploadPath);
+    } catch (err) {
+      cb(err, null);
+    }
   },
 
   filename: (req, file, cb) => {
-    // Sanitise originalname — replace spaces/special chars with underscore
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    // Remove unsafe characters from filename
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+
+    // Add timestamp to avoid duplicates
     const uniqueName = `${Date.now()}_${safeName}`;
+
     cb(null, uniqueName);
   },
 });
 
-// ─────────────────────────────────────────────────────────────────
-// File type filter — PDF, JPEG, PNG only
-// ─────────────────────────────────────────────────────────────────
-const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+/* =========================================================
+   📦 FILE FILTER (security layer)
+   Only allows PDF, JPG, PNG
+========================================================= */
+
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+];
 
 const fileFilter = (req, file, cb) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    // Pass error to multer — errorHandler.js catches LIMIT_UNEXPECTED_FILE
-    cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'), false);
+    cb(
+      new Error("Invalid file type. Only PDF, JPG, PNG allowed."),
+      false
+    );
   }
 };
 
-// ─────────────────────────────────────────────────────────────────
-// Multer instance
-// ─────────────────────────────────────────────────────────────────
+/* =========================================================
+   ⚙️ MULTER CONFIG
+========================================================= */
+
 const upload = multer({
   storage,
   fileFilter,
+
   limits: {
-    fileSize: 5 * 1024 * 1024,   // 5MB — errorHandler catches LIMIT_FILE_SIZE
+    // Max file size per upload
+    fileSize: 5 * 1024 * 1024, // 5MB
+
+    // Optional safety limit (helps prevent abuse)
+    files: 1,
   },
 });
 
-module.exports = upload;
+export default upload;

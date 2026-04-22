@@ -1,14 +1,13 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL : import.meta.env.REACT_APP_API_URL || 'http://localhost:5000/api',
-    timeout: 10000,                 //Prevent hanging requests
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', // ✅ was REACT_APP_API_URL (CRA syntax — wrong for Vite)
+    timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
     },
-    withCredentials: true,      //Enables secure cookies (future)
-})
-
+    withCredentials: true,
+});
 
 // Attach JWT automatically
 api.interceptors.request.use(

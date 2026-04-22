@@ -49,24 +49,24 @@ export default function Signup() {
       ward: "",
       street: "",
     },
-    contactPerson: { name: "", phone: "", email: "", designation: "",password: "" },
+    contactPerson: { name: "", phone: "", email: "", designation: "", password: "" },
   });
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const setNested = (section, field, value) => {
     setForm((f) => {
-      let updated = { ...f, [section]: { ...f[section], [field]: value, },};
+      let updated = { ...f, [section]: { ...f[section], [field]: value } };
 
-    // 🔥 Sync logic
-    if (section === "contactPerson") {
-      if (field === "name") updated.name = value;
-      if (field === "email") updated.email = value;
-      if (field === "password") updated.password = value;
-    }
+      // Sync contactPerson → top-level fields for authbuild signup
+      if (section === "contactPerson") {
+        if (field === "name") updated.name = value;
+        if (field === "email") updated.email = value;
+        if (field === "password") updated.password = value;
+      }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -153,7 +153,6 @@ export default function Signup() {
             <form onSubmit={handleSubmit}>
               {role === "student" && (
                 <>
-                  {/* Student Fields */}
                   {sectionTitle("Basic Info")}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -189,6 +188,7 @@ export default function Signup() {
                       />
                     </div>
                   </div>
+
                   {sectionTitle("Personal Info")}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
@@ -332,11 +332,7 @@ export default function Signup() {
                         value={form.guardian_info.phone_number}
                         required
                         onChange={(e) =>
-                          setNested(
-                            "guardian_info",
-                            "phone_number",
-                            e.target.value,
-                          )
+                          setNested("guardian_info", "phone_number", e.target.value)
                         }
                       />
                     </div>
@@ -347,11 +343,7 @@ export default function Signup() {
                         placeholder="Occupation"
                         value={form.guardian_info.occupation}
                         onChange={(e) =>
-                          setNested(
-                            "guardian_info",
-                            "occupation",
-                            e.target.value,
-                          )
+                          setNested("guardian_info", "occupation", e.target.value)
                         }
                       />
                     </div>
@@ -359,7 +351,6 @@ export default function Signup() {
                 </>
               )}
 
-              {/* Institution Fields */}
               {role === "institution" && (
                 <>
                   {sectionTitle("Institution Info")}
@@ -376,6 +367,7 @@ export default function Signup() {
                     </div>
                     <div>
                       <label className={labelCls}>Type</label>
+                      {/* ✅ Fixed: was "Private/Government/Community" — DB schema requires School/College/University */}
                       <select
                         className={inputCls}
                         value={form.institutionType}
@@ -383,9 +375,9 @@ export default function Signup() {
                         onChange={(e) => set("institutionType", e.target.value)}
                       >
                         <option value="">Select Type</option>
-                        <option>Private</option>
-                        <option>Government</option>
-                        <option>Community</option>
+                        <option>School</option>
+                        <option>College</option>
+                        <option>University</option>
                       </select>
                     </div>
                     <div>
@@ -504,11 +496,7 @@ export default function Signup() {
                         placeholder="e.g. Principal"
                         value={form.contactPerson.designation}
                         onChange={(e) =>
-                          setNested(
-                            "contactPerson",
-                            "designation",
-                            e.target.value,
-                          )
+                          setNested("contactPerson", "designation", e.target.value)
                         }
                       />
                     </div>
@@ -542,7 +530,9 @@ export default function Signup() {
                         type="password"
                         placeholder="••••••••"
                         value={form.contactPerson.password}
-                        onChange={(e) => setNested("contactPerson","password", e.target.value)}
+                        onChange={(e) =>
+                          setNested("contactPerson", "password", e.target.value)
+                        }
                         required
                       />
                     </div>

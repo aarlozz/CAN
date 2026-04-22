@@ -5,7 +5,7 @@ import Signup from "./pages/auth/signup";
 import InstitutionSignup from "./pages/auth/institutionsignup";
 import InstitutionLogin from "./pages/auth/institutionallogin";
 import InstitutionList from "./pages/auth/InstitutionList";
-import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord"; // keep your existing filename
+import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
 import StudentDashboard from "./pages/Dashboard/studentdashboard";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
@@ -16,10 +16,9 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/login-institution" element={<InstitutionLogin />} />    {/* ✅ was missing */}
+      <Route path="/signup-institution" element={<InstitutionSignup />} />  {/* ✅ was missing */}
       <Route path="/all-institutions" element={<InstitutionList />} />
-      
-
-
 
       {/* Protected — Institution */}
       <Route
@@ -40,16 +39,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      {/* Protected — any logged-in user
-      <Route
-        path="/institutions"
-        element={
-          <ProtectedRoute allowedRoles={["student", "institution", "district_admin", "province_admin", "super_admin"]}>
-            <InstitutionList />
-          </ProtectedRoute>
-        }
-      /> */}
     </Routes>
   );
 }

@@ -7,31 +7,31 @@ import User from "../models/User.js";
 
 // Helper — builds the student snapshot frozen at apply time
 const buildSnapshot = (student, user) => ({
-  fullName:    user.name,
-  gender:      student.personal_info?.gender  || "",
-  dateOfBirth: student.personal_info?.dob     || null,
-  phone:       student.personal_info?.phone   || "",
-  email:       user.email,
+  fullName: user.name,
+  gender: student.personal_info?.gender || "",
+  dateOfBirth: student.personal_info?.dob || null,
+  phone: student.personal_info?.phone || "",
+  email: user.email,
   location: {
-    province:     student.address?.province     || "",
-    district:     student.address?.district     || "",
+    province: student.address?.province || "",
+    district: student.address?.district || "",
     municipality: student.address?.municipality || "",
-    addressLine:  student.address?.street       || "",
+    addressLine: student.address?.street || "",
   },
   educationInfo: {
-    schoolName:            student.educationInfo?.schoolName            || "",
-    schoolType:            student.educationInfo?.schoolType            || "",
+    schoolName: student.educationInfo?.schoolName || "",
+    schoolType: student.educationInfo?.schoolType || "",
     currentEducationLevel: student.educationInfo?.currentEducationLevel || "",
   },
   reservationInfo: {
-    caste:          student.reservationInfo?.caste          || "",
-    hasDisability:  student.reservationInfo?.hasDisability  || false,
+    caste: student.reservationInfo?.caste || "",
+    hasDisability: student.reservationInfo?.hasDisability || false,
     disabilityType: student.reservationInfo?.disabilityType || "",
   },
   guardianInfo: {
-    name:     student.guardian_info?.name         || "",
-    phone:    student.guardian_info?.phone_number || "",
-    relation: student.guardian_info?.relation     || "",
+    name: student.guardian_info?.name || "",
+    phone: student.guardian_info?.phone_number || "",
+    relation: student.guardian_info?.relation || "",
   },
   snapshotCreatedAt: new Date(),
 });
@@ -42,11 +42,19 @@ export const applyForScholarship = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { scholarshipId, applicationType, meritDetails, reservationDetails, documents } = req.body;
+    const {
+      scholarshipId,
+      applicationType,
+      meritDetails,
+      reservationDetails,
+      documents,
+    } = req.body;
 
     if (!scholarshipId || !applicationType) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "scholarshipId and applicationType are required." });
+      return res.status(400).json({
+        message: "scholarshipId and applicationType are required.",
+      });
     }
 
     const scholarship = await Scholarship.findOne({
@@ -58,24 +66,53 @@ export const applyForScholarship = async (req, res) => {
 
     if (!scholarship) {
       await session.abortTransaction();
-      return res.status(404).json({ message: "Scholarship not found or deadline has passed." });
-    }
-
-    if (scholarship.scholarshipType !== "both" && scholarship.scholarshipType !== applicationType) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: `This scholarship only accepts "${scholarship.scholarshipType}" applications.`,
+      return res.status(404).json({
+        message: "Scholarship not found or deadline has passed.",
       });
     }
 
-    if (scholarship.financialDetails?.availableSlots !== undefined &&
-        scholarship.financialDetails.availableSlots <= 0) {
+    // ── FIX: scholarshipType → coverage.scholarshipType2 ─────────────────────
+    // The old schema had a flat scholarshipType ("merit" | "reservation" | "both").
+    // The new schema stores it as coverage.scholarshipType2 with different enum values.
+    // Type-gating is now based on applicationType vs coverage.scholarshipType2.
+    const schType = scholarship.coverage?.scholarshipType2;
+    const MERIT_TYPES = ["merit_based"];
+    const RESERVATION_TYPES = ["disability", "gender", "ethnic"];
+
+    if (
+      applicationType === "merit" &&
+      schType &&
+      RESERVATION_TYPES.includes(schType)
+    ) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "No available slots remaining." });
+      return res.status(400).json({
+        message: `This scholarship only accepts reservation-type applications.`,
+      });
+    }
+    if (
+      applicationType === "reservation" &&
+      schType &&
+      MERIT_TYPES.includes(schType)
+    ) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: `This scholarship only accepts merit-type applications.`,
+      });
     }
 
-    // ── FIX: removed isDeleted: false ────────────────────────────────────────
-    const student = await StudentProfile.findOne({ user: req.user.id }).session(session);
+    // ── FIX: financialDetails.availableSlots → remainingSeats (top-level) ────
+    if (
+      scholarship.remainingSeats !== undefined &&
+      scholarship.remainingSeats !== null &&
+      scholarship.remainingSeats <= 0
+    ) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: "No available seats remaining." });
+    }
+
+    const student = await StudentProfile.findOne({ user: req.user.id }).session(
+      session,
+    );
 
     if (!student) {
       await session.abortTransaction();
@@ -91,38 +128,51 @@ export const applyForScholarship = async (req, res) => {
 
     if (duplicate) {
       await session.abortTransaction();
-      return res.status(400).json({ message: "You have already applied for this scholarship." });
+      return res.status(400).json({
+        message: "You have already applied for this scholarship.",
+      });
     }
 
     const [application] = await ScholarshipApplication.create(
-      [{
-        scholarshipId,
-        studentId: student._id,
-        applicationType,
-        studentSnapshot: buildSnapshot(student, user),
-        meritDetails:       applicationType === "merit"       ? meritDetails       : undefined,
-        reservationDetails: applicationType === "reservation" ? reservationDetails : undefined,
-        documents: documents || [],
-      }],
-      { session }
+      [
+        {
+          scholarshipId,
+          studentId: student._id,
+          applicationType,
+          studentSnapshot: buildSnapshot(student, user),
+          meritDetails: applicationType === "merit" ? meritDetails : undefined,
+          reservationDetails:
+            applicationType === "reservation" ? reservationDetails : undefined,
+          documents: documents || [],
+        },
+      ],
+      { session },
     );
 
+    // ── FIX: $inc on remainingSeats (top-level), not financialDetails.availableSlots
     await Scholarship.findByIdAndUpdate(
       scholarshipId,
-      { $inc: {
-        "statistics.totalApplications":    1,
-        "statistics.pendingApplications":  1,
-        "financialDetails.availableSlots": -1,
-      }},
-      { session }
+      {
+        $inc: {
+          "statistics.totalApplications": 1,
+          "statistics.pendingApplications": 1,
+          remainingSeats: -1, // top-level field in new schema
+        },
+      },
+      { session },
     );
 
     await session.commitTransaction();
-    res.status(201).json({ message: "Application submitted successfully.", application });
+    res.status(201).json({
+      message: "Application submitted successfully.",
+      application,
+    });
   } catch (error) {
     await session.abortTransaction();
     if (error.code === 11000) {
-      return res.status(400).json({ message: "You have already applied for this scholarship." });
+      return res.status(400).json({
+        message: "You have already applied for this scholarship.",
+      });
     }
     console.error("applyForScholarship error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -141,8 +191,13 @@ export const getMyApplications = async (req, res) => {
       return res.status(404).json({ message: "Student profile not found." });
     }
 
-    const applications = await ScholarshipApplication.find({ studentId: student._id })
-      .populate("scholarshipId", "scholarshipTitle applicationDeadline financialDetails institutionName")
+    const applications = await ScholarshipApplication.find({
+      studentId: student._id,
+    })
+      .populate(
+        "scholarshipId",
+        "scholarshipTitle applicationDeadline financialDetails institutionName",
+      )
       .sort({ appliedAt: -1 });
 
     res.json({ count: applications.length, applications });
@@ -172,7 +227,7 @@ export const getInstitutionApplications = async (req, res) => {
 
     const filter = { scholarshipId: { $in: scholarshipIds } };
     if (scholarshipId) filter.scholarshipId = scholarshipId;
-    if (status)        filter.applicationStatus = status;
+    if (status) filter.applicationStatus = status;
 
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -185,7 +240,12 @@ export const getInstitutionApplications = async (req, res) => {
       ScholarshipApplication.countDocuments(filter),
     ]);
 
-    res.json({ total, page: Number(page), pages: Math.ceil(total / Number(limit)), applications });
+    res.json({
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      applications,
+    });
   } catch (error) {
     console.error("getInstitutionApplications error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -195,8 +255,12 @@ export const getInstitutionApplications = async (req, res) => {
 // GET /api/application/:id  (student or institution)
 export const getApplicationById = async (req, res) => {
   try {
-    const application = await ScholarshipApplication.findById(req.params.id)
-      .populate("scholarshipId", "scholarshipTitle applicationDeadline financialDetails institutionName scholarshipType");
+    const application = await ScholarshipApplication.findById(
+      req.params.id,
+    ).populate(
+      "scholarshipId",
+      "scholarshipTitle applicationDeadline financialDetails institutionName scholarshipType",
+    );
 
     if (!application) {
       return res.status(404).json({ message: "Application not found." });
@@ -205,17 +269,25 @@ export const getApplicationById = async (req, res) => {
     if (req.user.role === "student") {
       // ── FIX: removed isDeleted: false ──────────────────────────────────────
       const student = await StudentProfile.findOne({ user: req.user.id });
-      if (!student || application.studentId.toString() !== student._id.toString()) {
+      if (
+        !student ||
+        application.studentId.toString() !== student._id.toString()
+      ) {
         return res.status(403).json({ message: "Access denied." });
       }
     }
 
     if (req.user.role === "institution") {
       // ── FIX: removed isDeleted: false ──────────────────────────────────────
-      const institution = await InstitutionProfile.findOne({ user: req.user.id });
-      const scholarship  = await Scholarship.findById(application.scholarshipId);
-      if (!institution || !scholarship ||
-          scholarship.institutionId.toString() !== institution._id.toString()) {
+      const institution = await InstitutionProfile.findOne({
+        user: req.user.id,
+      });
+      const scholarship = await Scholarship.findById(application.scholarshipId);
+      if (
+        !institution ||
+        !scholarship ||
+        scholarship.institutionId.toString() !== institution._id.toString()
+      ) {
         return res.status(403).json({ message: "Access denied." });
       }
     }
@@ -238,18 +310,24 @@ export const reviewApplication = async (req, res) => {
 
     if (!validTransitions.includes(status)) {
       await session.abortTransaction();
-      return res.status(400).json({ message: `status must be: ${validTransitions.join(", ")}` });
+      return res
+        .status(400)
+        .json({ message: `status must be: ${validTransitions.join(", ")}` });
     }
 
     // ── FIX: removed isDeleted: false ────────────────────────────────────────
-    const institution = await InstitutionProfile.findOne({ user: req.user.id }).session(session);
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    }).session(session);
 
     if (!institution) {
       await session.abortTransaction();
       return res.status(404).json({ message: "Institution not found." });
     }
 
-    const application = await ScholarshipApplication.findById(req.params.id).session(session);
+    const application = await ScholarshipApplication.findById(
+      req.params.id,
+    ).session(session);
 
     if (!application) {
       await session.abortTransaction();
@@ -267,11 +345,11 @@ export const reviewApplication = async (req, res) => {
     }
 
     const previousStatus = application.applicationStatus;
-    application.applicationStatus      = status;
-    application.review.reviewedBy      = req.user.id;
-    application.review.reviewedAt      = new Date();
+    application.applicationStatus = status;
+    application.review.reviewedBy = req.user.id;
+    application.review.reviewedAt = new Date();
     application.review.rejectionReason = rejectionReason || null;
-    application.review.internalNotes   = internalNotes   || null;
+    application.review.internalNotes = internalNotes || null;
     await application.save({ session });
 
     const statsUpdate = {};
@@ -280,15 +358,21 @@ export const reviewApplication = async (req, res) => {
     }
     if (status === "approved") {
       statsUpdate["statistics.approvedApplications"] = 1;
-      if (previousStatus === "pending") statsUpdate["statistics.pendingApplications"] = -1;
+      if (previousStatus === "pending")
+        statsUpdate["statistics.pendingApplications"] = -1;
     }
     if (status === "rejected") {
       statsUpdate["financialDetails.availableSlots"] = 1;
-      if (previousStatus === "pending") statsUpdate["statistics.pendingApplications"] = -1;
+      if (previousStatus === "pending")
+        statsUpdate["statistics.pendingApplications"] = -1;
     }
 
     if (Object.keys(statsUpdate).length > 0) {
-      await Scholarship.findByIdAndUpdate(scholarship._id, { $inc: statsUpdate }, { session });
+      await Scholarship.findByIdAndUpdate(
+        scholarship._id,
+        { $inc: statsUpdate },
+        { session },
+      );
     }
 
     await session.commitTransaction();
@@ -308,8 +392,9 @@ export const withdrawApplication = async (req, res) => {
   session.startTransaction();
 
   try {
-    
-    const student = await StudentProfile.findOne({ user: req.user.id }).session(session);
+    const student = await StudentProfile.findOne({ user: req.user.id }).session(
+      session,
+    );
 
     if (!student) {
       await session.abortTransaction();
@@ -326,7 +411,11 @@ export const withdrawApplication = async (req, res) => {
       return res.status(404).json({ message: "Application not found." });
     }
 
-    if (["approved", "rejected", "withdrawn"].includes(application.applicationStatus)) {
+    if (
+      ["approved", "rejected", "withdrawn"].includes(
+        application.applicationStatus,
+      )
+    ) {
       await session.abortTransaction();
       return res.status(400).json({
         message: `Cannot withdraw an application that is already "${application.applicationStatus}".`,
@@ -338,9 +427,14 @@ export const withdrawApplication = async (req, res) => {
     await application.save({ session });
 
     const statsUpdate = { "financialDetails.availableSlots": 1 };
-    if (previousStatus === "pending") statsUpdate["statistics.pendingApplications"] = -1;
+    if (previousStatus === "pending")
+      statsUpdate["statistics.pendingApplications"] = -1;
 
-    await Scholarship.findByIdAndUpdate(application.scholarshipId, { $inc: statsUpdate }, { session });
+    await Scholarship.findByIdAndUpdate(
+      application.scholarshipId,
+      { $inc: statsUpdate },
+      { session },
+    );
 
     await session.commitTransaction();
     res.json({ message: "Application withdrawn successfully." });

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const scholarshipApplicationSchema = new mongoose.Schema(
   {
-    // ── Core references 
+    // ── Core references ───────────────────────────────────────────────────────
     scholarshipId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Scholarship",
@@ -14,48 +14,47 @@ const scholarshipApplicationSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ── Application type 
+    // ── Application type ──────────────────────────────────────────────────────
     applicationType: {
       type: String,
       enum: ["merit", "reservation"],
       required: true,
     },
 
-    // ── Status lifecycle 
+    // ── Status lifecycle ──────────────────────────────────────────────────────
     applicationStatus: {
       type: String,
       enum: ["pending", "under_review", "approved", "rejected", "withdrawn"],
       default: "pending",
     },
 
-    // ── Student snapshot (frozen at application time)
-    // Preserves student data even if they update their profile later
+    // ── Student snapshot (frozen at application time) ─────────────────────────
     studentSnapshot: {
-      fullName:    String,
-      gender:      String,
+      fullName: String,
+      gender: String,
       dateOfBirth: Date,
-      phone:       String,
-      email:       String,
+      phone: String,
+      email: String,
       location: {
-        province:     String,
-        district:     String,
+        province: String,
+        district: String,
         municipality: String,
-        addressLine:  String,
+        addressLine: String,
       },
       educationInfo: {
-        schoolName:            String,
-        schoolType:            String,
+        schoolName: String,
+        schoolType: String,
         currentEducationLevel: String,
       },
       reservationInfo: {
-        caste:          String,
-        hasDisability:  Boolean,
+        caste: String,
+        hasDisability: Boolean,
         disabilityType: String,
       },
       guardianInfo: {
-        name:        String,
-        phone:       String,
-        relation:    String,
+        name: String,
+        phone: String,
+        relation: String,
       },
       snapshotCreatedAt: {
         type: Date,
@@ -63,20 +62,31 @@ const scholarshipApplicationSchema = new mongoose.Schema(
       },
     },
 
-    // ── Merit-based details (filled when applicationType === "merit") ──────────
+    // ── Merit-based details ───────────────────────────────────────────────────
     meritDetails: {
       academicRecords: {
-        slcPercentage:  Number,
-        slcGpa:         Number,
-        plus2Percentage:Number,
-        plus2Gpa:       Number,
-        entranceScore:  Number,
+        // SEE / SLC
+        slcGpa: Number,
+        slcPercentage: Number,
+        slcBoard: String, // ADDED — e.g. "NEB"
+        slcYear: Number, // ADDED — BS year e.g. 2079
+
+        // +2 / Intermediate
+        plus2Gpa: Number,
+        plus2Percentage: Number,
+        plus2Board: String, // ADDED — e.g. "NEB (National Examinations Board)"
+        plus2Year: Number, // ADDED — BS year e.g. 2081
+        plus2Stream: String, // ADDED — e.g. "Science", "Management"
+
+        // Entrance
+        entranceScore: Number,
+        entranceName: String, // ADDED — e.g. "IOE Entrance"
       },
-      achievements:     String,
-      extraCurricular:  String,
+      achievements: String,
+      extraCurricular: String,
     },
 
-    // ── Reservation-based details (filled when applicationType === "reservation")
+    // ── Reservation-based details ─────────────────────────────────────────────
     reservationDetails: {
       reservationCategory: {
         type: String,
@@ -89,15 +99,18 @@ const scholarshipApplicationSchema = new mongoose.Schema(
           "other",
         ],
       },
-      schoolType:          String,
-      caste:               String,
-      disabilityType:      String,
-      disabilityPercentage:Number,
-      genderCategory:      String,
-      supportingDetails:   String,
+      schoolType: {
+        type: String,
+        enum: ["Government", "Community", "Private", "Other", ""], // tightened
+      },
+      caste: String,
+      disabilityType: String,
+      disabilityPercentage: Number,
+      genderCategory: String,
+      supportingDetails: String,
     },
 
-    // ── Application documents (embedded) ──────────────────────────────────────
+    // ── Application documents ─────────────────────────────────────────────────
     documents: [
       {
         documentType: {
@@ -117,43 +130,41 @@ const scholarshipApplicationSchema = new mongoose.Schema(
           required: true,
         },
         documentTitle: String,
-        filePath:      { type: String, required: true },
-        fileName:      String,
-        fileSize:      Number,
-        mimeType:      String,
-        uploadedAt:    { type: Date, default: Date.now },
+        filePath: { type: String, required: true },
+        fileName: String,
+        fileSize: Number,
+        mimeType: String,
+        uploadedAt: { type: Date, default: Date.now },
       },
     ],
 
-    // ── Review (filled by institution when they act on the application) ────────
+    // ── Review (filled by institution) ────────────────────────────────────────
     review: {
-      reviewedBy:      { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      reviewedAt:      Date,
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      reviewedAt: Date,
       rejectionReason: String,
-      internalNotes:   String,
+      internalNotes: String,
     },
 
     appliedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
-// Prevent a student applying twice to the same scholarship
 scholarshipApplicationSchema.index(
   { scholarshipId: 1, studentId: 1 },
-  { unique: true }
+  { unique: true },
 );
 scholarshipApplicationSchema.index({ studentId: 1 });
 scholarshipApplicationSchema.index({ scholarshipId: 1 });
 scholarshipApplicationSchema.index({ applicationStatus: 1 });
 scholarshipApplicationSchema.index({ applicationType: 1 });
 scholarshipApplicationSchema.index({ appliedAt: -1 });
-// Compound — most common dashboard queries
 scholarshipApplicationSchema.index({ studentId: 1, applicationStatus: 1 });
 scholarshipApplicationSchema.index({ scholarshipId: 1, applicationStatus: 1 });
 
 export default mongoose.model(
   "ScholarshipApplication",
-  scholarshipApplicationSchema
+  scholarshipApplicationSchema,
 );

@@ -26,5 +26,6 @@ router.post("/create", protect, requireRole("institution"), createScholarship);
 router.get("/:id",    getScholarshipById);
 router.patch("/:id",  protect, requireRole("institution"), updateScholarship);
 router.delete("/:id", protect, requireRole("institution"), deleteScholarship);
+router.put("/:id", protect, requireRole("institution"), updateScholarship);
 
 export default router;

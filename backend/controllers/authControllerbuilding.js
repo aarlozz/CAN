@@ -3,6 +3,9 @@ import StudentProfile from "../models/StudentProfile.js";
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const signup = async (req, res) => {
   try {
@@ -27,6 +30,8 @@ export const signup = async (req, res) => {
       password: hashedPassword,
       role,
     });
+    console.log("✅ User created:");
+    console.log(user);
 
     // Student signup
     if (user.role === "student") {
@@ -104,9 +109,14 @@ export const login = async (req, res) => {
     
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password +authProvider");
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // If user signed up via Google, they might not have a password
+    if (user.authProvider === 'google' && !user.password) {
+      return res.status(400).json({ message: "Please sign in with Google" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -133,4 +143,82 @@ export const login = async (req, res) => {
     console.error(error);
     return res.status(400).json({ message: "Server error" });
   }
+};
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ message: "Google token is required" });
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const name = payload.name;
+    const googleId = payload.sub;
+
+    let user = await User.findOne({ email });
+    let profile = null;
+
+    if (!user) {
+      // Create new student user
+      user = await User.create({
+        name,
+        email,
+        role: "student",
+        authProvider: "google",
+        googleId,
+        isVerified: true,
+      });
+
+      console.log("Creating StudentProfile...");
+      // Create empty student profile
+      profile = await StudentProfile.create({
+        user: user._id,
+        address: {
+          province: "Not Specified",
+          district: "Not Specified",
+          municipality: "Not Specified",
+        },
+        guardian_info: {
+          name: "Not Specified",
+          relation: "Not Specified",
+          phone_number: "0000000000",
+        }
+      });
+      console.log("✅ StudentProfile created:");
+      console.log(profile);
+    } else {
+      // Existing user
+      if (user.role === "student") {
+        profile = await StudentProfile.findOne({ user: user._id });
+      } else if (user.role === "institution") {
+        profile = await InstitutionProfile.findOne({ user: user._id });
+      }
+      
+      // Update googleId if not present
+      if (!user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    }
+
+    const jwtToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ message: "Google login successful", token: jwtToken, role: user.role, profile });
+  } catch (error) {
+  console.error("========== GOOGLE LOGIN ERROR ==========");
+  console.error(error);
+  console.error("Message:", error.message);
+
+  return res.status(500).json({
+    message: error.message,
+  });
+}
 };

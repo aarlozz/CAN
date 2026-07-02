@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { GoogleLogin } from '@react-oauth/google';
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 
@@ -13,6 +14,35 @@ export default function Signup() {
   const [role, setRole] = useState("student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/authbuild/google-login`, {
+        token: credentialResponse.credential,
+      });
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
+
+      if (res.data.role === "institution") {
+        navigate("/dashboard-institution");
+      } else if (res.data.role === "student") {
+        navigate("/dashboard-student");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Google Signup failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google Sign-Up was unsuccessful. Please try again.");
+  };
+
 
   const [form, setForm] = useState({
     name: "", email: "", password: "",
@@ -299,6 +329,24 @@ export default function Signup() {
               className="w-full mt-8 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white font-semibold py-3 rounded-lg transition-colors text-sm">
               {loading ? "Creating account…" : "Create Account"}
             </button>
+
+            {role === "student" && (
+              <>
+                <div className="relative flex items-center justify-center my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative px-4 bg-white text-sm text-gray-500">Or sign up with</div>
+                </div>
+
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                  />
+                </div>
+              </>
+            )}
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-4">

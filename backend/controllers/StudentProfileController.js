@@ -3,10 +3,15 @@ import ScholarshipApplication from "../models/ScholarshipApplication.js";
 // GET /api/student/dashboard-student
 export const getStudentDashboard = async (req, res) => {
   try {
-    const student = await StudentProfile.findOne({
-      user: req.user.id,
-    }).populate("user", "name email role");
+    console.log("JWT User:");
+    console.log(req.user);
 
+      const student = await StudentProfile.findOne({
+    user: req.user.id,
+});
+
+console.log("Student found:");
+console.log(student);
     if (!student) {
       return res.status(404).json({ message: "Student profile not found." });
     }

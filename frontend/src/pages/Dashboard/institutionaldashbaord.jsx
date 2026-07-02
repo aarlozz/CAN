@@ -174,13 +174,13 @@ export default function InstitutionalDashboard() {
   // ── Logout ──────────────────────────────────────────────────────────────────
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/login-institution");
+    navigate("/login");
   };
 
   // ── Data fetch ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) {
-      navigate("/login-institution");
+      navigate("/login");
       return;
     }
     const headers = { Authorization: `Bearer ${token}` };
@@ -191,7 +191,7 @@ export default function InstitutionalDashboard() {
       .catch((err) => {
         if (err.response?.status === 401) {
           localStorage.clear();
-          navigate("/login-institution");
+          navigate("/login");
         } else
           setError(err.response?.data?.message || "Failed to load dashboard.");
       });
@@ -391,7 +391,7 @@ export default function InstitutionalDashboard() {
           </h2>
           <p className="text-gray-500 text-sm mb-6">{error}</p>
           <button
-            onClick={() => navigate("/login-institution")}
+            onClick={() => navigate("/login")}
             className="bg-red-500 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-red-600"
           >
             Back to Login

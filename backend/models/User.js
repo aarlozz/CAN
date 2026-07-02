@@ -17,11 +17,20 @@ const finaluserSchema = new mongoose.Schema(
 
     password: {
       type:      String,
-      required:  true,
+      required:  function() { return this.authProvider === 'local'; },
       minlength: 6,
       select:    false,   // never returned by default — must explicitly .select('+password')
     },
 
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+
+    googleId: {
+      type: String
+    },
 
     role: {
       type: String,

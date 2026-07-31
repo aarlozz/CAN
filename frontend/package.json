@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.5",
+    "google-auth-library": "^11.0.0",
     "nepali-date-converter": "^3.4.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

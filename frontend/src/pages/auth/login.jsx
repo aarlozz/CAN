@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+import { GoogleLogin } from '@react-oauth/google';
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import CANlogo from "../../assets/images/logo/CAN_logo.png";
@@ -12,6 +13,37 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/api/authbuild/google-login`, {
+        token: credentialResponse.credential,
+      });
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
+
+      if (
+    res.data.role === "student" &&
+    !res.data.profile.profileCompleted
+) {
+    navigate("/complete-profile");
+} else if (res.data.role === "student") {
+    navigate("/dashboard-student");
+} else {
+    navigate("/dashboard-institution");
+}
+    } catch (err) {
+      setError(err.response?.data?.message || "Google Login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google Sign-In was unsuccessful. Please try again.");
+  };
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -97,6 +129,21 @@ export default function Login() {
             >
               {loading ? "Signing in…" : "Sign In"}
             </button>
+
+            <div className="relative flex items-center justify-center my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative px-4 bg-white text-sm text-gray-500">Or continue with</div>
+            </div>
+
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap
+              />
+            </div>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-500 space-y-2">

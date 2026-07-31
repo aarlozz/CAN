@@ -44,7 +44,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLink("/", "Home")}
+          {!token && navLink("/", "Home")}
           {navLink("/scholarships", "Scholarships")}
           {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
           {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
@@ -86,7 +86,7 @@ export default function Header() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
-          {navLink("/", "Home")}
+          {!token && navLink("/", "Home")}
           {navLink("/scholarships", "Scholarships")}
           {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
           {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}

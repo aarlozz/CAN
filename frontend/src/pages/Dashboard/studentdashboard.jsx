@@ -111,11 +111,6 @@ export default function StudentDashboard() {
       .finally(() => setAppLoading(false));
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
-
   // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading)
     return (
@@ -152,13 +147,6 @@ export default function StudentDashboard() {
   const personal = data?.personal_info || {};
   const address = data?.address || {};
   const guardian = data?.guardian_info || {};
-
-  const initials = (user.name || "S")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
 
   const dobFormatted = personal.dob
     ? new Date(personal.dob).toLocaleDateString("en-NP", {
@@ -204,82 +192,12 @@ export default function StudentDashboard() {
 
   return (
     <>
-      <Header />
+      <Header
+        onProfileClick={() => setProfileOpen((o) => !o)}
+        profileOpen={profileOpen}
+      />
 
       <main className="min-h-screen bg-gray-50">
-        {/* ── TOP NAV BAR ───────────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-            {/* Left: name + avatar */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-xs font-bold text-red-600 shrink-0">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
-                  {user.name}
-                </p>
-                <p className="text-[10px] text-gray-400 truncate">
-                  {user.email}
-                </p>
-              </div>
-            </div>
-
-            {/* Right: profile + logout */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setProfileOpen((o) => !o)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                  profileOpen
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                Profile
-                <span
-                  className="text-[10px] transition-transform duration-200"
-                  style={{ transform: profileOpen ? "rotate(90deg)" : "none" }}
-                >
-                  ›
-                </span>
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* ── PAGE BODY ─────────────────────────────────────────────────────── */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 flex gap-6">
           {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
@@ -495,7 +413,12 @@ export default function StudentDashboard() {
               {/* Avatar + name */}
               <div className="flex flex-col items-center pt-6 pb-4 px-4 border-b border-gray-50">
                 <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center text-2xl font-bold text-red-500 mb-3">
-                  {initials}
+                  {(user.name || "S")
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((w) => w[0])
+                    .join("")
+                    .toUpperCase()}
                 </div>
                 <p className="text-sm font-bold text-gray-900 text-center">
                   {user.name}
@@ -542,29 +465,6 @@ export default function StudentDashboard() {
                     </p>
                   )}
                 </ProfileSection>
-              </div>
-
-              {/* Logout from sidebar */}
-              <div className="px-4 pb-5">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  Logout
-                </button>
               </div>
             </aside>
           )}

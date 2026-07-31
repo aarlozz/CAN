@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CANlogo from "../assets/images/logo/CAN_logo.png";
 
-export default function Header() {
+export default function Header({ onProfileClick, profileOpen }) {
   const navigate  = useNavigate();
   const location  = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -65,10 +65,28 @@ export default function Header() {
               </Link>
             </>
           ) : (
-            <button onClick={handleLogout}
-              className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-              Logout
-            </button>
+            <>
+              {onProfileClick && (
+                <button
+                  onClick={onProfileClick}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                    profileOpen
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Profile
+                </button>
+              )}
+              <button onClick={handleLogout}
+                className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+                Logout
+              </button>
+            </>
           )}
         </div>
 
@@ -91,10 +109,21 @@ export default function Header() {
           {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
           {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
           {token && navLink("/institutions", "Institutions")}
-          {!token
-            ? <>{navLink("/login", "Login")}{navLink("/signup-institution", "Register Institution")}</>
-            : <button onClick={handleLogout} className="text-left text-sm font-medium text-red-500">Logout</button>
-          }
+          {!token ? (
+            <>{navLink("/login", "Login")}{navLink("/signup-institution", "Register Institution")}</>
+          ) : (
+            <>
+              {onProfileClick && (
+                <button
+                  onClick={() => { onProfileClick(); setMenuOpen(false); }}
+                  className="text-left text-sm font-medium text-gray-700"
+                >
+                  Profile
+                </button>
+              )}
+              <button onClick={handleLogout} className="text-left text-sm font-medium text-red-500">Logout</button>
+            </>
+          )}
         </div>
       )}
     </header>

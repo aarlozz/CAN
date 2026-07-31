@@ -6,6 +6,7 @@ import {
   updateReservation,
   addDocument,
   removeDocument,
+  completeProfile,
 } from "../controllers/StudentProfileController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
 
@@ -54,6 +55,13 @@ router.delete(
   protect,
   requireRole("student"),
   removeDocument
+);
+
+router.put(
+  "/complete-profile",
+  protect,
+  requireRole("student"),
+  completeProfile
 );
 
 export default router;

@@ -2,6 +2,18 @@ import { Link } from "react-router-dom";
 import Header from "../Components/header";
 import Footer from "../Components/footer";
 
+import { useEffect, useState } from "react";
+
+import img1 from "../assets/images/image/can1.jpg";
+import img2 from "../assets/images/image/can2.jpg";
+import img3 from "../assets/images/image/can3.jpg";
+import img4 from "../assets/images/image/can4.jpg";
+import img5 from "../assets/images/image/can5.jpeg";
+import img6 from "../assets/images/image/can6.jpeg";
+import img7 from "../assets/images/image/can7.jpg";
+
+const images = [img1, img2, img3, img4, img5, img6, img7];
+
 const services = [
   {
     icon: "🔍",
@@ -21,6 +33,16 @@ const services = [
 ];
 
 export default function Home() {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
       <Header />
@@ -75,66 +97,73 @@ export default function Home() {
       {/* About */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
+
+          {/* Image Slideshow */}
           <div className="md:w-1/2 flex justify-center">
-            <div className="w-64 h-64 bg-red-100 rounded-full flex items-center justify-center text-8xl">
-              🇳🇵
+            <div className="overflow-hidden rounded-2xl shadow-2xl">
+              <img
+                key={currentImage}
+                src={images[currentImage]}
+                alt="CAN Federation"
+                className="w-full max-w-lg h-[420px] object-cover transition-all duration-700 hover:scale-105"
+              />
             </div>
           </div>
-          <div className="md:w-1/2">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">About CAN Federation</h2>
-            <p className="text-gray-600 leading-relaxed mb-4">
-              Computer Association of Nepal (CAN) was established in May 1992 and formally
-              registered in December 1992. It was later re-registered as CAN Federation in
-              January 2015 — an umbrella organization for Nepal's ICT sector.
-            </p>
-            <p className="text-gray-600 leading-relaxed">
-              CAN Federation operates as an autonomous, non-political, non-profit service
-              organization, bringing together ICT professionals, institutions, and associations
-              across Nepal.
-            </p>
-          </div>
-        </div>
-      </section>
 
-      {/* Services */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-3">Our Services</h2>
-            <p className="text-gray-500">Everything you need to find or offer scholarships in Nepal</p>
+          {/* About Text */}
+          <div className="md:w-1/2">
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-6">
+              About CAN Federation
+            </h2>
+
+            <div className="space-y-5 text-gray-600 leading-8 text-justify">
+              <p>
+                Computer Association of Nepal (CAN) was established in May 1992 and
+                formally registered in December 1992. In January 2015, it was
+                restructured and registered as the{" "}
+                <strong>
+                  Federation of Computer Association Nepal (CAN Federation)
+                </strong>
+                , with the involvement of professionals, specialists, institutions,
+                and organizations from Nepal's Information and Communication
+                Technology (ICT) sector.
+              </p>
+
+              <p>
+                CAN Federation serves as the umbrella organization for the ICT
+                community, with a diverse membership base that includes ICT
+                institutions, associations, and individuals actively working in the
+                sector throughout Nepal.
+              </p>
+
+              <p>
+                The federation operates as an autonomous, non-political,
+                non-partisan, non-profit, and service-oriented organization dedicated
+                to promoting the growth and development of Nepal's ICT industry.
+              </p>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {services.map(({ icon, title, desc }) => (
-              <div
-                key={title}
-                className="bg-white rounded-xl border border-gray-100 shadow-sm p-8 hover:shadow-md hover:border-red-100 transition-all"
-              >
-                <div className="text-4xl mb-4">{icon}</div>
-                <h3 className="font-bold text-gray-900 text-lg mb-2">{title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
+
         </div>
       </section>
 
       {/* CTA */}
-      <section className="bg-red-500 py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-extrabold text-white mb-4">
-            Is your institution on CAN's portal?
-          </h2>
-          <p className="text-red-100 text-lg mb-8">
-            Register today and connect with thousands of students seeking scholarships.
-          </p>
-          <Link
-            to="/signup-institution"
-            className="bg-white text-red-500 hover:bg-red-50 font-bold px-8 py-3 rounded-lg transition-colors shadow-sm inline-block"
-          >
-            Register Institution
-          </Link>
-        </div>
-      </section>
+<section className="bg-gray-500 py-10">
+  <div className="max-w-3xl mx-auto px-6 text-center">
+    <h2 className="text-3xl font-extrabold text-white mb-3">
+      Is your institution on CAN's portal?
+    </h2>
+    <p className="text-gray-100 text-lg mb-6 max-w-xl mx-auto">
+      Register today and connect with thousands of students seeking scholarships.
+    </p>
+    <Link
+      to="/signup-institution"
+      className="bg-white text-gray-700 hover:bg-gray-100 hover:scale-105 font-bold px-8 py-3 rounded-lg transition-all duration-200 shadow-lg inline-block"
+    >
+      Register Institution →
+    </Link>
+  </div>
+</section>
 
       <Footer />
     </>

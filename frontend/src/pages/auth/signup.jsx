@@ -25,13 +25,16 @@ export default function Signup() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("role", res.data.role);
 
-      if (res.data.role === "institution") {
-        navigate("/dashboard-institution");
-      } else if (res.data.role === "student") {
-        navigate("/dashboard-student");
-      } else {
-        navigate("/");
-      }
+      if (
+    res.data.role === "student" &&
+    !res.data.profile.profileCompleted
+) {
+    navigate("/complete-profile");
+} else if (res.data.role === "student") {
+    navigate("/dashboard-student");
+} else {
+    navigate("/dashboard-institution");
+}
     } catch (err) {
       setError(err.response?.data?.message || "Google Signup failed.");
     } finally {

@@ -10,8 +10,7 @@ export const getStudentDashboard = async (req, res) => {
     user: req.user.id,
 });
 
-console.log("Student found:");
-console.log(student);
+
     if (!student) {
       return res.status(404).json({ message: "Student profile not found." });
     }
@@ -190,5 +189,52 @@ export const removeDocument = async (req, res) => {
     res.json({ message: "Document removed.", documents: student.documents });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// PUT /api/student/complete-profile
+export const completeProfile = async (req, res) => {
+  try {
+    const {
+      personal_info,
+      address,
+      guardian_info,
+      educationInfo,
+      reservationInfo,
+    } = req.body;
+
+    const student = await StudentProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student profile not found.",
+      });
+    }
+
+    // Update profile
+    student.personal_info = personal_info;
+    student.address = address;
+    student.guardian_info = guardian_info;
+    student.educationInfo = educationInfo;
+    student.reservationInfo = reservationInfo;
+
+    // Mark profile completed
+    student.profileCompleted = true;
+
+    await student.save();
+
+    res.status(200).json({
+      message: "Profile completed successfully.",
+      profile: student,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error.",
+    });
   }
 };

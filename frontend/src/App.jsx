@@ -11,7 +11,7 @@ import StudentDashboard from "./pages/Dashboard/studentdashboard";
 import ScholarshipList from "./pages/scholarships/ScholarshipList";
 import ScholarshipDetail from "./pages/scholarships/ScholarshipDetail";
 import ProtectedRoute from "./Components/ProtectedRoute";
-
+import CompleteProfile from "./pages/auth/completeprofile";
 // FIXES:
 // 1. Import names now match actual filenames exactly (scholarshipList not ScholarshipList)
 // 2. Route was /scholarship/:id (singular) — FIXED to /scholarships/:id (plural)
@@ -56,7 +56,12 @@ function App() {
             <InstitutionList />
         }
       />
+      <Route
+    path="/complete-profile"
+    element={<CompleteProfile />}
+/>
     </Routes>
+    
   );
 }
 

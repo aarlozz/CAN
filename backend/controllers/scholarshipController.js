@@ -163,21 +163,17 @@ export const createScholarship = async (req, res) => {
     } = req.body;
 
     if (!scholarshipTitle || !applicationDeadline)
-      return res
-        .status(400)
-        .json({
-          message: "scholarshipTitle and applicationDeadline are required.",
-        });
+      return res.status(400).json({
+        message: "scholarshipTitle and applicationDeadline are required.",
+      });
 
     if (
       coverage?.scholarshipType2 &&
       !VALID_TYPES.includes(coverage.scholarshipType2)
     )
-      return res
-        .status(400)
-        .json({
-          message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
-        });
+      return res.status(400).json({
+        message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
+      });
 
     const parsedTotalSeats = totalSeats ? Number(totalSeats) : undefined;
     const parsedRemainingSeats = remainingSeats
@@ -212,6 +208,7 @@ export const createScholarship = async (req, res) => {
       locationFilter: resolvedLocation,
       isActive: true,
       isDeleted: false,
+      verification: { status: "pending" }, // explicitly require approval
     });
 
     res.status(201).json({ message: "Scholarship created.", scholarship });
@@ -236,6 +233,7 @@ export const getAllScholarships = async (req, res) => {
     const filter = {
       isDeleted: { $ne: true },
       isActive: { $ne: false },
+      "verification.status": "approved", // Only show approved scholarships to students
     };
 
     if (provinceId) filter["locationFilter.province.provinceId"] = provinceId;
@@ -301,6 +299,7 @@ export const getScholarshipById = async (req, res) => {
     const scholarship = await Scholarship.findOne({
       _id: req.params.id,
       isDeleted: { $ne: true },
+      "verification.status": "approved",
     })
       .populate(
         "institutionId",
@@ -362,11 +361,9 @@ export const updateScholarship = async (req, res) => {
       coverage?.scholarshipType2 &&
       !VALID_TYPES.includes(coverage.scholarshipType2)
     )
-      return res
-        .status(400)
-        .json({
-          message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
-        });
+      return res.status(400).json({
+        message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
+      });
 
     // ── Seats validation (compare incoming vs existing as fallback) ────────────
     const parsedTotalSeats =
@@ -405,7 +402,14 @@ export const updateScholarship = async (req, res) => {
       scholarship.eligibilityCriteria = buildEligibility(eligibilityCriteria);
     if (locationFilter !== undefined)
       scholarship.locationFilter = await resolveLocationFilter(locationFilter);
-
+    if (scholarship.verification?.status !== "pending") {
+      scholarship.verification = {
+        status: "pending",
+        verifiedBy: null,
+        verifiedAt: null,
+        remarks: "",
+      };
+    }
     await scholarship.save();
     res.json({ message: "Scholarship updated.", scholarship });
   } catch (error) {

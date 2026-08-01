@@ -82,14 +82,14 @@ const institutionSchema = new mongoose.Schema(
       status: {
         type: String,
         enum: ["pending", "verified", "rejected"],
-        default: "verified",
+        default: "pending",
       },
       verifiedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
       verifiedAt: { type: Date },
-      rejectionReason: { type: String },
+      remarks: { type: String },
     },
 
     // Legacy approval flag

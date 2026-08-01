@@ -115,6 +115,21 @@ const scholarshipSchema = new mongoose.Schema(
       pendingApplications: { type: Number, default: 0 },
     },
 
+    // ─── Verification Workflow ─────────────────────────────────────────────────
+    verification: {
+      status: {
+        type: String,
+        enum: ["pending", "approved", "rejected", "revision_requested"],
+        default: "pending",
+      },
+      verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      verifiedAt: { type: Date },
+      remarks: { type: String },
+    },
+
     // ─── Soft Delete ───────────────────────────────────────────────────────────
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
@@ -137,6 +152,7 @@ scholarshipSchema.index({ applicationDeadline: 1 });
 scholarshipSchema.index({ isActive: 1 });
 scholarshipSchema.index({ isActive: 1, applicationDeadline: 1 }); // most common query
 scholarshipSchema.index({ institutionId: 1, isActive: 1 }); // institution's active scholarships
+scholarshipSchema.index({ "verification.status": 1 }); // filter approved scholarships
 scholarshipSchema.index(
   { scholarshipTitle: "text", description: "text" },
   { name: "scholarship_text_search" },

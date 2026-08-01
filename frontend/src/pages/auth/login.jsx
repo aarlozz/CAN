@@ -62,6 +62,10 @@ export default function Login() {
         navigate("/dashboard-institution");
       } else if (res.data.role === "student") {
         navigate("/dashboard-student");
+      } else if (res.data.role === "super_admin") {
+        navigate("/dashboard-superadmin");
+      } else if (res.data.role === "province_admin") {
+        navigate("/dashboard-provinceadmin");
       } else {
         navigate("/");
       }

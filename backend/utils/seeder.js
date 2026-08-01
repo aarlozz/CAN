@@ -8,11 +8,12 @@
 //   node utils/seeder.js --force  — drops existing data and re-seeds
 //   node utils/seeder.js --clear  — drops location data only (no re-seed)
 
-const mongoose   = require('mongoose');
-const Province     = require('../models/Province');
-const District     = require('../models/District');
-const Municipality = require('../models/Municipality');
-require('dotenv').config();
+import mongoose from 'mongoose';
+import Province from '../models/Province.js';
+import District from '../models/District.js';
+import Municipality from '../models/Municipality.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOCATION DATA — Nepal's official administrative divisions

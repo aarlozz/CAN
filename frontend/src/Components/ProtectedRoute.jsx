@@ -16,7 +16,10 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Role restriction — redirect to their dashboard or home
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    if (role === "super_admin") return <Navigate to="/dashboard-superadmin" replace />;
+    if (role === "province_admin") return <Navigate to="/dashboard-provinceadmin" replace />;
     if (role === "institution") return <Navigate to="/dashboard-institution" replace />;
+    if (role === "student") return <Navigate to="/dashboard-student" replace />;
     return <Navigate to="/" replace />;
   }
 

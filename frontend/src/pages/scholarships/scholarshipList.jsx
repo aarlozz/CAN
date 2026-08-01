@@ -4,8 +4,9 @@ import axios from "axios";
 import LocationCascade from "../../Components/LocationCascade";
 import {
   STUDY_LEVELS,
-  FACULTIES,
-  DEGREE_PROGRAMS,
+  LEVELS_WITH_FACULTY,
+  getFacultiesForLevel,
+  getProgramsForFaculty,
   UNIVERSITIES,
   COLLEGE_TYPES,
 } from "../../constants/educationTaxonomy";
@@ -32,6 +33,16 @@ const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
   { value: "other", label: "Other" },
   { value: "any", label: "Any" },
+];
+
+// Mirrors the real category system used by Nepal government / TU scholarships
+const ETHNIC_CATEGORY_OPTIONS = [
+  { value: "dalit", label: "Dalit" },
+  { value: "janajati", label: "Janajati" },
+  { value: "madhesi", label: "Madhesi" },
+  { value: "muslim", label: "Muslim" },
+  { value: "backward_region", label: "Backward Region" },
+  { value: "general", label: "General" },
 ];
 
 const TYPE_BADGE = {
@@ -61,8 +72,6 @@ const LEVEL_LABEL = Object.fromEntries(
 const COLLEGE_TYPE_LABEL = Object.fromEntries(
   COLLEGE_TYPES.map((c) => [c.value, c.label]),
 );
-
-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +104,8 @@ function FilterSelect({
   onChange,
   options,
   placeholder = "All",
+  disabled = false,
+  hint = "",
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -104,7 +115,10 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-700"
+        disabled={disabled}
+        className={`border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-700 ${
+          disabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""
+        }`}
       >
         <option value="">{placeholder}</option>
         {options.map((o) => (
@@ -113,6 +127,9 @@ function FilterSelect({
           </option>
         ))}
       </select>
+      {disabled && hint && (
+        <span className="text-[11px] text-gray-400">{hint}</span>
+      )}
     </div>
   );
 }
@@ -134,8 +151,8 @@ function FilterInput({ label, value, onChange, placeholder }) {
   );
 }
 
-// Select with <optgroup> support — used for Degree/Program and University,
-// which are grouped by faculty / region rather than a flat list.
+// Select with <optgroup> support — still used for University, which is
+// grouped by region rather than a flat list.
 function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "All" }) {
   return (
     <div className="flex flex-col gap-1">
@@ -245,6 +262,29 @@ function ScholarshipCard({ s }) {
               {s.eligibilityCriteria.gender}
             </span>
           )}
+        {s.eligibilityCriteria?.ethnicCategory &&
+          s.eligibilityCriteria.ethnicCategory !== "any" && (
+            <span className="bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize">
+              {s.eligibilityCriteria.ethnicCategory.replace("_", " ")}
+            </span>
+          )}
+        {s.eligibilityCriteria?.minGPA != null && (
+          <span className="bg-cyan-50 text-cyan-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            Min GPA {s.eligibilityCriteria.minGPA}
+          </span>
+        )}
+        {s.eligibilityCriteria?.minPercentage != null && (
+          <span className="bg-cyan-50 text-cyan-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            Min {s.eligibilityCriteria.minPercentage}%
+          </span>
+        )}
+        {s.eligibilityCriteria?.entranceExamName && (
+          <span className="bg-violet-50 text-violet-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            {s.eligibilityCriteria.entranceExamName}
+            {s.eligibilityCriteria.minEntranceScore != null &&
+              ` ≥ ${s.eligibilityCriteria.minEntranceScore}`}
+          </span>
+        )}
       </div>
 
       {s.description && (
@@ -257,12 +297,23 @@ function ScholarshipCard({ s }) {
       <div className="mt-auto space-y-1 mb-4">
         <div className="flex items-center justify-between text-xs">
           <span className={`font-medium ${dl.color}`}>📅 {dl.label}</span>
-          {s.coverage?.amountNpr > 0 && (
+          {(s.coverage?.amountNpr > 0 || s.coverage?.percentage > 0) && (
             <span className="text-gray-600 font-semibold">
-              💰 {formatNPR(s.coverage.amountNpr)}
+              💰{" "}
+              {s.coverage?.amountNpr > 0
+                ? formatNPR(s.coverage.amountNpr)
+                : `${s.coverage.percentage}%`}
+              {s.coverage?.amountNpr > 0 &&
+                s.coverage?.percentage > 0 &&
+                ` (${s.coverage.percentage}%)`}
             </span>
           )}
         </div>
+        {s.coverage?.totalProgramFeeNpr > 0 && (
+          <p className="text-xs text-gray-400">
+            🎓 Program fee: {formatNPR(s.coverage.totalProgramFeeNpr)}
+          </p>
+        )}
         {s.remainingSeats != null && (
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -420,6 +471,11 @@ const FILTER_LABELS = {
   status: "Status",
   minAmount: "Min Amount",
   maxAmount: "Max Amount",
+  ethnicCategory: "Category",
+  minGPA: "Your GPA",
+  minPercentage: "Your Percentage",
+  studentAge: "Your Age",
+  isFirstGenerationLearner: "First-Gen Learner",
 };
 
 const DEFAULT_FILTERS = {
@@ -438,6 +494,13 @@ const DEFAULT_FILTERS = {
   status: "active",
   minAmount: "",
   maxAmount: "",
+  // Self-reported by the student — used to surface scholarships they
+  // actually qualify for (e.g. "my GPA is Y", "I'm in category Z")
+  ethnicCategory: "",
+  minGPA: "",
+  minPercentage: "",
+  studentAge: "",
+  isFirstGenerationLearner: false,
 };
 
 export default function ScholarshipList() {
@@ -472,6 +535,25 @@ export default function ScholarshipList() {
     return f;
   });
 
+  // ── Cascade-derived options ─────────────────────────────────────────────────
+  // Faculty options depend on the selected Level; Program options depend on
+  // Level + Faculty. Mirrors the Level → Faculty → Program hierarchy in
+  // educationTaxonomy.js, same pattern as the province/district/municipality
+  // cascade used below for location.
+  const levelHasFaculty = LEVELS_WITH_FACULTY.includes(filters.targetLevel);
+  const facultyOptions = levelHasFaculty
+    ? getFacultiesForLevel(filters.targetLevel).map((f) => ({
+        value: f,
+        label: f,
+      }))
+    : [];
+  const programOptions =
+    levelHasFaculty && filters.targetFaculty
+      ? getProgramsForFaculty(filters.targetLevel, filters.targetFaculty).map(
+          (p) => ({ value: p, label: p }),
+        )
+      : [];
+
   // ── Sync filters → URL ──────────────────────────────────────────────────────
   useEffect(() => {
     const params = {};
@@ -504,6 +586,11 @@ export default function ScholarshipList() {
         status: "status",
         minAmount: "minAmount",
         maxAmount: "maxAmount",
+        ethnicCategory: "ethnicCategory",
+        minGPA: "minGPA",
+        minPercentage: "minPercentage",
+        studentAge: "studentAge",
+        isFirstGenerationLearner: "isFirstGenerationLearner",
       };
 
       for (const [fk, pk] of Object.entries(MAP)) {
@@ -537,6 +624,16 @@ export default function ScholarshipList() {
   const setFilter = (key, value) => {
     setFilters((prev) => {
       const next = { ...prev, [key]: value };
+
+      // Cascade reset: Level → Faculty → Program (same idea as location)
+      if (key === "targetLevel") {
+        next.targetFaculty = "";
+        next.degreeProgram = "";
+      }
+      if (key === "targetFaculty") {
+        next.degreeProgram = "";
+      }
+
       // Reset cascading location
       if (key === "provinceId") {
         next.districtId = "";
@@ -694,20 +791,35 @@ export default function ScholarshipList() {
               options={TARGET_LEVELS}
             />
 
+            {/* Faculty: only meaningful once a level with a faculty step
+                (+2, Diploma/PCL, Bachelor's, Master's) is chosen. */}
             <FilterSelect
-              label="Faculty"
+              label="Faculty / Stream"
               value={filters.targetFaculty}
               onChange={(v) => setFilter("targetFaculty", v)}
-              options={FACULTIES.map((f) => ({ value: f, label: f }))}
-              placeholder="All Faculties"
+              options={facultyOptions}
+              placeholder={levelHasFaculty ? "All Faculties" : "Select a level first"}
+              disabled={!levelHasFaculty}
+              hint={
+                filters.targetLevel && !levelHasFaculty
+                  ? "This level has no faculty/stream."
+                  : "Choose a Target Level first."
+              }
             />
 
-            <FilterGroupedSelect
+            {/* Program: only meaningful once a Faculty is chosen. */}
+            <FilterSelect
               label="Degree / Program"
               value={filters.degreeProgram}
               onChange={(v) => setFilter("degreeProgram", v)}
-              groups={DEGREE_PROGRAMS}
-              placeholder="All Degrees / Programs"
+              options={programOptions}
+              placeholder={
+                levelHasFaculty && filters.targetFaculty
+                  ? "All Degrees / Programs"
+                  : "Select a faculty first"
+              }
+              disabled={!levelHasFaculty || !filters.targetFaculty}
+              hint="Choose a Faculty first."
             />
 
             <FilterGroupedSelect
@@ -804,6 +916,106 @@ export default function ScholarshipList() {
                 </span>
                 Disability inclusive
               </button>
+            </div>
+          </div>
+
+          {/* Eligibility (self-reported) — helps surface scholarships the
+              student actually qualifies for, mirroring the criteria
+              institutions in Nepal commonly screen on. */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Check what you qualify for
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <FilterSelect
+                label="Your Category"
+                value={filters.ethnicCategory}
+                onChange={(v) => setFilter("ethnicCategory", v)}
+                options={ETHNIC_CATEGORY_OPTIONS}
+                placeholder="Prefer not to say"
+              />
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Your GPA (0–4)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  placeholder="e.g. 3.4"
+                  value={filters.minGPA}
+                  onChange={(e) => setFilter("minGPA", e.target.value)}
+                  disabled={filters.minPercentage !== ""}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Your Percentage
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 78"
+                  value={filters.minPercentage}
+                  onChange={(e) => setFilter("minPercentage", e.target.value)}
+                  disabled={filters.minGPA !== ""}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Your Age
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 20"
+                  value={filters.studentAge}
+                  onChange={(e) => setFilter("studentAge", e.target.value)}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  First-Generation Learner
+                </label>
+                <button
+                  onClick={() =>
+                    setFilter(
+                      "isFirstGenerationLearner",
+                      !filters.isFirstGenerationLearner,
+                    )
+                  }
+                  className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    filters.isFirstGenerationLearner
+                      ? "bg-purple-50 border-purple-300 text-purple-700"
+                      : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.isFirstGenerationLearner ? "bg-purple-500 border-purple-500" : "border-gray-300"}`}
+                  >
+                    {filters.isFirstGenerationLearner && (
+                      <svg
+                        className="w-2.5 h-2.5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 12 12"
+                      >
+                        <path d="M10 3L5 8.5 2 5.5 1 6.5l4 4 6-7z" />
+                      </svg>
+                    )}
+                  </span>
+                  Yes, I am
+                </button>
+              </div>
             </div>
           </div>
 

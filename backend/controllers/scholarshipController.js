@@ -39,6 +39,15 @@ const VALID_COLLEGE_TYPES = [
   "constituent_campus",
   "affiliated_college",
 ];
+const VALID_ETHNIC_CATEGORIES = [
+  "dalit",
+  "janajati",
+  "madhesi",
+  "muslim",
+  "backward_region",
+  "general",
+  "any",
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -106,6 +115,16 @@ const resolveLocationFilter = async (locationFilter = {}) => {
 
 /**
  * Builds a validated coverage object from raw body data.
+ *
+ * Handles the fee/amount/percentage triangle: an institution may not always
+ * know or provide all three of {totalProgramFeeNpr, amountNpr, percentage}.
+ * Whichever two are given, the third is derived automatically:
+ *   - fee + percentage        → amount = fee * (percentage / 100)
+ *   - fee + amount            → percentage = (amount / fee) * 100
+ *   - percentage + amount     → fee = amount / (percentage / 100)
+ *   - all three given         → trusted as-is, institution's numbers win
+ *   - only one (or none) given → nothing to derive, left as-is
+ *
  * Shared by both createScholarship and updateScholarship.
  */
 const buildCoverage = (coverage = {}) => {
@@ -115,10 +134,79 @@ const buildCoverage = (coverage = {}) => {
     VALID_TYPES.includes(coverage.scholarshipType2)
   )
     data.scholarshipType2 = coverage.scholarshipType2;
-  if (coverage.amountNpr != null) data.amountNpr = Number(coverage.amountNpr);
-  if (coverage.percentage != null)
-    data.percentage = Number(coverage.percentage);
+
+  let fee =
+    coverage.totalProgramFeeNpr != null
+      ? Number(coverage.totalProgramFeeNpr)
+      : undefined;
+  let amount = coverage.amountNpr != null ? Number(coverage.amountNpr) : undefined;
+  let percentage =
+    coverage.percentage != null ? Number(coverage.percentage) : undefined;
+
+  const hasFee = fee != null && !Number.isNaN(fee) && fee > 0;
+  const hasAmount = amount != null && !Number.isNaN(amount);
+  const hasPercentage = percentage != null && !Number.isNaN(percentage);
+
+  if (hasFee && hasPercentage && !hasAmount) {
+    amount = Math.round(fee * (percentage / 100));
+  } else if (hasFee && hasAmount && !hasPercentage) {
+    percentage = Math.min(100, Math.round((amount / fee) * 10000) / 100);
+  } else if (hasPercentage && hasAmount && !hasFee && percentage > 0) {
+    fee = Math.round(amount / (percentage / 100));
+  }
+  // If all three are present, or only one is present, leave as given —
+  // nothing to (re)compute either way.
+
+  if (fee != null && !Number.isNaN(fee)) data.totalProgramFeeNpr = fee;
+  if (amount != null && !Number.isNaN(amount)) data.amountNpr = amount;
+  if (percentage != null && !Number.isNaN(percentage))
+    data.percentage = percentage;
+
   return data;
+};
+
+/**
+ * Validates the extra eligibility fields that have cross-field or numeric
+ * range constraints beyond what Mongoose enum/min/max already enforce.
+ * Returns an array of human-readable error strings (empty = valid).
+ */
+const validateEligibilityExtras = (e = {}) => {
+  const errors = [];
+
+  if (e.minGPA != null && e.minPercentage != null)
+    errors.push(
+      "Set either minGPA or minPercentage, not both — they measure the same thing on different scales.",
+    );
+
+  if (e.minGPA != null && (e.minGPA < 0 || e.minGPA > 5))
+    errors.push("minGPA should be between 0 and 5.");
+
+  if (e.minPercentage != null && (e.minPercentage < 0 || e.minPercentage > 100))
+    errors.push("minPercentage should be between 0 and 100.");
+
+  if (
+    e.ethnicCategory &&
+    !VALID_ETHNIC_CATEGORIES.includes(e.ethnicCategory)
+  )
+    errors.push(
+      `Invalid ethnicCategory. Must be one of: ${VALID_ETHNIC_CATEGORIES.join(", ")}`,
+    );
+
+  if (e.minAge != null && e.maxAge != null && e.minAge > e.maxAge)
+    errors.push("minAge cannot be greater than maxAge.");
+
+  if (e.minEntranceScore != null && !e.entranceExamName)
+    errors.push(
+      "entranceExamName is required when minEntranceScore is set (so applicants know which exam it refers to).",
+    );
+
+  if (
+    e.minAttendancePercent != null &&
+    (e.minAttendancePercent < 0 || e.minAttendancePercent > 100)
+  )
+    errors.push("minAttendancePercent should be between 0 and 100.");
+
+  return errors;
 };
 
 /**
@@ -150,6 +238,42 @@ const buildEligibility = (eligibilityCriteria = {}) => {
   )
     data.collegeType = eligibilityCriteria.collegeType;
   if (eligibilityCriteria.subject) data.subject = eligibilityCriteria.subject;
+
+  // ── Academic performance ───────────────────────────────────────────────────
+  if (eligibilityCriteria.minGPA != null)
+    data.minGPA = Number(eligibilityCriteria.minGPA);
+  if (eligibilityCriteria.minPercentage != null)
+    data.minPercentage = Number(eligibilityCriteria.minPercentage);
+
+  // ── Category / quota ────────────────────────────────────────────────────────
+  if (
+    eligibilityCriteria.ethnicCategory &&
+    VALID_ETHNIC_CATEGORIES.includes(eligibilityCriteria.ethnicCategory)
+  )
+    data.ethnicCategory = eligibilityCriteria.ethnicCategory;
+
+  // ── Age limit ───────────────────────────────────────────────────────────────
+  if (eligibilityCriteria.minAge != null)
+    data.minAge = Number(eligibilityCriteria.minAge);
+  if (eligibilityCriteria.maxAge != null)
+    data.maxAge = Number(eligibilityCriteria.maxAge);
+
+  // ── Entrance exam ───────────────────────────────────────────────────────────
+  if (eligibilityCriteria.entranceExamName)
+    data.entranceExamName = eligibilityCriteria.entranceExamName;
+  if (eligibilityCriteria.minEntranceScore != null)
+    data.minEntranceScore = Number(eligibilityCriteria.minEntranceScore);
+
+  // ── Other flags ─────────────────────────────────────────────────────────────
+  if (eligibilityCriteria.isFirstGenerationLearner != null)
+    data.isFirstGenerationLearner = Boolean(
+      eligibilityCriteria.isFirstGenerationLearner,
+    );
+  if (eligibilityCriteria.minAttendancePercent != null)
+    data.minAttendancePercent = Number(
+      eligibilityCriteria.minAttendancePercent,
+    );
+
   if (eligibilityCriteria.additionalRequirements)
     data.additionalRequirements = eligibilityCriteria.additionalRequirements;
   if (
@@ -198,6 +322,10 @@ export const createScholarship = async (req, res) => {
       return res.status(400).json({
         message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
       });
+
+    const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
+    if (eligibilityErrors.length > 0)
+      return res.status(400).json({ message: eligibilityErrors.join(" ") });
 
     const parsedTotalSeats = totalSeats ? Number(totalSeats) : undefined;
     const parsedRemainingSeats = remainingSeats
@@ -255,7 +383,7 @@ export const getAllScholarships = async (req, res) => {
       scholarshipType2, // accepted as an alias for backwards compatibility
       minAmount,
       maxAmount,
-      // Eligibility
+      // Eligibility — academic / demographic
       targetLevel,
       targetFaculty,
       degreeProgram,
@@ -264,6 +392,12 @@ export const getAllScholarships = async (req, res) => {
       subject,
       gender,
       hasDisability,
+      // Eligibility — new fields
+      ethnicCategory,
+      minGPA, // student's own GPA; matches scholarships whose requirement is <= this
+      minPercentage, // same idea, percentage scale
+      studentAge, // matches scholarships whose [minAge, maxAge] window contains this
+      isFirstGenerationLearner,
       // Status / lifecycle
       status = "active",
       search,
@@ -331,12 +465,67 @@ export const getAllScholarships = async (req, res) => {
     if (hasDisability === "true")
       filter["eligibilityCriteria.hasDisability"] = true;
 
+    // Category: student picks their own category, we match scholarships
+    // targeting that category OR open to everyone ("any"/unset).
+    if (ethnicCategory && ethnicCategory !== "any")
+      filter["eligibilityCriteria.ethnicCategory"] = {
+        $in: [ethnicCategory, "any", null],
+      };
+
+    // GPA/percentage: student enters their own score; only show scholarships
+    // whose minimum requirement they clear (or scholarships with no requirement).
+    if (minGPA != null && minGPA !== "")
+      filter.$and = (filter.$and || []).concat([
+        {
+          $or: [
+            { "eligibilityCriteria.minGPA": { $exists: false } },
+            { "eligibilityCriteria.minGPA": { $lte: Number(minGPA) } },
+          ],
+        },
+      ]);
+    if (minPercentage != null && minPercentage !== "")
+      filter.$and = (filter.$and || []).concat([
+        {
+          $or: [
+            { "eligibilityCriteria.minPercentage": { $exists: false } },
+            {
+              "eligibilityCriteria.minPercentage": {
+                $lte: Number(minPercentage),
+              },
+            },
+          ],
+        },
+      ]);
+
+    // Age: student enters their age; only show scholarships whose [min,max]
+    // window contains it (unset bounds are treated as open).
+    if (studentAge != null && studentAge !== "") {
+      const age = Number(studentAge);
+      filter.$and = (filter.$and || []).concat([
+        {
+          $or: [
+            { "eligibilityCriteria.minAge": { $exists: false } },
+            { "eligibilityCriteria.minAge": { $lte: age } },
+          ],
+        },
+        {
+          $or: [
+            { "eligibilityCriteria.maxAge": { $exists: false } },
+            { "eligibilityCriteria.maxAge": { $gte: age } },
+          ],
+        },
+      ]);
+    }
+
+    if (isFirstGenerationLearner === "true")
+      filter["eligibilityCriteria.isFirstGenerationLearner"] = true;
+
     if (search?.trim()) {
-      filter.$or = [
+      filter.$or = (filter.$or || []).concat([
         { scholarshipTitle: { $regex: search.trim(), $options: "i" } },
         { institutionName: { $regex: search.trim(), $options: "i" } },
         { description: { $regex: search.trim(), $options: "i" } },
-      ];
+      ]);
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -454,6 +643,12 @@ export const updateScholarship = async (req, res) => {
       return res.status(400).json({
         message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
       });
+
+    if (eligibilityCriteria !== undefined) {
+      const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
+      if (eligibilityErrors.length > 0)
+        return res.status(400).json({ message: eligibilityErrors.join(" ") });
+    }
 
     // ── Seats validation (compare incoming vs existing as fallback) ────────────
     const parsedTotalSeats =

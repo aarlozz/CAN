@@ -9,6 +9,17 @@ import { UNIVERSITIES, COLLEGE_TYPES } from "../../constants/educationTaxonomy";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+// Mirrors VALID_ETHNIC_CATEGORIES on the backend — the real category system
+// used by Nepal government / TU scholarships.
+const ETHNIC_CATEGORIES = [
+  { value: "general", label: "General" },
+  { value: "dalit", label: "Dalit" },
+  { value: "janajati", label: "Janajati" },
+  { value: "madhesi", label: "Madhesi" },
+  { value: "muslim", label: "Muslim" },
+  { value: "backward_region", label: "Backward Region" },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function InfoRow({ label, value }) {
@@ -75,6 +86,7 @@ const EMPTY_FORM = {
   termsAndConditions: "",
   applicationDeadline: "",
   scholarshipType2: "",
+  totalProgramFeeNpr: "",
   amountNpr: "",
   percentage: "",
   targetLevel: "",
@@ -86,6 +98,11 @@ const EMPTY_FORM = {
   gender: "any",
   isNepali: true,
   hasDisability: false,
+  ethnicCategory: "",
+  minGPA: "",
+  minPercentage: "",
+  entranceExamName: "",
+  minEntranceScore: "",
   additionalRequirements: "",
   requiredDocuments: "",
   totalSeats: "",
@@ -105,6 +122,10 @@ function scholarshipToForm(s) {
       ? new Date(s.applicationDeadline).toISOString().split("T")[0]
       : "",
     scholarshipType2: s.coverage?.scholarshipType2 || "",
+    totalProgramFeeNpr:
+      s.coverage?.totalProgramFeeNpr != null
+        ? String(s.coverage.totalProgramFeeNpr)
+        : "",
     amountNpr:
       s.coverage?.amountNpr != null ? String(s.coverage.amountNpr) : "",
     percentage:
@@ -118,6 +139,17 @@ function scholarshipToForm(s) {
     gender: s.eligibilityCriteria?.gender || "any",
     isNepali: s.eligibilityCriteria?.isNepali ?? true,
     hasDisability: s.eligibilityCriteria?.hasDisability ?? false,
+    ethnicCategory: s.eligibilityCriteria?.ethnicCategory || "",
+    minGPA: s.eligibilityCriteria?.minGPA != null ? String(s.eligibilityCriteria.minGPA) : "",
+    minPercentage:
+      s.eligibilityCriteria?.minPercentage != null
+        ? String(s.eligibilityCriteria.minPercentage)
+        : "",
+    entranceExamName: s.eligibilityCriteria?.entranceExamName || "",
+    minEntranceScore:
+      s.eligibilityCriteria?.minEntranceScore != null
+        ? String(s.eligibilityCriteria.minEntranceScore)
+        : "",
     additionalRequirements: s.eligibilityCriteria?.additionalRequirements || "",
     requiredDocuments: Array.isArray(s.eligibilityCriteria?.requiredDocuments)
       ? s.eligibilityCriteria.requiredDocuments.join(", ")
@@ -127,6 +159,40 @@ function scholarshipToForm(s) {
     provinceName: s.locationFilter?.province?.provinceName || "",
     districtName: s.locationFilter?.district?.districtName || "",
     municipalityName: s.locationFilter?.municipality?.municipalityName || "",
+  };
+}
+
+// Mirrors the backend's buildCoverage auto-calc so the form shows the same
+// derived number the institution will get back after saving:
+//   fee + percentage    → amount
+//   fee + amount        → percentage
+//   percentage + amount → fee (only if no fee on record yet)
+//   all three, or only one → left alone
+function recalcCoverage({ totalProgramFeeNpr, amountNpr, percentage }) {
+  const fee = totalProgramFeeNpr !== "" ? Number(totalProgramFeeNpr) : null;
+  const amount = amountNpr !== "" ? Number(amountNpr) : null;
+  const pct = percentage !== "" ? Number(percentage) : null;
+
+  const hasFee = fee != null && !Number.isNaN(fee) && fee > 0;
+  const hasAmount = amount != null && !Number.isNaN(amount);
+  const hasPct = pct != null && !Number.isNaN(pct);
+
+  let nextFee = totalProgramFeeNpr;
+  let nextAmount = amountNpr;
+  let nextPct = percentage;
+
+  if (hasFee && hasPct && !hasAmount) {
+    nextAmount = String(Math.round(fee * (pct / 100)));
+  } else if (hasFee && hasAmount && !hasPct) {
+    nextPct = String(Math.min(100, Math.round((amount / fee) * 10000) / 100));
+  } else if (hasPct && hasAmount && !hasFee && pct > 0) {
+    nextFee = String(Math.round(amount / (pct / 100)));
+  }
+
+  return {
+    totalProgramFeeNpr: nextFee,
+    amountNpr: nextAmount,
+    percentage: nextPct,
   };
 }
 
@@ -257,6 +323,31 @@ export default function InstitutionalDashboard() {
     setForm((f) => ({ ...f, [field]: val }));
   };
 
+  // Fee / Amount / Percentage share a triangle relationship — editing any one
+  // of them re-derives whichever of the other two is missing (see
+  // recalcCoverage). This mirrors what the backend will do on save, so the
+  // institution sees the real numbers immediately instead of after submit.
+  const setCoverageField = (field) => (e) => {
+    const val = e.target.value;
+    setForm((f) => {
+      const next = { ...f, [field]: val };
+      const recalced = recalcCoverage({
+        totalProgramFeeNpr: next.totalProgramFeeNpr,
+        amountNpr: next.amountNpr,
+        percentage: next.percentage,
+      });
+      return { ...next, ...recalced };
+    });
+  };
+
+  // GPA and Percentage measure the same "previous exam performance"
+  // criterion on different scales — only one should be set at a time.
+  const setAcademicField = (field) => (e) => {
+    const val = e.target.value;
+    const other = field === "minGPA" ? "minPercentage" : "minGPA";
+    setForm((f) => ({ ...f, [field]: val, [other]: val ? "" : f[other] }));
+  };
+
   // ── Build payload (shared by create & edit) ──────────────────────────────────
   const buildPayload = () => ({
     scholarshipTitle: form.scholarshipTitle,
@@ -265,6 +356,9 @@ export default function InstitutionalDashboard() {
     applicationDeadline: form.applicationDeadline,
     coverage: {
       scholarshipType2: form.scholarshipType2 || undefined,
+      totalProgramFeeNpr: form.totalProgramFeeNpr
+        ? Number(form.totalProgramFeeNpr)
+        : undefined,
       amountNpr: form.amountNpr ? Number(form.amountNpr) : undefined,
       percentage: form.percentage ? Number(form.percentage) : undefined,
     },
@@ -278,6 +372,13 @@ export default function InstitutionalDashboard() {
       gender: form.gender,
       isNepali: form.isNepali,
       hasDisability: form.hasDisability,
+      ethnicCategory: form.ethnicCategory || undefined,
+      minGPA: form.minGPA ? Number(form.minGPA) : undefined,
+      minPercentage: form.minPercentage ? Number(form.minPercentage) : undefined,
+      entranceExamName: form.entranceExamName || undefined,
+      minEntranceScore: form.minEntranceScore
+        ? Number(form.minEntranceScore)
+        : undefined,
       additionalRequirements: form.additionalRequirements || undefined,
       requiredDocuments: form.requiredDocuments
         ? form.requiredDocuments
@@ -312,6 +413,12 @@ export default function InstitutionalDashboard() {
         setSchError("Remaining seats cannot exceed total seats.");
         return;
       }
+    }
+    if (form.minEntranceScore && !form.entranceExamName) {
+      setSchError(
+        "Please name the entrance exam if you're setting a minimum score.",
+      );
+      return;
     }
     setSchLoading(true);
     try {
@@ -652,7 +759,11 @@ export default function InstitutionalDashboard() {
                     </div>
 
                     <SectionHeading>Coverage</SectionHeading>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <p className="text-xs text-gray-400 -mt-2 mb-3">
+                      Fill in any two of the three amounts below and the
+                      third fills in automatically.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <label className={labelCls}>Scholarship Type</label>
                         <select
@@ -673,13 +784,29 @@ export default function InstitutionalDashboard() {
                         </select>
                       </div>
                       <div>
+                        <label className={labelCls}>
+                          Total Program Fee (NPR){" "}
+                          <span className="text-gray-400 font-normal">
+                            (optional)
+                          </span>
+                        </label>
+                        <input
+                          className={inputCls}
+                          type="number"
+                          min="0"
+                          value={form.totalProgramFeeNpr}
+                          onChange={setCoverageField("totalProgramFeeNpr")}
+                          placeholder="e.g. 800000"
+                        />
+                      </div>
+                      <div>
                         <label className={labelCls}>Amount (NPR)</label>
                         <input
                           className={inputCls}
                           type="number"
                           min="0"
                           value={form.amountNpr}
-                          onChange={set("amountNpr")}
+                          onChange={setCoverageField("amountNpr")}
                           placeholder="e.g. 50000"
                         />
                       </div>
@@ -693,7 +820,7 @@ export default function InstitutionalDashboard() {
                           min="0"
                           max="100"
                           value={form.percentage}
-                          onChange={set("percentage")}
+                          onChange={setCoverageField("percentage")}
                           placeholder="e.g. 100"
                         />
                       </div>
@@ -816,6 +943,97 @@ export default function InstitutionalDashboard() {
                           <option value="other">Other</option>
                         </select>
                       </div>
+                      <div>
+                        <label className={labelCls}>
+                          Category{" "}
+                          <span className="text-gray-400 font-normal">
+                            (optional quota)
+                          </span>
+                        </label>
+                        <select
+                          className={inputCls}
+                          value={form.ethnicCategory}
+                          onChange={set("ethnicCategory")}
+                        >
+                          <option value="">— Any / no preference —</option>
+                          {ETHNIC_CATEGORIES.map((c) => (
+                            <option key={c.value} value={c.value}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* GPA and Percentage are the same criterion on different
+                          scales — filling one clears the other. */}
+                      <div>
+                        <label className={labelCls}>
+                          Minimum GPA (previous exam){" "}
+                          <span className="text-gray-400 font-normal">
+                            (0–4)
+                          </span>
+                        </label>
+                        <input
+                          className={inputCls}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="4"
+                          value={form.minGPA}
+                          onChange={setAcademicField("minGPA")}
+                          placeholder="e.g. 3.2"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>
+                          Minimum Percentage (previous exam)
+                        </label>
+                        <input
+                          className={inputCls}
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={form.minPercentage}
+                          onChange={setAcademicField("minPercentage")}
+                          placeholder="e.g. 60"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelCls}>
+                          Entrance Exam{" "}
+                          <span className="text-gray-400 font-normal">
+                            (optional — e.g. IOE Entrance, MBBS CEE)
+                          </span>
+                        </label>
+                        <input
+                          className={inputCls}
+                          value={form.entranceExamName}
+                          onChange={set("entranceExamName")}
+                          placeholder="e.g. IOE Entrance"
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>
+                          Minimum Entrance Score
+                        </label>
+                        <input
+                          className={inputCls}
+                          type="number"
+                          min="0"
+                          value={form.minEntranceScore}
+                          onChange={set("minEntranceScore")}
+                          placeholder="e.g. 65"
+                        />
+                        {form.minEntranceScore && !form.entranceExamName && (
+                          <p className="text-xs text-amber-500 mt-1">
+                            Name the exam above so applicants know what this
+                            score refers to.
+                          </p>
+                        )}
+                      </div>
+
                       <div className="sm:col-span-2">
                         <label className={labelCls}>
                           Additional Requirements
@@ -994,6 +1212,12 @@ export default function InstitutionalDashboard() {
                                   coverage
                                 </p>
                               )}
+                              {s.coverage?.totalProgramFeeNpr > 0 && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                  <span>🎓</span> Fee: NPR{" "}
+                                  {s.coverage.totalProgramFeeNpr.toLocaleString()}
+                                </p>
+                              )}
                               {s.totalSeats > 0 && (
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-xs text-gray-500">
@@ -1012,6 +1236,35 @@ export default function InstitutionalDashboard() {
                                     "_",
                                     " ",
                                   )}
+                                </p>
+                              )}
+                              {(s.eligibilityCriteria?.minGPA != null ||
+                                s.eligibilityCriteria?.minPercentage != null) && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                  <span>📈</span>{" "}
+                                  {s.eligibilityCriteria.minGPA != null
+                                    ? `Min GPA ${s.eligibilityCriteria.minGPA}`
+                                    : `Min ${s.eligibilityCriteria.minPercentage}%`}
+                                </p>
+                              )}
+                              {s.eligibilityCriteria?.ethnicCategory &&
+                                s.eligibilityCriteria.ethnicCategory !==
+                                  "any" && (
+                                  <p className="text-xs text-gray-500 flex items-center gap-1.5 capitalize">
+                                    <span>🏷️</span>{" "}
+                                    {s.eligibilityCriteria.ethnicCategory.replace(
+                                      "_",
+                                      " ",
+                                    )}
+                                  </p>
+                                )}
+                              {s.eligibilityCriteria?.entranceExamName && (
+                                <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                  <span>📝</span>{" "}
+                                  {s.eligibilityCriteria.entranceExamName}
+                                  {s.eligibilityCriteria.minEntranceScore !=
+                                    null &&
+                                    ` ≥ ${s.eligibilityCriteria.minEntranceScore}`}
                                 </p>
                               )}
                               <p className="text-xs text-gray-500 flex items-center gap-1.5">

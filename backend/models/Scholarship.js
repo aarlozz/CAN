@@ -35,6 +35,14 @@ const scholarshipSchema = new mongoose.Schema(
          //
          // required: [true, "Scholarship type is required"],
       },
+      // Total cost of the target degree/program (or per-year fee), used to
+      // auto-derive whichever of amountNpr / percentage the institution
+      // didn't fill in. Optional — only needed when the institution wants
+      // that auto-calculation.
+      totalProgramFeeNpr: {
+        type: Number,
+        min: [0, "Program fee cannot be negative"],
+      },
       amountNpr: {
         type: Number,
         min: [0, "Amount cannot be negative"],
@@ -92,6 +100,55 @@ const scholarshipSchema = new mongoose.Schema(
       },
       isNepali: { type: Boolean, default: true },
       hasDisability: { type: Boolean, default: false },
+
+      // ── Academic performance (previous qualifying exam) ─────────────────────
+      // e.g. "min 3.2 GPA in +2" or "min 60% in SEE" — scale is whichever the
+      // institution is measuring in; only one of the two is usually set.
+      minGPA: {
+        type: Number,
+        min: [0, "GPA cannot be negative"],
+        max: [5, "GPA scale in Nepal tops out around 4.0–5.0"],
+      },
+      minPercentage: {
+        type: Number,
+        min: [0, "Percentage cannot be negative"],
+        max: [100, "Percentage cannot exceed 100"],
+      },
+
+      // ── Need-based screening ─────────────────────────────────────────────────
+      // (income-based screening intentionally left out — hard to verify and
+      // rarely enforced consistently; institutions handle this manually
+      // during document review instead)
+
+      // ── Category / quota ─────────────────────────────────────────────────────
+      // Mirrors how Nepal government and TU scholarships are actually
+      // categorized (Dalit, Janajati, Madhesi, Muslim, Backward Region, etc.)
+      ethnicCategory: {
+        type: String,
+        enum: [
+          "dalit",
+          "janajati",
+          "madhesi",
+          "muslim",
+          "backward_region",
+          "general",
+          "any",
+        ],
+        default: "any",
+      },
+
+      // ── Age limit ─────────────────────────────────────────────────────────────
+      minAge: { type: Number, min: [0, "Age cannot be negative"] },
+      maxAge: { type: Number, min: [0, "Age cannot be negative"] },
+
+      // ── Entrance exam (competitive scholarships: IOE, MBBS CEE, CMAT, etc.) ──
+      entranceExamName: { type: String, trim: true }, // e.g. "IOE Entrance", "MBBS CEE"
+      minEntranceScore: { type: Number, min: 0 },
+
+      // ── Other common flags ───────────────────────────────────────────────────
+      isFirstGenerationLearner: { type: Boolean, default: false }, // required to be a first-gen learner
+      minAttendancePercent: { type: Number, min: 0, max: 100 }, // continuation/renewal condition
+
       additionalRequirements: { type: String, trim: true },
       requiredDocuments: [{ type: String }], // e.g. ["slc_marksheet", "plus2_gradesheet"]
     },
@@ -173,13 +230,14 @@ const scholarshipSchema = new mongoose.Schema(
 
 // ─── Indexes ───────────────────────────────────────────────────────────────────
 scholarshipSchema.index({ institutionId: 1 });
-scholarshipSchema.index({ "coverage.scholarshipType": 1 });
+scholarshipSchema.index({ "coverage.scholarshipType2": 1 });
 scholarshipSchema.index({ "coverage.amountNpr": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetLevel": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetFaculty": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.degreeProgram": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.university": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.collegeType": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.ethnicCategory": 1 });
 scholarshipSchema.index({ "locationFilter.province.provinceId": 1 });
 scholarshipSchema.index({ "locationFilter.district.districtId": 1 });
 scholarshipSchema.index({ applicationDeadline: 1 });

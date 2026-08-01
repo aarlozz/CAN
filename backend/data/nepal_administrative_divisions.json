@@ -1,0 +1,3518 @@
+[
+  {
+    "province_code": "1",
+    "name": "Koshi",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Taplejung",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Phaktanlung Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Maiwakhola Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Meringden Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Mikwakhola Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Aatharai Tribeni Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Phungling Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Pathivara Yangwarak Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Sirijanga Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Sidingba Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Sankhuwasabha",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bhotkhola Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Makalu Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Silichong Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Chichila Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Sabhapokhari Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Khandabari Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Panchakhapan Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Chainapur Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Madi Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Dharmadevi Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Solukhumbu",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Khumbu Pasanglhamu Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Mahakulung Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Sotang Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Mapya Dudhkoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Thulung Dudhkoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Necha Salyan Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Solu Dhudhakunda Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Likhu Pike Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Okhaldhunga",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chishankhu Gadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Siddhicharan Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Molung Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Khiji Demba Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Likhu Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Champadevi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Sunkoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Manebhanjyang Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Khotang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Kepilasgadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Aiselukharka Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Rawa Besi Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Halesi Tuwachung Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Diktel Rupakot Majhuwagadhi Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Sakela Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Diprung Chuichumma Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Khotehang Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Jante Dhunga Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Baraha Pokhari Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Bhojpur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Shadananda Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Salpa Silichho Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Temkemaiyum Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bhojpur Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Arun Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Pauwa Dunma Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Ramprasad Rai Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Hatuwagadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Aamchowk Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Dhankuta",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mahalaxmi Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Pakhribas Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Chhathar Jorpati Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Dhankuta Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Shahidbhumi Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Sangurigadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Chaubise Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Terhathum",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Aatharai Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Phedap Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Menchhayayem Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Myanglung Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Laligurans Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Chhathar Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Panchthar",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Yangbarak Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Hilihan Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Falelung Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Phidim Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Falgunanda Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Kummayak Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Tumbewa Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Miklajung Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "10",
+        "name": "Ilam",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mai Jogmai Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Sandakpur Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Illam Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Deumai Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Fakfokathum Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Mangsebung Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Chulachuli Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Mai Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Suryodaya Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Rong Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "11",
+        "name": "Jhapa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mechinagar Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Buddhashanti Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Arjundhara Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Kankai Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Shivasatakshi Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Kamal Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Damak Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Gauradaha Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Gauriganj Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Jhapa Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Barhadashi Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Birtamod Municipality"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Haldibari Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Bhadrapur Municipality"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Kachanakawal Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "12",
+        "name": "Morang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Miklajung Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Letang Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Kerabari Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Sundarharaicha Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Belbari Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Kanepokhari Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Pathari Shanishchare Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Urlabari Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Ratuwamai Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Sunwarshi Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Rangeli Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Gramthan Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Budhiganga Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Biratnagar Metropolitan City"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Katahari Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Dhanapalthan Gaunpalika"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Jahada Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "13",
+        "name": "Sunsari",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dharan Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Barahachhetra Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Koshi Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bhokraha Narsingh Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Ramdhuni Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Itahari Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Duhabi Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Gadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Inaruwa Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Harinagar Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Dewangunj Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Barju Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "14",
+        "name": "Udayapur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Belaka Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Chaudandigadhi Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Triyuga Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Rautamai Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Limchunbung Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Tapli Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Katari Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Udayapurgadhi Gaunpalika"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "2",
+    "name": "Madhesh",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Saptari",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Saptakoshi Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kanchanrup Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Agnisair Krishna Sabaran Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Rupani Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Shambhunath Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Khadak Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Surunga Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Balan-Bihul Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bode Barsain Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Dakneshwori Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Rajgadh Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Bishnupur Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Rajbiraj Municipality"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Mahadewa Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Tirahut Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Hanumannagar Kankalini Municipality"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Tilathi Koiladi Gaunpalika"
+          },
+          {
+            "municipality_code": "18",
+            "name": "Chhinnamasta Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Siraha",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Lahan Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Dhangadhimai Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Golbazar Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Mirchaiya Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Karjanha Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Kalyanpur Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Naraha Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Bishnupur Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Arnama Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Sukhipur Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Laxmipur Patari Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Sakhuwa Nankarkatti Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Bhagawanpur Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Nawarajpur Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Bariyarpatti Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Aurahi Gaunpalika"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Siraha Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Dhanusha",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Ganeshman Charnath Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Dhanushadham Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Mithila Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bateshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Chhireshwornath Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Laxminiya Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Mithila Bihari Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Hansapur Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Sabaila Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Shahidnagar Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Kamala Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Janak Nandini Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Bideha Municipality"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Aurahi Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Janakpurdham Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Dhanauji Gaunpalika"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Nagarain Municipality"
+          },
+          {
+            "municipality_code": "18",
+            "name": "Mukhiyapatti Musaharmiya Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Mahottari",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bardibas Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Gaushala Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Sonama Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Aurahi Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bhangaha Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Loharpatti Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Balawa Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Ram Gopalpur Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Samsi Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Manara Shisawa Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Ekadara Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Mahottari Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Pipara Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Matihani Municipality"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Jaleshwor Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Sarlahi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Lalbandi Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Hariwan Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Bagmati Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Barahathawa Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Haripur Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Ishworpur Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Haripurwa Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Parsa Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Brahmapuri Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Chandranagar Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Kabilashi Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Chakraghatta Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Basbariya Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Dhanakaul Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Ramnagar Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Balara Municipality"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Godaita Municipality"
+          },
+          {
+            "municipality_code": "18",
+            "name": "Bishnu Gaunpalika"
+          },
+          {
+            "municipality_code": "19",
+            "name": "Kaudena Gaunpalika"
+          },
+          {
+            "municipality_code": "20",
+            "name": "Malangawa Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Rautahat",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chandrapur Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Gujara Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Phatuwa Bijayapur Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Katahariya Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Brindaban Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Gadhimai Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Madhav Narayan Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Garuda Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Dewahi Gonahi Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Maulapur Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Boudhimai Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Paroha Municipality"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Rajpur Municipality"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Yamunamai Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Durga Bhagawati Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Rajdevi Municipality"
+          },
+          {
+            "municipality_code": "17",
+            "name": "Gaur Municipality"
+          },
+          {
+            "municipality_code": "18",
+            "name": "Ishanath Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Bara",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Nijagadh Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kolhabi Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Jitpur Simara Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Parawanipur Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Prasauni Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bishrampur Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Pheta Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Kalaiya Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Karaiyamai Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Baragadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Aadarsha Kotwal Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Simroungadh Municipality"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Pacharauta Municipality"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Mahagadhimai Municipality"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Devtal Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Subarna Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Parsa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Thori Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Jirabhawani Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Jagarnathpur Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Paterwa Sugauli Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Sakhuwa Prasauni Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Parsagadhi Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Birgunj Metropolitan City"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Bahudarmai Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Pokhariya Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Kalikamai Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Dhobini Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Chhipaharmai Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Pakaha Mainpur Gaunpalika"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Bindabasini Gaunpalika"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "3",
+    "name": "Bagmati",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Dolakha",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Gaurishankar Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Bigu Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Kalinchowk Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Baiteshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Jiri Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Tamakoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Melung Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Shailung Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bhimeshwor Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Sindhupalchok",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bhotekoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Jugal Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Panchpokhari Thangpal Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Helambu Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Melamchi Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Indrawoti Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Choutara Sangachowkgadhi Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Balephi Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bahrabise Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Tripurasundari Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Lisankhu Pakhar Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Sunkoshi Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Rasuwa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Gosaikunda Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Aamachhodingmo Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Uttargaya Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Kalika Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Naukunda Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Dhading",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Rubi Valley Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Khaniyabas Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Ganga Jamuna Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Tripurasundari Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Netrawati Dabjong Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Nilkhantha Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Jwalamukhi Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Siddhalek Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Benighat Rorang Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Gajuri Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Galchhi Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Thakre Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Dhunibenshi Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Nuwakot",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dupcheshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Tadi Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Suryagadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bidur Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Kispang Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Myagang Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Tarakeshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Belkotgadhi Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Likhu Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Panchakanya Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Shivapuri Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Kakani Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Kathmandu",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Shankharapur Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kageshwori Manahara Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Gokarneshwor Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Budhanilkhantha Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Tokha Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Tarakeshwor Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Nagarjun Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Kathmandu Metropolitan City"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Kirtipur Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Chandragiri Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Dakshinkali Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Bhaktapur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Changunarayan Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Bhaktapur Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Madhyapur Thimi Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Suryabinayak Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Lalitpur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mahalaxmi Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Lalitpur Metropolitan City"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Godawari Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Konjyosom Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Mahankal Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bagmati Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Kavrepalanchok",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chauri Deurali Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Bhumlu Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Mandan Deupur Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Banepa Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Dhulikhel Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Panchkhal Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Temal Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Namobuddha Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Panauti Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Bethanchowk Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Roshi Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Mahabharat Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Khanikhola Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "10",
+        "name": "Ramechhap",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Umakunda Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Gokulganga Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Likhu Tamakoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Ramechhap Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Manthali Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Khandadevi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Doramba Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Sunapati Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "11",
+        "name": "Sindhuli",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dudhouli Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Phikkal Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Tinpatan Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Golanjor Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Kamalamai Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Sunkoshi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Ghyanglekha Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Marin Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Hariharpurgaghi Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "12",
+        "name": "Makwanpur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Indrasarowar Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Thaha Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Kailash Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Raksirang Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Manahari Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Hetauda Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Bhimphedi Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Makawanpurgadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bakaiya Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Bagmati Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "13",
+        "name": "Chitwan",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Rapti Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kalika Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Ichchha Kamana Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bharatpur Metropolitan City"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Ratnanagar Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Khairahani Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Madi Municipality"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "4",
+    "name": "Gandaki",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Gorkha",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chumanubri Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Ajirkot Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Barpak Sulikot Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Dharche Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Aarughat Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bhimsenthapa Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Siranchowk Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Palungtar Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Gorkha Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Shahid Lakhan Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Gandaki Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Manang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Narpa Bhumi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Manang Ngisyang Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Chame Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Nason Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Mustang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Lo Ghekar Damodarkunda Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Gharpajhong Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Varagung Muktichhetra Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Lomanthang Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Thasang Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Myagdi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Annapurna Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Raghuganga Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Dhawalagiri Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Malika Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Mangala Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Beni Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Kaski",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Madi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Machhapuchchhre Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Annapurna Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Pokhara Metropolitan City"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Rupa Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Lamjung",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dordi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Marshyangdi Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Kwhola Sothar Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Madhya Nepal Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bensishahar Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Sundarbazar Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Rainas Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Dudhapokhari Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Tanahun",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bhanu Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Byas Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Myagde Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Shuklagandaki Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bhimad Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Ghiring Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Rhishing Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Devghat Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bandipur Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Aanbu Khaireni Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Nawalparasi (Bardaghat Susta East)",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Gaidakot Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Bulingtar Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Baudikali Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Hupsekot Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Devchuli Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Kawasoti Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Madhya Bindu Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Binayi Tribeni Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Syangja",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Putalibazar Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Phedikhola Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Aandhikhola Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Arjun Choupari Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bhirkot Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Biruwa Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Harinas Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Chapakot Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Walling Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Galyang Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Kaligandaki Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "10",
+        "name": "Parbat",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Modi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Jaljala Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Kushma Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Phalebas Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Mahashila Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bihadi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Paiyu Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "11",
+        "name": "Baglung",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Baglung Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kathekhola Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Tarakhola Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Tamankhola Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Dhorpatan Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Nisikhola Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Badigad Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Galkot Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bareng Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Jaimuni Municipality"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "5",
+    "name": "Lumbini",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Rukum East",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Putha Uttanganga Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Sisne Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Bhoome Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Rolpa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Sunchhahari Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Thawang Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Pariwartan Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Gangadev Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Madi Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Tribeni Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Rolpa Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Runtigadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Sunil Smriti Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Lungri Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Pyuthan",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Gaumukhi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Naubahini Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Jhimaruk Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Pyuthan Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Sworgadwari Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Mandavi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Mallarani Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Aairawati Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Sarumarani Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Gulmi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Kali Gandaki Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Satyawoti Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Chandrakot Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Musikot Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Isma Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Malika Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Madane Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Dhurkot Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Resunga Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Gulmi Durbar Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Chhatrakot Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Ruruchhetra Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Arghakhanchi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chhatradev Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Malarani Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Bhumikasthan Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Sandhikharka Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Panini Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Shitaganga Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Palpa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Rampur Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Purbakhola Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Rambha Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Baganaskali Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Tansen Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Ribdikot Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Rainadevi Chhahara Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Tinau Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Mathagadhi Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Nisdi Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Nawalparasi (Bardaghat Susta West)",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bardaghat Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Sunawal Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Ramgram Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Palhinandan Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Sarawal Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Pratapapur Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Susta Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Rupandehi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Devdaha Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Butwal Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Sainamaina Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Kanchan Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Gaidahawa Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Suddhodhan Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Siyari Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Tilottama Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Om Satiya Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Rohini Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Siddharthanagar Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Mayadevi Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Lumbini Sanskritik Municipality"
+          },
+          {
+            "municipality_code": "14",
+            "name": "Kotahimai Gaunpalika"
+          },
+          {
+            "municipality_code": "15",
+            "name": "Sammarimai Gaunpalika"
+          },
+          {
+            "municipality_code": "16",
+            "name": "Marchawari Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Kapilvastu",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Banganga Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Buddhabhumi Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Shivaraj Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bijayanagar Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Krishnanagar Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Maharajganj Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Kapilbastu Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Yasodhara Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Mayadevi Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Shuddhodhan Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "10",
+        "name": "Dang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bangalachuli Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Ghorahi Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Tulsipur Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Shantinagar Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Babai Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Dangisharan Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Lamahi Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Rapti Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Gadhawa Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Rajpur Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "11",
+        "name": "Banke",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Rapti Sonari Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kohalpur Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Baijanath Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Khajura Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Janaki Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Nepalganj Sub-Metropolitan City"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Duduwa Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Narainapur Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "12",
+        "name": "Bardiya",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Bansgadhi Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Barbardiya Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Thakurbaba Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Geruwa Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Rajapur Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Madhuwan Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Gulariya Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Badhaiyatal Gaunpalika"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "6",
+    "name": "Karnali",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Dolpa",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dolpo Buddha Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Shey Phoksundo Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Jagadulla Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Mudkechula Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Tripurasundari Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Thulibheri Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Kaike Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Chharka Tangsong Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Mugu",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mugumakarmarog Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Chhayanath Rara Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Soru Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Khatyad Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Humla",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Chankheli Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kharpunath Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Simkot Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Namkha Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Sarkegad Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Adanchuli Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Tanjakot Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Jumla",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Patarasi Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kanaka Sundari Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Sinja Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Chandannath Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Guthichaur Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Tatopani Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Tila Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Hima Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Kalikot",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Palata Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Pachal Jharana Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Raskot Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Sanni Tribeni Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Naraharinath Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Khandachakra Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Tilagupha Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Mahawai Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Shuva Kalika Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Dailekh",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Naumule Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Mahabu Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Bhairabi Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Thantikandh Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Aathbis Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Chamunda Bindrasaini Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Dullu Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Narayan Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Bhagawatimai Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Dungeshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Gurans Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Jajarkot",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Barekot Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kuse Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Junichande Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Chhedagad Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Shivalaya Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bheri Malika Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Nalgad Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Rukum West",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Aathabisakot Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Sanibheri Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Banphikot Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Musikot Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Tribeni Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Chaurjahari Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Salyan",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Darma Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Kumakh Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Banagad Kupinde Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Siddha Kumakh Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bagachour Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Chhatreshwori Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Sharada Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Kalimati Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Tribeni Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Kapurkot Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "10",
+        "name": "Surkhet",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Simta Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Chingad Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Lekabeshi Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Gurbhakot Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Bheriganga Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Birendranagar Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Barahatal Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Panchapuri Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Chaukune Gaunpalika"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "province_code": "7",
+    "name": "Sudurpashchim",
+    "districts": [
+      {
+        "district_code": "01",
+        "name": "Bajura",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Himali Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Gaumul Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Budhinanda Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Swamikartik Khapar Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Jagannath Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Badimalika Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Khaptad Chhededaha Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Budhiganga Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Tribeni Municipality"
+          }
+        ]
+      },
+      {
+        "district_code": "02",
+        "name": "Bajhang",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Saipal Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Bungal Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Surma Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Talkot Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Masta Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Jayaprithbi Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Chhabis Pathibhara Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Durgathali Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Kedarsyun Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Bitthadchir Gaunpalika"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Thalara Gaunpalika"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Khaptad Chhanna Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "03",
+        "name": "Darchula",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Byas Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Duhun Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Mahakali Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Naugad Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Apihimal Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Marma Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Shailyashikhar Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Malikarjun Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Lekam Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "04",
+        "name": "Baitadi",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Dilasaini Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Dogada Kedar Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Puchaundi Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Surnaya Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Dasharathchand Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Pancheshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Shivanath Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Melauli Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Patan Municipality"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Sigas Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "05",
+        "name": "Dadeldhura",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Nawadurga Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Amargadhi Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Ajayameru Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bhageshwor Gaunpalika"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Parashuram Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Aalital Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Ganyapdhura Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "06",
+        "name": "Doti",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Purbichouki Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Sayal Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Aadarsha Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Shikhar Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Dipayal Silgadhi Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "K.I. Singh Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Bogatan Phudsil Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Badi Kedar Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Jorayal Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "07",
+        "name": "Achham",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Panchdebal Binayak Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Ramaroshan Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Mellekh Gaunpalika"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Sanphebagar Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Chaurpati Gaunpalika"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Mangalsen Municipality"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Bannigadhi Jayagadh Gaunpalika"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Kamal bazar Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Dhakari Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Turmakhand Gaunpalika"
+          }
+        ]
+      },
+      {
+        "district_code": "08",
+        "name": "Kailali",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Mohanyal Gaunpalika"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Chure Gaunpalika"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Godawari Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Gauriganga Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Ghodaghodi Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Bardagoriya Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Lamki Chuha Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Janaki Gaunpalika"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Joshipur Gaunpalika"
+          },
+          {
+            "municipality_code": "10",
+            "name": "Tikapur Municipality"
+          },
+          {
+            "municipality_code": "11",
+            "name": "Bhajani Municipality"
+          },
+          {
+            "municipality_code": "12",
+            "name": "Kailari Gaunpalika"
+          },
+          {
+            "municipality_code": "13",
+            "name": "Dhangadhi Sub-Metropolitan City"
+          }
+        ]
+      },
+      {
+        "district_code": "09",
+        "name": "Kanchanpur",
+        "municipalities": [
+          {
+            "municipality_code": "01",
+            "name": "Krishnapur Municipality"
+          },
+          {
+            "municipality_code": "02",
+            "name": "Shuklaphanta Municipality"
+          },
+          {
+            "municipality_code": "03",
+            "name": "Bedkot Municipality"
+          },
+          {
+            "municipality_code": "04",
+            "name": "Bhimdatta Municipality"
+          },
+          {
+            "municipality_code": "05",
+            "name": "Dodhara Chadani Municipality"
+          },
+          {
+            "municipality_code": "06",
+            "name": "Laljhadi Gaunpalika"
+          },
+          {
+            "municipality_code": "07",
+            "name": "Punarbas Municipality"
+          },
+          {
+            "municipality_code": "08",
+            "name": "Belouri Municipality"
+          },
+          {
+            "municipality_code": "09",
+            "name": "Beldandi Gaunpalika"
+          }
+        ]
+      }
+    ]
+  }
+]

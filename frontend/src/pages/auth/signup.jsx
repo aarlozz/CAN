@@ -4,10 +4,9 @@ import axios from "axios";
 import { GoogleLogin } from '@react-oauth/google';
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
+import LocationCascade from "../../Components/LocationCascade";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"];
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -62,6 +61,14 @@ export default function Signup() {
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
   const setNested = (section, field, value) =>
     setForm((f) => ({ ...f, [section]: { ...f[section], [field]: value } }));
+
+  // Wires a LocationCascade onChange payload ({ province, district, municipality })
+  // straight into a nested form section (either "address" or "location").
+  const setLocationSection = (section) => ({ province, district, municipality }) =>
+    setForm((f) => ({
+      ...f,
+      [section]: { ...f[section], province, district, municipality },
+    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -176,31 +183,20 @@ export default function Signup() {
                 </div>
 
                 {sectionTitle("Address")}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Province</label>
-                    <select className={inputCls} value={form.address.province} required
-                      onChange={(e) => setNested("address", "province", e.target.value)}>
-                      <option value="">Select Province</option>
-                      {PROVINCES.map((p) => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>District</label>
-                    <input className={inputCls} placeholder="District" value={form.address.district} required
-                      onChange={(e) => setNested("address", "district", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Municipality</label>
-                    <input className={inputCls} placeholder="Municipality" value={form.address.municipality} required
-                      onChange={(e) => setNested("address", "municipality", e.target.value)} />
-                  </div>
+                <LocationCascade
+                  idMode="name"
+                  province={form.address.province}
+                  district={form.address.district}
+                  municipality={form.address.municipality}
+                  onChange={setLocationSection("address")}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className={labelCls}>Ward</label>
                     <input className={inputCls} placeholder="Ward No." value={form.address.ward}
                       onChange={(e) => setNested("address", "ward", e.target.value)} />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className={labelCls}>Street</label>
                     <input className={inputCls} placeholder="Street / Tole" value={form.address.street}
                       onChange={(e) => setNested("address", "street", e.target.value)} />
@@ -270,31 +266,20 @@ export default function Signup() {
                 </div>
 
                 {sectionTitle("Location")}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Province</label>
-                    <select className={inputCls} value={form.location.province} required
-                      onChange={(e) => setNested("location", "province", e.target.value)}>
-                      <option value="">Select Province</option>
-                      {PROVINCES.map((p) => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>District</label>
-                    <input className={inputCls} placeholder="District" value={form.location.district} required
-                      onChange={(e) => setNested("location", "district", e.target.value)} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Municipality</label>
-                    <input className={inputCls} placeholder="Municipality" value={form.location.municipality}
-                      onChange={(e) => setNested("location", "municipality", e.target.value)} />
-                  </div>
+                <LocationCascade
+                  idMode="name"
+                  province={form.location.province}
+                  district={form.location.district}
+                  municipality={form.location.municipality}
+                  onChange={setLocationSection("location")}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className={labelCls}>Ward</label>
                     <input className={inputCls} placeholder="Ward No." value={form.location.ward}
                       onChange={(e) => setNested("location", "ward", e.target.value)} />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className={labelCls}>Street</label>
                     <input className={inputCls} placeholder="Street" value={form.location.street}
                       onChange={(e) => setNested("location", "street", e.target.value)} />

@@ -1,6 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import LocationCascade from "../../Components/LocationCascade";
+import {
+  STUDY_LEVELS,
+  FACULTIES,
+  DEGREE_PROGRAMS,
+  UNIVERSITIES,
+  COLLEGE_TYPES,
+} from "../../constants/educationTaxonomy";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -16,14 +24,8 @@ const SCHOLARSHIP_TYPES = [
   { value: "ethnic", label: "Ethnic" },
 ];
 
-const TARGET_LEVELS = [
-  { value: "plus_two", label: "+2 / PCL" },
-  { value: "bachelor", label: "Bachelor" },
-  { value: "master", label: "Master" },
-  { value: "mphil", label: "M.Phil" },
-  { value: "phd", label: "PhD" },
-  { value: "diploma", label: "Diploma" },
-];
+// Use the shared taxonomy so this always matches the backend enum
+const TARGET_LEVELS = STUDY_LEVELS;
 
 const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
@@ -52,14 +54,15 @@ const TYPE_LABEL = {
   ethnic: "Ethnic",
 };
 
-const LEVEL_LABEL = {
-  plus_two: "+2/PCL",
-  bachelor: "Bachelor",
-  master: "Master",
-  mphil: "M.Phil",
-  phd: "PhD",
-  diploma: "Diploma",
-};
+const LEVEL_LABEL = Object.fromEntries(
+  STUDY_LEVELS.map((l) => [l.value, l.label]),
+);
+
+const COLLEGE_TYPE_LABEL = Object.fromEntries(
+  COLLEGE_TYPES.map((c) => [c.value, c.label]),
+);
+
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +130,34 @@ function FilterInput({ label, value, onChange, placeholder }) {
         placeholder={placeholder}
         className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
       />
+    </div>
+  );
+}
+
+// Select with <optgroup> support — used for Degree/Program and University,
+// which are grouped by faculty / region rather than a flat list.
+function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "All" }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        {label}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-700"
+      >
+        <option value="">{placeholder}</option>
+        {groups.map((g) => (
+          <optgroup key={g.group} label={g.group}>
+            {g.options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
     </div>
   );
 }
@@ -377,6 +408,9 @@ const FILTER_LABELS = {
   scholarshipType: "Type",
   targetLevel: "Level",
   targetFaculty: "Faculty",
+  degreeProgram: "Degree/Program",
+  university: "University",
+  collegeType: "College Type",
   subject: "Subject",
   gender: "Gender",
   hasDisability: "Disability",
@@ -392,6 +426,9 @@ const DEFAULT_FILTERS = {
   scholarshipType: "",
   targetLevel: "",
   targetFaculty: "",
+  degreeProgram: "",
+  university: "",
+  collegeType: "",
   subject: "",
   gender: "",
   hasDisability: false,
@@ -419,11 +456,6 @@ export default function ScholarshipList() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Location data
-  const [provinces, setProvinces] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [municipalities, setMunicipalities] = useState([]);
-
   // Panel toggle
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -449,41 +481,6 @@ export default function ScholarshipList() {
     setSearchParams(params, { replace: true });
   }, [filters]);
 
-  // ── Fetch provinces on mount ────────────────────────────────────────────────
-  useEffect(() => {
-    axios
-      .get(`${API}/api/location/provinces`)
-      .then((r) => setProvinces(r.data.provinces || []))
-      .catch(() => {});
-  }, []);
-
-  // ── Fetch districts when province changes ───────────────────────────────────
-  useEffect(() => {
-    if (!filters.provinceId) {
-      setDistricts([]);
-      setMunicipalities([]);
-      return;
-    }
-    axios
-      .get(`${API}/api/location/districts?provinceId=${filters.provinceId}`)
-      .then((r) => setDistricts(r.data.districts || []))
-      .catch(() => {});
-  }, [filters.provinceId]);
-
-  // ── Fetch municipalities when district changes ──────────────────────────────
-  useEffect(() => {
-    if (!filters.districtId) {
-      setMunicipalities([]);
-      return;
-    }
-    axios
-      .get(
-        `${API}/api/location/municipalities?districtId=${filters.districtId}`,
-      )
-      .then((r) => setMunicipalities(r.data.municipalities || []))
-      .catch(() => {});
-  }, [filters.districtId]);
-
   // ── Fetch scholarships ──────────────────────────────────────────────────────
   const fetchScholarships = useCallback(
     (p = 1) => {
@@ -495,6 +492,9 @@ export default function ScholarshipList() {
         scholarshipType: "scholarshipType",
         targetLevel: "targetLevel",
         targetFaculty: "targetFaculty",
+        degreeProgram: "degreeProgram",
+        university: "university",
+        collegeType: "collegeType",
         subject: "subject",
         gender: "gender",
         hasDisability: "hasDisability",
@@ -694,11 +694,36 @@ export default function ScholarshipList() {
               options={TARGET_LEVELS}
             />
 
-            <FilterInput
+            <FilterSelect
               label="Faculty"
               value={filters.targetFaculty}
               onChange={(v) => setFilter("targetFaculty", v)}
-              placeholder="e.g. Engineering, Law…"
+              options={FACULTIES.map((f) => ({ value: f, label: f }))}
+              placeholder="All Faculties"
+            />
+
+            <FilterGroupedSelect
+              label="Degree / Program"
+              value={filters.degreeProgram}
+              onChange={(v) => setFilter("degreeProgram", v)}
+              groups={DEGREE_PROGRAMS}
+              placeholder="All Degrees / Programs"
+            />
+
+            <FilterGroupedSelect
+              label="University / Affiliation"
+              value={filters.university}
+              onChange={(v) => setFilter("university", v)}
+              groups={UNIVERSITIES}
+              placeholder="All Universities"
+            />
+
+            <FilterSelect
+              label="College Type"
+              value={filters.collegeType}
+              onChange={(v) => setFilter("collegeType", v)}
+              options={COLLEGE_TYPES}
+              placeholder="All College Types"
             />
 
             <FilterInput
@@ -783,41 +808,19 @@ export default function ScholarshipList() {
           </div>
 
           {/* Location cascade */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-            <FilterSelect
-              label="Province"
-              value={filters.provinceId}
-              onChange={(v) => setFilter("provinceId", v)}
-              options={provinces.map((p) => ({
-                value: p._id,
-                label: p.name || p.provinceName,
-              }))}
-              placeholder="All Provinces"
-            />
-            <FilterSelect
-              label="District"
-              value={filters.districtId}
-              onChange={(v) => setFilter("districtId", v)}
-              options={districts.map((d) => ({
-                value: d._id,
-                label: d.name || d.districtName,
-              }))}
-              placeholder={
-                filters.provinceId ? "All Districts" : "Select Province first"
-              }
-            />
-            <FilterSelect
-              label="Municipality"
-              value={filters.municipalityId}
-              onChange={(v) => setFilter("municipalityId", v)}
-              options={municipalities.map((m) => ({
-                value: m._id,
-                label: m.name || m.municipalityName,
-              }))}
-              placeholder={
-                filters.districtId
-                  ? "All Municipalities"
-                  : "Select District first"
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <LocationCascade
+              idMode="id"
+              province={filters.provinceId}
+              district={filters.districtId}
+              municipality={filters.municipalityId}
+              onChange={({ province, district, municipality }) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  provinceId: province,
+                  districtId: district,
+                  municipalityId: municipality,
+                }))
               }
             />
           </div>

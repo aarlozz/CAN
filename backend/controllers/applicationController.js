@@ -4,6 +4,7 @@ import Scholarship from "../models/Scholarship.js";
 import StudentProfile from "../models/StudentProfile.js";
 import InstitutionProfile from "../models/InstitutionProfile.js";
 import User from "../models/User.js";
+import { createNotification } from "../utils/notificationHelper.js";
 
 // Helper — builds the student snapshot frozen at apply time
 const buildSnapshot = (student, user) => ({
@@ -376,6 +377,49 @@ export const reviewApplication = async (req, res) => {
     }
 
     await session.commitTransaction();
+
+    // ── Notify the student (fire-and-forget — never blocks the response) ────
+    if (status === "approved" || status === "rejected" || status === "under_review") {
+      StudentProfile.findById(application.studentId)
+        .select("user")
+        .then((studentProfile) => {
+          if (!studentProfile) return;
+
+          const NOTIFY_COPY = {
+            approved: {
+              title: "Your scholarship application was approved! 🎉",
+              message: `Congratulations — your application to "${scholarship.scholarshipTitle}" has been approved.`,
+              priority: "high",
+            },
+            rejected: {
+              title: "Update on your scholarship application",
+              message: `Your application to "${scholarship.scholarshipTitle}" was not approved this time.${
+                rejectionReason ? ` Reason: ${rejectionReason}` : ""
+              }`,
+              priority: "high",
+            },
+            under_review: {
+              title: "Your scholarship application is under review",
+              message: `Your application to "${scholarship.scholarshipTitle}" is now under review.`,
+              priority: "medium",
+            },
+          };
+          const copy = NOTIFY_COPY[status];
+
+          createNotification({
+            userId: studentProfile.user,
+            notificationType: `application_${status}`,
+            title: copy.title,
+            message: copy.message,
+            relatedEntity: { entityType: "Application", entityId: application._id },
+            priority: copy.priority,
+          });
+        })
+        .catch((err) =>
+          console.warn("⚠️  Failed to look up student for notification:", err.message),
+        );
+    }
+
     res.json({ message: `Application ${status}.`, application });
   } catch (error) {
     await session.abortTransaction();

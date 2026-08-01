@@ -50,10 +50,40 @@ const scholarshipSchema = new mongoose.Schema(
     eligibilityCriteria: {
       targetLevel: {
         type: String,
-        enum: ["plus_two", "bachelor", "master", "mphil", "phd", "diploma"],
+        enum: [
+          "short_term_training",
+          "primary",
+          "lower_secondary",
+          "secondary",
+          "see",
+          "plus_two",
+          "diploma_pcl",
+          "pre_diploma",
+          "bachelor",
+          "ca",
+          "postgraduate_diploma",
+          "master",
+          "mphil",
+          "phd",
+        ],
         // required: [true, "Scholarship type is required"],
       },
       targetFaculty: { type: String, trim: true },
+      // Specific degree/program this scholarship targets, e.g. "BSc CSIT", "MBBS"
+      degreeProgram: { type: String, trim: true },
+      // University / affiliation this scholarship is tied to, e.g. "Tribhuvan University (TU)"
+      university: { type: String, trim: true },
+      // Type of institution eligible students must be enrolled at
+      collegeType: {
+        type: String,
+        enum: [
+          "public",
+          "private",
+          "community",
+          "constituent_campus",
+          "affiliated_college",
+        ],
+      },
       subject: { type: String, trim: true },
       gender: {
         type: String,
@@ -146,6 +176,10 @@ scholarshipSchema.index({ institutionId: 1 });
 scholarshipSchema.index({ "coverage.scholarshipType": 1 });
 scholarshipSchema.index({ "coverage.amountNpr": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetLevel": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.targetFaculty": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.degreeProgram": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.university": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.collegeType": 1 });
 scholarshipSchema.index({ "locationFilter.province.provinceId": 1 });
 scholarshipSchema.index({ "locationFilter.district.districtId": 1 });
 scholarshipSchema.index({ applicationDeadline: 1 });

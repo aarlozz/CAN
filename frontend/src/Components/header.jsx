@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CANlogo from "../assets/images/logo/CAN_logo.png";
+import NotificationBell from "./NotificationBell";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -85,6 +86,9 @@ export default function Header() {
             </>
           ) : (
             <>
+              {/* ── Notification bell ── */}
+              <NotificationBell />
+
               {/* ── Profile dropdown ── */}
               <div className="relative" ref={profileMenuRef}>
                 <button

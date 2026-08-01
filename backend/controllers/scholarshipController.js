@@ -16,14 +16,29 @@ const VALID_TYPES = [
   "ethnic",
 ];
 const VALID_LEVELS = [
+  "short_term_training",
+  "primary",
+  "lower_secondary",
+  "secondary",
+  "see",
   "plus_two",
+  "diploma_pcl",
+  "pre_diploma",
   "bachelor",
+  "ca",
+  "postgraduate_diploma",
   "master",
   "mphil",
   "phd",
-  "diploma",
 ];
 const VALID_GENDERS = ["male", "female", "other", "any"];
+const VALID_COLLEGE_TYPES = [
+  "public",
+  "private",
+  "community",
+  "constituent_campus",
+  "affiliated_college",
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +140,15 @@ const buildEligibility = (eligibilityCriteria = {}) => {
     data.targetLevel = eligibilityCriteria.targetLevel;
   if (eligibilityCriteria.targetFaculty)
     data.targetFaculty = eligibilityCriteria.targetFaculty;
+  if (eligibilityCriteria.degreeProgram)
+    data.degreeProgram = eligibilityCriteria.degreeProgram;
+  if (eligibilityCriteria.university)
+    data.university = eligibilityCriteria.university;
+  if (
+    eligibilityCriteria.collegeType &&
+    VALID_COLLEGE_TYPES.includes(eligibilityCriteria.collegeType)
+  )
+    data.collegeType = eligibilityCriteria.collegeType;
   if (eligibilityCriteria.subject) data.subject = eligibilityCriteria.subject;
   if (eligibilityCriteria.additionalRequirements)
     data.additionalRequirements = eligibilityCriteria.additionalRequirements;
@@ -222,9 +246,26 @@ export const createScholarship = async (req, res) => {
 export const getAllScholarships = async (req, res) => {
   try {
     const {
+      // Location cascade
       provinceId,
-      scholarshipType2,
+      districtId,
+      municipalityId,
+      // Coverage
+      scholarshipType,
+      scholarshipType2, // accepted as an alias for backwards compatibility
+      minAmount,
+      maxAmount,
+      // Eligibility
       targetLevel,
+      targetFaculty,
+      degreeProgram,
+      university,
+      collegeType,
+      subject,
+      gender,
+      hasDisability,
+      // Status / lifecycle
+      status = "active",
       search,
       page = 1,
       limit = 10,
@@ -232,14 +273,63 @@ export const getAllScholarships = async (req, res) => {
 
     const filter = {
       isDeleted: { $ne: true },
-      isActive: { $ne: false },
       "verification.status": "approved", // Only show approved scholarships to students
     };
 
-    if (provinceId) filter["locationFilter.province.provinceId"] = provinceId;
-    if (scholarshipType2)
-      filter["coverage.scholarshipType2"] = scholarshipType2;
+    // ── Status (active / expired / all) ─────────────────────────────────────
+    const now = new Date();
+    if (status === "active") {
+      filter.isActive = { $ne: false };
+      filter.applicationDeadline = { $gte: now };
+    } else if (status === "expired") {
+      filter.applicationDeadline = { $lt: now };
+    } // status === "all" → no extra constraint
+
+    // ── Location cascade ─────────────────────────────────────────────────────
+    if (municipalityId)
+      filter["locationFilter.municipality.municipalityId"] = municipalityId;
+    else if (districtId)
+      filter["locationFilter.district.districtId"] = districtId;
+    else if (provinceId)
+      filter["locationFilter.province.provinceId"] = provinceId;
+
+    // ── Coverage ──────────────────────────────────────────────────────────────
+    const type = scholarshipType || scholarshipType2;
+    if (type) filter["coverage.scholarshipType2"] = type;
+
+    if (minAmount || maxAmount) {
+      filter["coverage.amountNpr"] = {};
+      if (minAmount) filter["coverage.amountNpr"].$gte = Number(minAmount);
+      if (maxAmount) filter["coverage.amountNpr"].$lte = Number(maxAmount);
+    }
+
+    // ── Eligibility ───────────────────────────────────────────────────────────
     if (targetLevel) filter["eligibilityCriteria.targetLevel"] = targetLevel;
+    if (targetFaculty)
+      filter["eligibilityCriteria.targetFaculty"] = {
+        $regex: targetFaculty,
+        $options: "i",
+      };
+    if (degreeProgram)
+      filter["eligibilityCriteria.degreeProgram"] = {
+        $regex: degreeProgram,
+        $options: "i",
+      };
+    if (university)
+      filter["eligibilityCriteria.university"] = {
+        $regex: university,
+        $options: "i",
+      };
+    if (collegeType) filter["eligibilityCriteria.collegeType"] = collegeType;
+    if (subject)
+      filter["eligibilityCriteria.subject"] = {
+        $regex: subject,
+        $options: "i",
+      };
+    if (gender && gender !== "any")
+      filter["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
+    if (hasDisability === "true")
+      filter["eligibilityCriteria.hasDisability"] = true;
 
     if (search?.trim()) {
       filter.$or = [

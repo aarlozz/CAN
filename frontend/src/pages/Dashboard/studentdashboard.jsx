@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
+import NotificationToast from "../../Components/NotificationToast";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -73,6 +74,46 @@ export default function StudentDashboard() {
   const [error, setError] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [filter, setFilter] = useState("all");
+
+  // ── Scholarship approved/rejected popup ─────────────────────────────────────
+  // Polls independently of the header bell so a popup fires even if the
+  // student never opens the bell dropdown — this is the "notification popup"
+  // that fires the moment an institution approves/rejects an application.
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let seenIds = null; // null until the first poll completes (avoids popping every pre-existing unread notification on load)
+
+    const poll = async () => {
+      try {
+        const res = await axios.get(`${API}/api/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { limit: 10, unreadOnly: true },
+        });
+        const unread = res.data.data || [];
+
+        if (seenIds !== null) {
+          const fresh = unread.find(
+            (n) =>
+              !seenIds.has(n._id) &&
+              (n.notificationType === "application_approved" ||
+                n.notificationType === "application_rejected"),
+          );
+          if (fresh) setToast(fresh);
+        }
+        seenIds = new Set(unread.map((n) => n._id));
+      } catch {
+        // Silent — popup is a nice-to-have, never block the dashboard on it
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 20000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -192,6 +233,8 @@ export default function StudentDashboard() {
 
   return (
     <>
+      <NotificationToast notification={toast} onClose={() => setToast(null)} />
+
       <Header
         onProfileClick={() => setProfileOpen((o) => !o)}
         profileOpen={profileOpen}

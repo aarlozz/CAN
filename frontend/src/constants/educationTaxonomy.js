@@ -1,13 +1,18 @@
 // educationTaxonomy.js
 //
-// Single source of truth for every education-related dropdown in the app:
-// Study Level, Degree/Program, Faculty, University/Affiliation, College Type.
+// Single source of truth for education dropdowns — structured as a real
+// cascade: Target Level → Faculty/Stream → Program/Major, mirroring how
+// Nepal's education system is actually organized:
+//   +2          → governed by NEB (streams: Science, Management, ...)
+//   Diploma/PCL → governed by CTEVT (Engineering, Health Sciences, ...)
+//   Bachelor's / Master's → governed by universities (faculties → programs)
 //
-// Import from here everywhere instead of hardcoding option lists, so every
-// filter panel and every "post a scholarship" form always stays in sync.
+// This replaces the old flat, independent STUDY_LEVELS / FACULTIES /
+// DEGREE_PROGRAMS lists with a nested structure so a scholarship's
+// Faculty options depend on its Level, and Program options depend on
+// its Faculty — exactly like the LocationCascade component.
 
-// ─── 1. Study Level ─────────────────────────────────────────────────────────
-// Value = what gets sent to the API / stored on eligibilityCriteria.targetLevel
+// ─── Study Levels ────────────────────────────────────────────────────────────
 export const STUDY_LEVELS = [
   { value: "short_term_training", label: "Short-Term Training" },
   { value: "primary", label: "Primary" },
@@ -25,102 +30,18 @@ export const STUDY_LEVELS = [
   { value: "phd", label: "Doctorate (PhD)" },
 ];
 
-// ─── 2. Degree / Program ────────────────────────────────────────────────────
-// Grouped by faculty area so the <select> can render <optgroup>s.
-// This is a representative set — "Other" lets institutions type a custom one.
-export const DEGREE_PROGRAMS = [
-  {
-    group: "Management",
-    options: ["BBA", "BBM", "BBS", "BPA", "MBA", "EMBA", "MBS", "MBM"],
-  },
-  {
-    group: "Computer & IT",
-    options: [
-      "BCA", "BIM", "BIT", "BSc CSIT", "BE Computer", "BE Software",
-      "BE IT", "MIT", "MSc CSIT",
-    ],
-  },
-  {
-    group: "Engineering",
-    options: [
-      "BE Civil", "BE Mechanical", "BE Electrical", "BE Electronics",
-      "BE Architecture", "BE Aerospace", "BE Industrial",
-    ],
-  },
-  {
-    group: "Medical",
-    options: [
-      "MBBS", "BDS", "BSc Nursing", "BN", "BPH", "BMLT", "B Pharmacy",
-      "MD", "MS",
-    ],
-  },
-  {
-    group: "Agriculture",
-    options: ["BSc Agriculture", "BSc Forestry", "BVSc & AH", "BSc Fisheries"],
-  },
-  {
-    group: "Humanities",
-    options: ["BA", "BSW", "MA English", "MA Sociology", "MA Economics"],
-  },
-  {
-    group: "Education",
-    options: ["BEd", "MEd"],
-  },
-  {
-    group: "Law",
-    options: ["LLB", "BALLB", "LLM"],
-  },
-  {
-    group: "Science",
-    options: ["BSc", "MSc", "MPhil", "PhD"],
-  },
+// Levels where Faculty/Program selection is meaningful.
+// Everything else (primary, lower_secondary, secondary, see, short_term_training,
+// ca, pre_diploma, postgraduate_diploma, mphil, phd) has no faculty/program step —
+// the form should hide those fields for these levels.
+export const LEVELS_WITH_FACULTY = [
+  "plus_two",
+  "diploma_pcl",
+  "bachelor",
+  "master",
 ];
 
-// Flat list, handy for search/autocomplete
-export const DEGREE_PROGRAMS_FLAT = DEGREE_PROGRAMS.flatMap((g) => g.options);
-
-// ─── 3. Faculty / Discipline ────────────────────────────────────────────────
-export const FACULTIES = [
-  "Agriculture",
-  "Forestry",
-  "Animal Science",
-  "Veterinary Science",
-  "Computer Science",
-  "Information Technology",
-  "Engineering",
-  "Civil Engineering",
-  "Mechanical Engineering",
-  "Electrical Engineering",
-  "Electronics Engineering",
-  "Architecture",
-  "Geomatics Engineering",
-  "Environmental Science",
-  "Biotechnology",
-  "Food Technology",
-  "Medicine",
-  "Dentistry",
-  "Nursing",
-  "Pharmacy",
-  "Public Health",
-  "Allied Health Sciences",
-  "Management",
-  "Finance",
-  "Marketing",
-  "Hospitality Management",
-  "Tourism",
-  "Law",
-  "Education",
-  "Humanities",
-  "Social Sciences",
-  "Fine Arts",
-  "Mass Communication",
-  "Journalism",
-  "Development Studies",
-  "Public Administration",
-  "Religion & Theology",
-];
-
-// ─── 4. University / Affiliation ────────────────────────────────────────────
+// ─── University / Affiliation (unchanged — independent of level) ───────────
 export const UNIVERSITIES = [
   {
     group: "Nepal Universities",
@@ -163,10 +84,9 @@ export const UNIVERSITIES = [
     ],
   },
 ];
-
 export const UNIVERSITIES_FLAT = UNIVERSITIES.flatMap((g) => g.options);
 
-// ─── 5. College Type ─────────────────────────────────────────────────────────
+// ─── College Type (unchanged) ───────────────────────────────────────────────
 export const COLLEGE_TYPES = [
   { value: "public", label: "Public" },
   { value: "private", label: "Private" },
@@ -174,3 +94,214 @@ export const COLLEGE_TYPES = [
   { value: "constituent_campus", label: "Constituent Campus" },
   { value: "affiliated_college", label: "Affiliated College" },
 ];
+
+// ─── THE CASCADE: Level → Faculty → Program ─────────────────────────────────
+// Each key is a STUDY_LEVELS value. `faculties` is the ordered list of streams
+// available at that level. `programs[faculty]` gives the programs under that
+// faculty, at that level only. This is what makes "+2" only ever offer +2
+// streams, and "Bachelor's" only ever offer bachelor's-level programs.
+export const LEVEL_TAXONOMY = {
+  plus_two: {
+    faculties: ["Science", "Management", "Humanities", "Education", "Law"],
+    programs: {
+      Science: ["Physical Science (Physics, Chemistry, Math)", "Biology"],
+      Management: ["Management"],
+      Humanities: ["Humanities and Social Sciences"],
+      Education: ["Education"],
+      Law: ["Law"],
+    },
+  },
+
+  diploma_pcl: {
+    // Matches CTEVT's actual program coverage: Engineering, Health, Agriculture,
+    // Hospitality, Forestry, plus Computer Science, Electronics, and Geomatics
+    // offered as distinct diploma tracks (not folded into general Engineering).
+    faculties: [
+      "Engineering",
+      "Computer Science & Electronics",
+      "Health Sciences",
+      "Agriculture",
+      "Forestry",
+      "Hospitality & Hotel Management",
+      "Management",
+    ],
+    programs: {
+      Engineering: [
+        "Diploma in Civil Engineering",
+        "Diploma in Electrical Engineering",
+        "Diploma in Architecture",
+        "Diploma in Automobile Engineering",
+        "Diploma in Mechanical Engineering",
+        "Diploma in Geomatics (Survey) Engineering",
+      ],
+      "Computer Science & Electronics": [
+        "Diploma in Computer Engineering",
+        "Diploma in Electronics & Communication Engineering",
+      ],
+      "Health Sciences": [
+        "Diploma in Pharmacy",
+        "PCL / Diploma in Nursing (Staff Nurse)",
+        "Diploma in Medical Lab Technology (DMLT)",
+        "Diploma in Radiography",
+        "Diploma in Ayurveda (CTAMS)",
+        "Diploma in Health Assistant (HA)",
+      ],
+      Agriculture: ["Diploma in Agriculture", "Diploma in Animal Science"],
+      Forestry: ["Diploma in Forestry"],
+      "Hospitality & Hotel Management": ["Diploma in Hotel Management"],
+      Management: ["PCL Management"],
+    },
+  },
+
+  bachelor: {
+    faculties: [
+      "Management",
+      "Computer & IT",
+      "Engineering",
+      "Medical & Health Sciences",
+      "Agriculture & Veterinary Science",
+      "Humanities & Social Sciences",
+      "Education",
+      "Law",
+      "Science",
+    ],
+    programs: {
+      Management: [
+        "BBA",
+        "BBM",
+        "BBS",
+        "BPA",
+        "Bachelor of Economics (BEco)",
+        "Bachelor in International Business (BIB)",
+        "Bachelor in Travel & Tourism Management (BTTM)",
+      ],
+      "Computer & IT": [
+        "BCA",
+        "BIM",
+        "BIT",
+        "BSc CSIT",
+        "BE Computer",
+        "BE Software",
+        "BSc IT",
+      ],
+      Engineering: [
+        "BE Civil",
+        "BE Mechanical",
+        "BE Electrical",
+        "BE Electronics & Communication",
+        "B.Arch (Architecture)",
+        "BE Aerospace",
+        "BE Industrial",
+        "BE Automobile",
+        "BE Agricultural",
+        "BE Geomatics / Geo-informatics",
+        "BE Chemical",
+        "BE Mining",
+      ],
+      "Medical & Health Sciences": [
+        "MBBS",
+        "BDS",
+        "BSc Nursing",
+        "BN (Bachelor of Nursing)",
+        "BPH (Public Health)",
+        "BMLT (Medical Lab Technology)",
+        "B Pharmacy",
+        "BPT (Physiotherapy)",
+        "BOT (Occupational Therapy)",
+        "BASLP (Audiology & Speech Language Pathology)",
+        "BRIT (Radiologic Imaging Technology)",
+      ],
+      "Agriculture & Veterinary Science": [
+        "BSc Agriculture",
+        "BSc Forestry",
+        "BVSc & AH (Veterinary)",
+        "BSc Fisheries",
+        "BSc Food Technology",
+      ],
+      "Humanities & Social Sciences": [
+        "BA",
+        "BSW (Social Work)",
+        "BA in Journalism & Mass Communication (BAJMC)",
+        "BA Sociology",
+        "BA Economics",
+        "BA Development Studies",
+      ],
+      Education: [
+        "BEd",
+        "BEd in Science Education",
+        "BEd in English Education",
+        "BEd in Health Education",
+      ],
+      Law: ["LLB", "BALLB", "BBM-LLB", "BEC-LLB"],
+      Science: [
+        "BSc (General)",
+        "BSc Physics",
+        "BSc Chemistry",
+        "BSc Botany",
+        "BSc Zoology",
+        "BSc Microbiology",
+        "BSc Environmental Science",
+        "BSc Biotechnology",
+        "BSc Statistics",
+      ],
+    },
+  },
+
+  master: {
+    faculties: [
+      "Management",
+      "Computer & IT",
+      "Engineering",
+      "Medical & Health Sciences",
+      "Agriculture & Veterinary Science",
+      "Humanities & Social Sciences",
+      "Education",
+      "Law",
+      "Science",
+    ],
+    programs: {
+      Management: ["MBA", "EMBA", "MBS", "MBM"],
+      "Computer & IT": ["MIT", "MSc CSIT"],
+      Engineering: [
+        "ME Civil",
+        "ME Structural",
+        "ME Electrical",
+        "ME Computer",
+        "M.Arch",
+      ],
+      "Medical & Health Sciences": ["MD", "MS", "MPH", "MSc Nursing"],
+      "Agriculture & Veterinary Science": [
+        "MSc Agriculture",
+        "MSc Forestry",
+        "MVSc",
+      ],
+      "Humanities & Social Sciences": [
+        "MA English",
+        "MA Sociology",
+        "MA Economics",
+        "MA Development Studies",
+      ],
+      Education: ["MEd"],
+      Law: ["LLM"],
+      Science: ["MSc"],
+    },
+  },
+};
+
+// Flat list of every program across all levels — handy for search/autocomplete
+export const ALL_PROGRAMS_FLAT = Object.values(LEVEL_TAXONOMY).flatMap((lvl) =>
+  Object.values(lvl.programs).flat(),
+);
+
+// ── Helper accessors ─────────────────────────────────────────────────────────
+
+// Faculties available for a given level. Returns [] if the level has no
+// faculty step (e.g. "see", "primary") — form should hide the field then.
+export function getFacultiesForLevel(level) {
+  return LEVEL_TAXONOMY[level]?.faculties || [];
+}
+
+// Programs available for a given level + faculty combo.
+export function getProgramsForFaculty(level, faculty) {
+  return LEVEL_TAXONOMY[level]?.programs?.[faculty] || [];
+}

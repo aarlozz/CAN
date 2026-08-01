@@ -4,13 +4,8 @@ import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import LocationCascade from "../../Components/LocationCascade";
-import {
-  STUDY_LEVELS,
-  FACULTIES,
-  DEGREE_PROGRAMS,
-  UNIVERSITIES,
-  COLLEGE_TYPES,
-} from "../../constants/educationTaxonomy";
+import EducationCascade from "../../Components/EducationCascade";
+import { UNIVERSITIES, COLLEGE_TYPES } from "../../constants/educationTaxonomy";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -736,56 +731,26 @@ export default function InstitutionalDashboard() {
                     </div>
 
                     <SectionHeading>Eligibility Criteria</SectionHeading>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelCls}>Target Level</label>
-                        <select
-                          className={inputCls}
-                          value={form.targetLevel}
-                          onChange={set("targetLevel")}
-                        >
-                          <option value="">— Any level —</option>
-                          {STUDY_LEVELS.map((l) => (
-                            <option key={l.value} value={l.value}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Target Faculty</label>
-                        <select
-                          className={inputCls}
-                          value={form.targetFaculty}
-                          onChange={set("targetFaculty")}
-                        >
-                          <option value="">— Any faculty —</option>
-                          {FACULTIES.map((f) => (
-                            <option key={f} value={f}>
-                              {f}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Degree / Program</label>
-                        <select
-                          className={inputCls}
-                          value={form.degreeProgram}
-                          onChange={set("degreeProgram")}
-                        >
-                          <option value="">— Any degree / program —</option>
-                          {DEGREE_PROGRAMS.map((g) => (
-                            <optgroup key={g.group} label={g.group}>
-                              {g.options.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </div>
+
+                    {/* Level → Faculty → Program cascade — replaces the old
+                        3 independent selects so Faculty options are scoped
+                        to the chosen Level, and Program options are scoped
+                        to the chosen Faculty. */}
+                    <EducationCascade
+                      level={form.targetLevel}
+                      faculty={form.targetFaculty}
+                      program={form.degreeProgram}
+                      onChange={({ level, faculty, program }) =>
+                        setForm((f) => ({
+                          ...f,
+                          targetLevel: level,
+                          targetFaculty: faculty,
+                          degreeProgram: program,
+                        }))
+                      }
+                    />
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                       <div>
                         <label className={labelCls}>University / Affiliation</label>
                         <select
@@ -820,13 +785,22 @@ export default function InstitutionalDashboard() {
                           ))}
                         </select>
                       </div>
-                      <div>
-                        <label className={labelCls}>Subject</label>
+                      {/* Specialization replaces the old free-text "Subject" field.
+                          Most granularity now comes from Program (via the cascade
+                          above); this is only for an extra narrowing detail, e.g.
+                          "Machine Learning" within an MSc CSIT. Optional. */}
+                      <div className="sm:col-span-2">
+                        <label className={labelCls}>
+                          Specialization{" "}
+                          <span className="text-gray-400 font-normal">
+                            (optional — e.g. a research focus within the program)
+                          </span>
+                        </label>
                         <input
                           className={inputCls}
                           value={form.subject}
                           onChange={set("subject")}
-                          placeholder="e.g. Computer Engineering"
+                          placeholder="e.g. Machine Learning, Structural Engineering"
                         />
                       </div>
                       <div>

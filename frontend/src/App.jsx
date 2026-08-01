@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import Home from "./pages/home";
 import Login from "./pages/auth/login";
@@ -14,24 +13,46 @@ import ProtectedRoute from "./Components/ProtectedRoute";
 import CompleteProfile from "./pages/auth/completeprofile";
 import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import ProvinceAdminDashboard from "./pages/Dashboard/ProvinceAdminDashboard";
-// FIXES:
-// 1. Import names now match actual filenames exactly (scholarshipList not ScholarshipList)
-// 2. Route was /scholarship/:id (singular) — FIXED to /scholarships/:id (plural)
-//    Every link in the app navigates to /scholarships/:id, so the route must match
+import Layout from "./Components/Layout";
+import ProfileView from "./pages/ProfileView";
+import BookmarksPage from "./pages/BookmarksPage";
 
 function App() {
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/" element={<Home />} />
+      {/* Routes that share the Header/Footer + profile dropdown */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/scholarships" element={<ScholarshipList />} />
+        <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
+        <Route path="/institutions" element={<InstitutionList />} />
+
+        {/* Protected — any logged-in user (student or institution) */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["student", "institution"]}>
+              <ProfileView />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Protected — students only */}
+        <Route
+          path="/bookmarks"
+          element={
+            <ProtectedRoute allowedRoles={["student"]}>
+              <BookmarksPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
+
+      {/* Auth pages — no shared header needed */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-    
-      {/* Public scholarship pages — no login needed to browse */}
-      <Route path="/scholarships" element={<ScholarshipList />} />
-      <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
 
-      {/* Protected — Institution */}
+      {/* Protected — Institution (manages its own Header internally) */}
       <Route
         path="/dashboard-institution"
         element={
@@ -41,7 +62,7 @@ function App() {
         }
       />
 
-      {/* Protected — Student */}
+      {/* Protected — Student (manages its own Header internally) */}
       <Route
         path="/dashboard-student"
         element={
@@ -71,19 +92,8 @@ function App() {
         }
       />
 
-      {/* Protected — any logged-in user */}
-      <Route
-        path="/institutions"
-        element={
-            <InstitutionList />
-        }
-      />
-      <Route
-    path="/complete-profile"
-    element={<CompleteProfile />}
-/>
+      <Route path="/complete-profile" element={<CompleteProfile />} />
     </Routes>
-    
   );
 }
 

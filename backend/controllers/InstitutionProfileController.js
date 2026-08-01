@@ -18,6 +18,63 @@ export const getInstitutionDashboard = async (req, res) => {
   }
 };
 
+// PUT /api/institution/profile — NEW: edit own institution profile
+export const updateInstitutionProfile = async (req, res) => {
+  try {
+    const {
+      institutionName,
+      institutionType,
+      establishedYear,
+      website,
+      description,
+      location,
+      contactPerson,
+    } = req.body;
+
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    if (institutionName !== undefined) institution.institutionName = institutionName;
+    if (institutionType !== undefined) institution.institutionType = institutionType;
+    if (establishedYear !== undefined) institution.establishedYear = establishedYear;
+    if (website !== undefined) institution.website = website;
+    if (description !== undefined) institution.description = description;
+
+    if (location) {
+      institution.location.province = location.province ?? institution.location.province;
+      institution.location.district = location.district ?? institution.location.district;
+      institution.location.municipality =
+        location.municipality ?? institution.location.municipality;
+      institution.location.ward = location.ward ?? institution.location.ward;
+      institution.location.street = location.street ?? institution.location.street;
+    }
+
+    if (contactPerson) {
+      institution.contactPerson.name = contactPerson.name ?? institution.contactPerson.name;
+      institution.contactPerson.phone = contactPerson.phone ?? institution.contactPerson.phone;
+      institution.contactPerson.email = contactPerson.email ?? institution.contactPerson.email;
+      institution.contactPerson.designation =
+        contactPerson.designation ?? institution.contactPerson.designation;
+    }
+
+    await institution.save();
+
+    const updated = await InstitutionProfile.findById(institution._id).populate(
+      "user",
+      "name email role"
+    );
+
+    res.json({ message: "Profile updated.", institution: updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // POST /api/institution/courses
 export const addCourse = async (req, res) => {
   try {

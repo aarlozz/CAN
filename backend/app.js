@@ -12,6 +12,7 @@ import scholarshiproutes from "./routes/scholarshipRoutes.js";
 import applicationroutes from "./routes/applicationRoutes.js";
 import superadminroutes from "./routes/superAdminRoutes.js";
 import provinceadminroutes from "./routes/provinceAdminRoutes.js";
+import bookmarkroutes from "./routes/bookmarkRoutes.js";
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use("/api/scholarship", scholarshiproutes);
 app.use("/api/application", applicationroutes);
 app.use("/api/super-admin", superadminroutes);
 app.use("/api/province-admin", provinceadminroutes);
+app.use("/api/bookmarks", bookmarkroutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

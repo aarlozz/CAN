@@ -8,7 +8,7 @@ export const getStudentDashboard = async (req, res) => {
 
       const student = await StudentProfile.findOne({
     user: req.user.id,
-});
+}).populate("user", "name email role");
 
 
     if (!student) {

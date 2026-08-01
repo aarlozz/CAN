@@ -8,7 +8,6 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
 
 // ─────────────────────────────────────────
@@ -16,7 +15,7 @@ const api = axios.create({
 // ─────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('can_token'); // ✅ matches AuthContext key
+    const token = localStorage.getItem('token'); // matches what login/signup pages actually store
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -32,9 +31,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('can_token');   // ✅ matches AuthContext key
-      localStorage.removeItem('can_user');
-      localStorage.removeItem('can_profile');
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
       window.location.href = '/login';
     }
     return Promise.reject(error);

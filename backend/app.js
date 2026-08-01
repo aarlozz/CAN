@@ -10,6 +10,7 @@ import studentroutes from "./routes/studentRoutes.js";
 import locationroutes from "./routes/locationRoutes.js";
 import scholarshiproutes from "./routes/scholarshipRoutes.js";
 import applicationroutes from "./routes/applicationRoutes.js";
+import bookmarkroutes from "./routes/bookmarkRoutes.js"; // NEW
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use("/api/location", locationroutes);
 
 app.use("/api/scholarship", scholarshiproutes);
 app.use("/api/application", applicationroutes);
+app.use("/api/bookmarks", bookmarkroutes); // NEW
 
 app.get("/", (req, res) => {
   res.send("API is running...");

@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CANlogo from "../assets/images/logo/CAN_logo.png";
 
-export default function Header({ onProfileClick, profileOpen }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+export default function Header() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
+  const role = localStorage.getItem("role");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -18,6 +20,23 @@ export default function Header({ onProfileClick, profileOpen }) {
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
+
+  // Close the profile dropdown when clicking outside it
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close the profile dropdown whenever the route changes
+  useEffect(() => {
+    setProfileMenuOpen(false);
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const navLink = (to, label) => (
     <Link
@@ -66,11 +85,12 @@ export default function Header({ onProfileClick, profileOpen }) {
             </>
           ) : (
             <>
-              {onProfileClick && (
+              {/* ── Profile dropdown ── */}
+              <div className="relative" ref={profileMenuRef}>
                 <button
-                  onClick={onProfileClick}
+                  onClick={() => setProfileMenuOpen((o) => !o)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                    profileOpen
+                    profileMenuOpen
                       ? "bg-gray-900 text-white border-gray-900"
                       : "border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
@@ -80,8 +100,45 @@ export default function Header({ onProfileClick, profileOpen }) {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   Profile
+                  <svg
+                    className={`w-3 h-3 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
-              )}
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 overflow-hidden">
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-500 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      View Profile
+                    </Link>
+
+                    {role === "student" && (
+                      <Link
+                        to="/bookmarks"
+                        onClick={() => setProfileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-500 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4V5z" />
+                        </svg>
+                        Bookmarks
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <button onClick={handleLogout}
                 className="bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
                 Logout
@@ -113,14 +170,8 @@ export default function Header({ onProfileClick, profileOpen }) {
             <>{navLink("/login", "Login")}{navLink("/signup-institution", "Register Institution")}</>
           ) : (
             <>
-              {onProfileClick && (
-                <button
-                  onClick={() => { onProfileClick(); setMenuOpen(false); }}
-                  className="text-left text-sm font-medium text-gray-700"
-                >
-                  Profile
-                </button>
-              )}
+              {navLink("/profile", "View Profile")}
+              {role === "student" && navLink("/bookmarks", "Bookmarks")}
               <button onClick={handleLogout} className="text-left text-sm font-medium text-red-500">Logout</button>
             </>
           )}

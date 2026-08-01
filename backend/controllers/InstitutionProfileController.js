@@ -80,7 +80,7 @@ export const removeCourse = async (req, res) => {
 // PATCH /api/institution/verify/:institutionId  (admin only)
 export const verifyInstitution = async (req, res) => {
   try {
-    const { status, rejectionReason } = req.body;
+    const { status, remarks } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {
       return res
@@ -99,8 +99,8 @@ export const verifyInstitution = async (req, res) => {
     institution.verification.status     = status;
     institution.verification.verifiedBy = req.user.id;
     institution.verification.verifiedAt = new Date();
-    institution.verification.rejectionReason =
-      status === "rejected" ? rejectionReason || "No reason given." : null;
+    institution.verification.remarks =
+      status === "rejected" ? remarks || "No reason given." : null;
 
     await institution.save();
 

@@ -12,6 +12,8 @@ import ScholarshipList from "./pages/scholarships/ScholarshipList";
 import ScholarshipDetail from "./pages/scholarships/ScholarshipDetail";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import CompleteProfile from "./pages/auth/completeprofile";
+import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
+import ProvinceAdminDashboard from "./pages/Dashboard/ProvinceAdminDashboard";
 // FIXES:
 // 1. Import names now match actual filenames exactly (scholarshipList not ScholarshipList)
 // 2. Route was /scholarship/:id (singular) — FIXED to /scholarships/:id (plural)
@@ -45,6 +47,26 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={["student"]}>
             <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected — Super Admin */}
+      <Route
+        path="/dashboard-superadmin"
+        element={
+          <ProtectedRoute allowedRoles={["super_admin"]}>
+            <SuperAdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected — Province Admin */}
+      <Route
+        path="/dashboard-provinceadmin"
+        element={
+          <ProtectedRoute allowedRoles={["province_admin"]}>
+            <ProvinceAdminDashboard />
           </ProtectedRoute>
         }
       />

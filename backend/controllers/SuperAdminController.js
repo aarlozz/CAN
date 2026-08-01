@@ -22,28 +22,36 @@ export const createProvinceAdmin = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "province_admin",
-      authProvider: "local",
-      isVerified: true,
-    });
+    let user;
+    try {
+      user = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        role: "province_admin",
+        authProvider: "local",
+        isVerified: true,
+      });
 
-    const profile = await ProvinceAdminProfile.create({
-      user: user._id,
-      assignedProvince,
-      createdBy: req.user.id,
-    });
+      const profile = await ProvinceAdminProfile.create({
+        user: user._id,
+        assignedProvince,
+        createdBy: req.user.id,
+      });
 
-    res.status(201).json({
-      message: "Province Admin created successfully.",
-      provinceAdmin: { user, profile },
-    });
+      res.status(201).json({
+        message: "Province Admin created successfully.",
+        provinceAdmin: { user, profile },
+      });
+    } catch (creationError) {
+      if (user && user._id) {
+        await User.findByIdAndDelete(user._id); // Rollback user creation
+      }
+      throw creationError; // Pass to outer catch
+    }
   } catch (error) {
     console.error("createProvinceAdmin error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: error.message || "Server error" });
   }
 };
 
@@ -76,7 +84,7 @@ export const getAllProvinceAdmins = async (req, res) => {
   try {
     const admins = await ProvinceAdminProfile.find()
       .populate("user", "name email isVerified")
-      .populate("assignedProvince", "name")
+      .populate("assignedProvince", "provinceName")
       .populate("createdBy", "name email");
 
     res.json(admins);

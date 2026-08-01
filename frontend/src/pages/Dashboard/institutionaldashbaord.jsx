@@ -922,6 +922,13 @@ export default function InstitutionalDashboard() {
                                   )}
                                 </span>
                               )}
+                              {s.verification?.status && (
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 uppercase ${STATUS_COLORS[s.verification.status] || "bg-gray-100 text-gray-600"}`}
+                                >
+                                  {s.verification.status.replace("_", " ")}
+                                </span>
+                              )}
                             </div>
                             {s.description && (
                               <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">
@@ -1025,6 +1032,9 @@ export default function InstitutionalDashboard() {
                                 Seats
                               </th>
                               <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                                Status
+                              </th>
+                              <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                                 Applications
                               </th>
                               <th className="px-4 py-2.5" />
@@ -1066,6 +1076,17 @@ export default function InstitutionalDashboard() {
                                     remaining={s.remainingSeats}
                                     total={s.totalSeats}
                                   />
+                                </td>
+                                <td className="px-4 py-3">
+                                  {s.verification?.status ? (
+                                    <span
+                                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${STATUS_COLORS[s.verification.status] || "bg-gray-100 text-gray-600"}`}
+                                    >
+                                      {s.verification.status.replace("_", " ")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-300">—</span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 text-xs text-gray-500">
                                   {s.statistics?.totalApplications || 0}

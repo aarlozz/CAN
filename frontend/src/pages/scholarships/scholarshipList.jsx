@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
-import Header from "../../Components/header";
-import Footer from "../../Components/footer";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -575,50 +573,91 @@ export default function ScholarshipList() {
   };
 
   return (
-    <>
-      <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* ── Page Header ── */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Scholarships
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Browse verified scholarships from institutions across Nepal
-            {totalCount > 0 && !loading && (
-              <span className="ml-2 bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                {totalCount} found
-              </span>
-            )}
-          </p>
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* ── Page Header ── */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          Scholarships
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">
+          Browse verified scholarships from institutions across Nepal
+          {totalCount > 0 && !loading && (
+            <span className="ml-2 bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
+              {totalCount} found
+            </span>
+          )}
+        </p>
+      </div>
+
+      {/* ── Search + View Toggle + Filter Button ── */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        {/* Search */}
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+            🔍
+          </span>
+          <input
+            type="text"
+            placeholder="Search by title or institution…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+          />
         </div>
 
-        {/* ── Search + View Toggle + Filter Button ── */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          {/* Search */}
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-              🔍
-            </span>
-            <input
-              type="text"
-              placeholder="Search by title or institution…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
-            />
-          </div>
-
-          <div className="flex gap-2 shrink-0">
-            {/* Filter toggle button */}
-            <button
-              onClick={() => setFiltersOpen((o) => !o)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                filtersOpen
-                  ? "bg-red-500 text-white border-red-500"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-red-300"
-              }`}
+        <div className="flex gap-2 shrink-0">
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setFiltersOpen((o) => !o)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+              filtersOpen
+                ? "bg-red-500 text-white border-red-500"
+                : "bg-white text-gray-700 border-gray-200 hover:border-red-300"
+            }`}
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+              />
+            </svg>
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-white text-red-500 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
+          {/* View mode toggle */}
+          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleView("card")}
+              title="Card view"
+              className={`px-3 py-2.5 transition-colors ${viewMode === "card" ? "bg-red-500 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+            >
+              {/* Grid icon */}
+              <svg
+                className="w-4 h-4"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => toggleView("table")}
+              title="Table view"
+              className={`px-3 py-2.5 transition-colors ${viewMode === "table" ? "bg-red-500 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+            >
+              {/* List icon */}
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -629,310 +668,265 @@ export default function ScholarshipList() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
                 />
               </svg>
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="bg-white text-red-500 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                  {activeFilterCount}
-                </span>
-              )}
             </button>
-
-            {/* View mode toggle */}
-            <div className="flex border border-gray-200 rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleView("card")}
-                title="Card view"
-                className={`px-3 py-2.5 transition-colors ${viewMode === "card" ? "bg-red-500 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-              >
-                {/* Grid icon */}
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => toggleView("table")}
-                title="Table view"
-                className={`px-3 py-2.5 transition-colors ${viewMode === "table" ? "bg-red-500 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-              >
-                {/* List icon */}
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                  />
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* ── Filter Panel ── */}
-        {filtersOpen && (
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <FilterSelect
-                label="Scholarship Type"
-                value={filters.scholarshipType}
-                onChange={(v) => setFilter("scholarshipType", v)}
-                options={SCHOLARSHIP_TYPES}
-              />
+      {/* ── Filter Panel ── */}
+      {filtersOpen && (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <FilterSelect
+              label="Scholarship Type"
+              value={filters.scholarshipType}
+              onChange={(v) => setFilter("scholarshipType", v)}
+              options={SCHOLARSHIP_TYPES}
+            />
 
-              <FilterSelect
-                label="Target Level"
-                value={filters.targetLevel}
-                onChange={(v) => setFilter("targetLevel", v)}
-                options={TARGET_LEVELS}
-              />
+            <FilterSelect
+              label="Target Level"
+              value={filters.targetLevel}
+              onChange={(v) => setFilter("targetLevel", v)}
+              options={TARGET_LEVELS}
+            />
 
-              <FilterInput
-                label="Faculty"
-                value={filters.targetFaculty}
-                onChange={(v) => setFilter("targetFaculty", v)}
-                placeholder="e.g. Engineering, Law…"
-              />
+            <FilterInput
+              label="Faculty"
+              value={filters.targetFaculty}
+              onChange={(v) => setFilter("targetFaculty", v)}
+              placeholder="e.g. Engineering, Law…"
+            />
 
-              <FilterInput
-                label="Subject"
-                value={filters.subject}
-                onChange={(v) => setFilter("subject", v)}
-                placeholder="e.g. Computer Science…"
-              />
+            <FilterInput
+              label="Subject"
+              value={filters.subject}
+              onChange={(v) => setFilter("subject", v)}
+              placeholder="e.g. Computer Science…"
+            />
 
-              <FilterSelect
-                label="Gender"
-                value={filters.gender}
-                onChange={(v) => setFilter("gender", v)}
-                options={GENDER_OPTIONS}
-              />
+            <FilterSelect
+              label="Gender"
+              value={filters.gender}
+              onChange={(v) => setFilter("gender", v)}
+              options={GENDER_OPTIONS}
+            />
 
-              <FilterSelect
-                label="Status"
-                value={filters.status}
-                onChange={(v) => setFilter("status", v)}
-                options={[
-                  { value: "active", label: "Active only" },
-                  { value: "expired", label: "Expired" },
-                  { value: "all", label: "All" },
-                ]}
-              />
+            <FilterSelect
+              label="Status"
+              value={filters.status}
+              onChange={(v) => setFilter("status", v)}
+              options={[
+                { value: "active", label: "Active only" },
+                { value: "expired", label: "Expired" },
+                { value: "all", label: "All" },
+              ]}
+            />
 
-              {/* NPR Range */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Amount (NPR)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.minAmount}
-                    onChange={(e) => setFilter("minAmount", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.maxAmount}
-                    onChange={(e) => setFilter("maxAmount", e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                  />
-                </div>
-              </div>
-
-              {/* Disability toggle */}
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Disability Scholarship
-                </label>
-                <button
-                  onClick={() =>
-                    setFilter("hasDisability", !filters.hasDisability)
-                  }
-                  className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    filters.hasDisability
-                      ? "bg-purple-50 border-purple-300 text-purple-700"
-                      : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.hasDisability ? "bg-purple-500 border-purple-500" : "border-gray-300"}`}
-                  >
-                    {filters.hasDisability && (
-                      <svg
-                        className="w-2.5 h-2.5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 12 12"
-                      >
-                        <path d="M10 3L5 8.5 2 5.5 1 6.5l4 4 6-7z" />
-                      </svg>
-                    )}
-                  </span>
-                  Disability inclusive
-                </button>
+            {/* NPR Range */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Amount (NPR)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minAmount}
+                  onChange={(e) => setFilter("minAmount", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxAmount}
+                  onChange={(e) => setFilter("maxAmount", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                />
               </div>
             </div>
 
-            {/* Location cascade */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
-              <FilterSelect
-                label="Province"
-                value={filters.provinceId}
-                onChange={(v) => setFilter("provinceId", v)}
-                options={provinces.map((p) => ({
-                  value: p._id,
-                  label: p.name || p.provinceName,
-                }))}
-                placeholder="All Provinces"
-              />
-              <FilterSelect
-                label="District"
-                value={filters.districtId}
-                onChange={(v) => setFilter("districtId", v)}
-                options={districts.map((d) => ({
-                  value: d._id,
-                  label: d.name || d.districtName,
-                }))}
-                placeholder={
-                  filters.provinceId ? "All Districts" : "Select Province first"
+            {/* Disability toggle */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Disability Scholarship
+              </label>
+              <button
+                onClick={() =>
+                  setFilter("hasDisability", !filters.hasDisability)
                 }
-              />
-              <FilterSelect
-                label="Municipality"
-                value={filters.municipalityId}
-                onChange={(v) => setFilter("municipalityId", v)}
-                options={municipalities.map((m) => ({
-                  value: m._id,
-                  label: m.name || m.municipalityName,
-                }))}
-                placeholder={
-                  filters.districtId
-                    ? "All Municipalities"
-                    : "Select District first"
-                }
-              />
-            </div>
-
-            {/* Panel actions */}
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-50">
-              <button
-                onClick={clearAll}
-                className="text-sm text-gray-400 hover:text-red-500 font-medium transition-colors"
-              >
-                Clear All Filters
-              </button>
-              <button
-                onClick={() => setFiltersOpen(false)}
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Active filter chips ── */}
-        <ActiveFilters
-          filters={filters}
-          labels={FILTER_LABELS}
-          onRemove={removeFilter}
-          onClearAll={clearAll}
-        />
-
-        {/* ── Loading ── */}
-        {loading && (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin w-8 h-8 border-4 border-red-100 border-t-red-500 rounded-full" />
-          </div>
-        )}
-
-        {/* ── Error ── */}
-        {!loading && error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        {/* ── Empty state ── */}
-        {!loading && !error && filtered.length === 0 && (
-          <div className="text-center py-20 text-gray-400">
-            <div className="text-5xl mb-4">🎓</div>
-            <p className="font-semibold text-gray-500">No scholarships found</p>
-            <p className="text-sm mt-1">
-              Try adjusting your filters or check back later.
-            </p>
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearAll}
-                className="mt-4 text-red-500 text-sm font-medium underline"
-              >
-                Clear all filters
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Card Grid ── */}
-        {!loading && !error && filtered.length > 0 && viewMode === "card" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((s) => (
-              <ScholarshipCard key={s._id} s={s} />
-            ))}
-          </div>
-        )}
-
-        {/* ── Table ── */}
-        {!loading && !error && filtered.length > 0 && viewMode === "table" && (
-          <ScholarshipTable scholarships={filtered} />
-        )}
-
-        {/* ── Pagination ── */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-1.5 mt-10">
-            <button
-              onClick={() => fetchScholarships(page - 1)}
-              disabled={page === 1}
-              className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              ← Prev
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => fetchScholarships(p)}
-                className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
-                  p === page
-                    ? "bg-red-500 text-white shadow-sm"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-red-300"
+                className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  filters.hasDisability
+                    ? "bg-purple-50 border-purple-300 text-purple-700"
+                    : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
               >
-                {p}
+                <span
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.hasDisability ? "bg-purple-500 border-purple-500" : "border-gray-300"}`}
+                >
+                  {filters.hasDisability && (
+                    <svg
+                      className="w-2.5 h-2.5 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 12 12"
+                    >
+                      <path d="M10 3L5 8.5 2 5.5 1 6.5l4 4 6-7z" />
+                    </svg>
+                  )}
+                </span>
+                Disability inclusive
               </button>
-            ))}
+            </div>
+          </div>
+
+          {/* Location cascade */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
+            <FilterSelect
+              label="Province"
+              value={filters.provinceId}
+              onChange={(v) => setFilter("provinceId", v)}
+              options={provinces.map((p) => ({
+                value: p._id,
+                label: p.name || p.provinceName,
+              }))}
+              placeholder="All Provinces"
+            />
+            <FilterSelect
+              label="District"
+              value={filters.districtId}
+              onChange={(v) => setFilter("districtId", v)}
+              options={districts.map((d) => ({
+                value: d._id,
+                label: d.name || d.districtName,
+              }))}
+              placeholder={
+                filters.provinceId ? "All Districts" : "Select Province first"
+              }
+            />
+            <FilterSelect
+              label="Municipality"
+              value={filters.municipalityId}
+              onChange={(v) => setFilter("municipalityId", v)}
+              options={municipalities.map((m) => ({
+                value: m._id,
+                label: m.name || m.municipalityName,
+              }))}
+              placeholder={
+                filters.districtId
+                  ? "All Municipalities"
+                  : "Select District first"
+              }
+            />
+          </div>
+
+          {/* Panel actions */}
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-50">
             <button
-              onClick={() => fetchScholarships(page + 1)}
-              disabled={page === totalPages}
-              className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+              onClick={clearAll}
+              className="text-sm text-gray-400 hover:text-red-500 font-medium transition-colors"
             >
-              Next →
+              Clear All Filters
+            </button>
+            <button
+              onClick={() => setFiltersOpen(false)}
+              className="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
+            >
+              Apply
             </button>
           </div>
-        )}
-      </main>
-      <Footer />
-    </>
+        </div>
+      )}
+
+      {/* ── Active filter chips ── */}
+      <ActiveFilters
+        filters={filters}
+        labels={FILTER_LABELS}
+        onRemove={removeFilter}
+        onClearAll={clearAll}
+      />
+
+      {/* ── Loading ── */}
+      {loading && (
+        <div className="flex justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-4 border-red-100 border-t-red-500 rounded-full" />
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {!loading && error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+          {error}
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!loading && !error && filtered.length === 0 && (
+        <div className="text-center py-20 text-gray-400">
+          <div className="text-5xl mb-4">🎓</div>
+          <p className="font-semibold text-gray-500">No scholarships found</p>
+          <p className="text-sm mt-1">
+            Try adjusting your filters or check back later.
+          </p>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearAll}
+              className="mt-4 text-red-500 text-sm font-medium underline"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Card Grid ── */}
+      {!loading && !error && filtered.length > 0 && viewMode === "card" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((s) => (
+            <ScholarshipCard key={s._id} s={s} />
+          ))}
+        </div>
+      )}
+
+      {/* ── Table ── */}
+      {!loading && !error && filtered.length > 0 && viewMode === "table" && (
+        <ScholarshipTable scholarships={filtered} />
+      )}
+
+      {/* ── Pagination ── */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1.5 mt-10">
+          <button
+            onClick={() => fetchScholarships(page - 1)}
+            disabled={page === 1}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ← Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => fetchScholarships(p)}
+              className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
+                p === page
+                  ? "bg-red-500 text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-red-300"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => fetchScholarships(page + 1)}
+            disabled={page === totalPages}
+            className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:border-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        </div>
+      )}
+    </main>
   );
 }

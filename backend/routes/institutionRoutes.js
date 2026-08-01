@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getInstitutionDashboard,
+  updateInstitutionProfile,
   addCourse,
   removeCourse,
   verifyInstitution,
@@ -15,6 +16,14 @@ router.get(
   protect,
   requireRole("institution"),
   getInstitutionDashboard
+);
+
+// ── Profile (NEW) ──────────────────────────────────────────────────────────────
+router.put(
+  "/profile",
+  protect,
+  requireRole("institution"),
+  updateInstitutionProfile
 );
 
 // ── Course management ─────────────────────────────────────────────────────────

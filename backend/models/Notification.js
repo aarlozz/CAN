@@ -1,7 +1,7 @@
 // Notification.js — In-app notifications
 // TTL index auto-deletes READ notifications after 30 days
 
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -45,4 +45,4 @@ notificationSchema.index(
   }
 );
 
-module.exports = mongoose.model('Notification', notificationSchema);
+export default mongoose.model('Notification', notificationSchema);

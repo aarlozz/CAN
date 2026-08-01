@@ -1,25 +1,12 @@
-// notificationRoutes.js — In-app notification endpoints
-//
-// All routes require authentication (any role).
-//
-//   GET  /api/notifications              — own notifications (paginated, unread first)
-//   PUT  /api/notifications/read-all     — mark all as read
-//   PUT  /api/notifications/:id/read     — mark one as read
-
-const express = require('express');
-const { protect } = require('../middleware/authMiddleware');
-const {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-} = require('../controllers/notificationController');
+import express from "express";
+import { protect } from "../middleware/authMiddleware.js";
+import { getNotifications, markAsRead, markAllAsRead } from "../controllers/notificationController.js";
 
 const router = express.Router();
 
 // IMPORTANT: /read-all must be defined BEFORE /:id/read
-// otherwise Express matches "read-all" as the :id param
-router.get('/',               protect, getNotifications);
-router.put('/read-all',       protect, markAllAsRead);
-router.put('/:id/read',       protect, markAsRead);
+router.get("/", protect, getNotifications);
+router.put("/read-all", protect, markAllAsRead);
+router.put("/:id/read", protect, markAsRead);
 
-module.exports = router;
+export default router;

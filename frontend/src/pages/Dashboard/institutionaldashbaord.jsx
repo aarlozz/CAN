@@ -3,6 +3,14 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
+import LocationCascade from "../../Components/LocationCascade";
+import {
+  STUDY_LEVELS,
+  FACULTIES,
+  DEGREE_PROGRAMS,
+  UNIVERSITIES,
+  COLLEGE_TYPES,
+} from "../../constants/educationTaxonomy";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -66,15 +74,6 @@ const STATUS_COLORS = {
   pending: "bg-yellow-50 text-yellow-700",
 };
 
-const LEVEL_COLORS = {
-  school: "bg-green-50 text-green-700",
-  plus_two: "bg-blue-50 text-blue-700",
-  bachelors: "bg-purple-50 text-purple-700",
-  masters: "bg-orange-50 text-orange-700",
-  phd: "bg-red-50 text-red-700",
-  diploma: "bg-yellow-50 text-yellow-700",
-};
-
 const EMPTY_FORM = {
   scholarshipTitle: "",
   description: "",
@@ -85,6 +84,9 @@ const EMPTY_FORM = {
   percentage: "",
   targetLevel: "",
   targetFaculty: "",
+  degreeProgram: "",
+  university: "",
+  collegeType: "",
   subject: "",
   gender: "any",
   isNepali: true,
@@ -98,16 +100,7 @@ const EMPTY_FORM = {
   municipalityName: "",
 };
 
-const EMPTY_COURSE = {
-  courseName: "",
-  level: "",
-  duration: "",
-  description: "",
-  faculty: "",
-  seats: "",
-  isActive: true,
-};
-
+// Convert a scholarship object → flat form shape for editing
 function scholarshipToForm(s) {
   return {
     scholarshipTitle: s.scholarshipTitle || "",
@@ -123,6 +116,9 @@ function scholarshipToForm(s) {
       s.coverage?.percentage != null ? String(s.coverage.percentage) : "",
     targetLevel: s.eligibilityCriteria?.targetLevel || "",
     targetFaculty: s.eligibilityCriteria?.targetFaculty || "",
+    degreeProgram: s.eligibilityCriteria?.degreeProgram || "",
+    university: s.eligibilityCriteria?.university || "",
+    collegeType: s.eligibilityCriteria?.collegeType || "",
     subject: s.eligibilityCriteria?.subject || "",
     gender: s.eligibilityCriteria?.gender || "any",
     isNepali: s.eligibilityCriteria?.isNepali ?? true,
@@ -159,528 +155,13 @@ function SeatsBar({ remaining, total }) {
   );
 }
 
+// ─── Section heading inside form ──────────────────────────────────────────────
+
 function SectionHeading({ children }) {
   return (
     <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-3 mt-6 first:mt-0">
       {children}
     </p>
-  );
-}
-
-// ─── Profile Tab Component ────────────────────────────────────────────────────
-
-function ProfileTab({ data, token }) {
-  const [description, setDescription] = useState(data?.description || "");
-  const [descLoading, setDescLoading] = useState(false);
-  const [descSuccess, setDescSuccess] = useState("");
-  const [descError, setDescError] = useState("");
-
-  const [courses, setCourses] = useState([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [showCourseForm, setShowCourseForm] = useState(false);
-  const [editingCourseId, setEditingCourseId] = useState(null);
-  const [courseForm, setCourseForm] = useState(EMPTY_COURSE);
-  const [courseLoading, setCourseLoading] = useState(false);
-  const [courseError, setCourseError] = useState("");
-
-  const headers = { Authorization: `Bearer ${token}` };
-
-  // Load courses
-  useEffect(() => {
-    axios
-      .get(`${API}/api/institution/courses`, { headers })
-      .then((res) => setCourses(res.data.courses || []))
-      .catch(() => setCourses([]))
-      .finally(() => setCoursesLoading(false));
-  }, []);
-
-  // Save description
-  const handleSaveDescription = async () => {
-    setDescLoading(true);
-    setDescError("");
-    setDescSuccess("");
-    try {
-      await axios.patch(
-        `${API}/api/institution/profile/description`,
-        { description },
-        { headers },
-      );
-      setDescSuccess("Description saved successfully!");
-      setTimeout(() => setDescSuccess(""), 3000);
-    } catch (err) {
-      setDescError(
-        err.response?.data?.message || "Failed to save description.",
-      );
-    } finally {
-      setDescLoading(false);
-    }
-  };
-
-  // Open course form
-  const openCreateCourse = () => {
-    setEditingCourseId(null);
-    setCourseForm(EMPTY_COURSE);
-    setCourseError("");
-    setShowCourseForm(true);
-  };
-
-  const openEditCourse = (course) => {
-    setEditingCourseId(course._id);
-    setCourseForm({
-      courseName: course.courseName || "",
-      level: course.level || "",
-      duration: course.duration != null ? String(course.duration) : "",
-      description: course.description || "",
-      faculty: course.faculty || "",
-      seats: course.seats != null ? String(course.seats) : "",
-      isActive: course.isActive ?? true,
-    });
-    setCourseError("");
-    setShowCourseForm(true);
-  };
-
-  const closeCourseForm = () => {
-    setShowCourseForm(false);
-    setEditingCourseId(null);
-    setCourseForm(EMPTY_COURSE);
-    setCourseError("");
-  };
-
-  const setField = (field) => (e) => {
-    const val =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setCourseForm((f) => ({ ...f, [field]: val }));
-  };
-
-  const handleCourseSubmit = async (e) => {
-    e.preventDefault();
-    setCourseError("");
-    setCourseLoading(true);
-    const payload = {
-      courseName: courseForm.courseName,
-      level: courseForm.level,
-      duration: courseForm.duration ? Number(courseForm.duration) : undefined,
-      description: courseForm.description || undefined,
-      faculty: courseForm.faculty || undefined,
-      seats: courseForm.seats ? Number(courseForm.seats) : undefined,
-      isActive: courseForm.isActive,
-    };
-    try {
-      if (editingCourseId) {
-        const res = await axios.put(
-          `${API}/api/institution/courses/${editingCourseId}`,
-          payload,
-          { headers },
-        );
-        setCourses((prev) =>
-          prev.map((c) => (c._id === editingCourseId ? res.data.course : c)),
-        );
-      } else {
-        const res = await axios.post(
-          `${API}/api/institution/courses`,
-          payload,
-          {
-            headers,
-          },
-        );
-        setCourses((prev) => [res.data.course, ...prev]);
-      }
-      closeCourseForm();
-    } catch (err) {
-      setCourseError(
-        err.response?.data?.message ||
-          (editingCourseId
-            ? "Failed to update course."
-            : "Failed to add course."),
-      );
-    } finally {
-      setCourseLoading(false);
-    }
-  };
-
-  const handleDeleteCourse = async (id) => {
-    if (!window.confirm("Delete this course?")) return;
-    try {
-      await axios.delete(`${API}/api/institution/courses/${id}`, { headers });
-      setCourses((prev) => prev.filter((c) => c._id !== id));
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete.");
-    }
-  };
-
-  const inputCls =
-    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white";
-  const labelCls = "block text-sm font-medium text-gray-700 mb-1";
-
-  const loc = data?.location || {};
-  const contact = data?.contactPerson || {};
-
-  return (
-    <div className="space-y-6">
-      {/* ── Institution Info Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-base font-bold text-blue-700">
-            {(data?.institutionName || "IN")
-              .split(" ")
-              .slice(0, 2)
-              .map((w) => w[0])
-              .join("")
-              .toUpperCase()}
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm">
-              {data?.institutionName}
-            </h3>
-            <p className="text-[10px] text-gray-400">
-              {data?.institutionType} · Est. {data?.establishedYear}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-50">
-          {/* Location */}
-          <div className="px-6 py-4">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Location
-            </p>
-            {loc.street && <InfoRow label="Street" value={loc.street} />}
-            {loc.ward && <InfoRow label="Ward" value={`Ward ${loc.ward}`} />}
-            {loc.municipality && (
-              <InfoRow label="Municipality" value={loc.municipality} />
-            )}
-            {loc.district && <InfoRow label="District" value={loc.district} />}
-            {loc.province && <InfoRow label="Province" value={loc.province} />}
-            {data?.website && <InfoRow label="Website" value={data.website} />}
-          </div>
-
-          {/* Contact Person */}
-          <div className="px-6 py-4">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Contact Person
-            </p>
-            {contact.name ? (
-              <>
-                <InfoRow label="Name" value={contact.name} />
-                <InfoRow label="Designation" value={contact.designation} />
-                <InfoRow label="Phone" value={contact.phone} />
-                <InfoRow label="Email" value={contact.email} />
-              </>
-            ) : (
-              <p className="text-xs text-gray-400">No contact person added.</p>
-            )}
-          </div>
-
-          {/* Quick Stats */}
-          <div className="px-6 py-4">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-              Quick Stats
-            </p>
-            <InfoRow label="Total Courses" value={String(courses.length)} />
-            <InfoRow
-              label="Active Courses"
-              value={String(courses.filter((c) => c.isActive).length)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Description Editor ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm">
-              Institution Description
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              This will be visible to students browsing your profile.
-            </p>
-          </div>
-        </div>
-
-        {descError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
-            {descError}
-          </div>
-        )}
-        {descSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-            <span>✓</span> {descSuccess}
-          </div>
-        )}
-
-        <textarea
-          className={inputCls + " resize-none"}
-          rows={5}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe your institution — history, vision, achievements, facilities..."
-        />
-        <div className="flex justify-end mt-3">
-          <button
-            onClick={handleSaveDescription}
-            disabled={descLoading}
-            className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-          >
-            {descLoading ? "Saving…" : "Save Description"}
-          </button>
-        </div>
-      </div>
-
-      {/* ── Courses Section ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Courses Offered</h2>
-          <button
-            onClick={openCreateCourse}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
-          >
-            <span className="text-lg leading-none">+</span>
-            Add Course
-          </button>
-        </div>
-
-        {/* Course Form */}
-        {showCourseForm && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">
-                  {editingCourseId ? "Edit Course" : "Add New Course"}
-                </h3>
-                <p className="text-gray-400 text-xs mt-0.5">
-                  Fields marked <span className="text-red-400">*</span> are
-                  required.
-                </p>
-              </div>
-              {editingCourseId && (
-                <span className="text-[10px] font-semibold px-2.5 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full">
-                  ✏️ Editing
-                </span>
-              )}
-            </div>
-
-            {courseError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
-                {courseError}
-              </div>
-            )}
-
-            <form onSubmit={handleCourseSubmit}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className={labelCls}>
-                    Course Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    className={inputCls}
-                    required
-                    value={courseForm.courseName}
-                    onChange={setField("courseName")}
-                    placeholder="e.g. Bachelor of Computer Engineering"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    Level <span className="text-red-400">*</span>
-                  </label>
-                  <select
-                    className={inputCls}
-                    required
-                    value={courseForm.level}
-                    onChange={setField("level")}
-                  >
-                    <option value="">— Select level —</option>
-                    <option value="school">School</option>
-                    <option value="plus_two">Plus Two</option>
-                    <option value="bachelors">Bachelors</option>
-                    <option value="masters">Masters</option>
-                    <option value="phd">PhD</option>
-                    <option value="diploma">Diploma</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelCls}>Faculty / Stream</label>
-                  <input
-                    className={inputCls}
-                    value={courseForm.faculty}
-                    onChange={setField("faculty")}
-                    placeholder="e.g. Science & Technology"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Duration (years)</label>
-                  <input
-                    className={inputCls}
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={courseForm.duration}
-                    onChange={setField("duration")}
-                    placeholder="e.g. 4"
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>Total Seats</label>
-                  <input
-                    className={inputCls}
-                    type="number"
-                    min="1"
-                    value={courseForm.seats}
-                    onChange={setField("seats")}
-                    placeholder="e.g. 60"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={labelCls}>Description</label>
-                  <textarea
-                    className={inputCls + " resize-none"}
-                    rows={3}
-                    value={courseForm.description}
-                    onChange={setField("description")}
-                    placeholder="Brief overview of the course..."
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    id="isActive"
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-500"
-                    checked={courseForm.isActive}
-                    onChange={setField("isActive")}
-                  />
-                  <label htmlFor="isActive" className="text-sm text-gray-700">
-                    Course is currently active / accepting students
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={closeCourseForm}
-                  className="px-5 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={courseLoading}
-                  className="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-                >
-                  {courseLoading
-                    ? editingCourseId
-                      ? "Saving…"
-                      : "Adding…"
-                    : editingCourseId
-                      ? "Save Changes"
-                      : "Add Course"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Courses Grid */}
-        {coursesLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full" />
-          </div>
-        ) : courses.length === 0 && !showCourseForm ? (
-          <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
-            <div className="text-5xl mb-3">📚</div>
-            <p className="font-medium">No courses added yet</p>
-            <p className="text-sm mt-1">
-              Click "+ Add Course" to list the courses you offer.
-            </p>
-          </div>
-        ) : (
-          courses.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <div
-                  key={course._id}
-                  className={`bg-white rounded-xl border shadow-sm p-5 transition-colors ${
-                    editingCourseId === course._id
-                      ? "border-amber-300 ring-1 ring-amber-200"
-                      : "border-gray-100 hover:border-gray-200"
-                  } ${!course.isActive ? "opacity-60" : ""}`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-semibold text-gray-900 text-sm leading-tight flex-1">
-                      {course.courseName}
-                    </h4>
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                        LEVEL_COLORS[course.level] ||
-                        "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {course.level?.replace("_", " ")}
-                    </span>
-                  </div>
-
-                  {course.faculty && (
-                    <p className="text-[11px] text-gray-400 mb-2">
-                      {course.faculty}
-                    </p>
-                  )}
-
-                  {course.description && (
-                    <p className="text-gray-400 text-xs mb-3 line-clamp-2 leading-relaxed">
-                      {course.description}
-                    </p>
-                  )}
-
-                  <div className="space-y-1 mb-4">
-                    {course.duration && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1.5">
-                        <span>⏱</span> {course.duration} year
-                        {course.duration !== 1 ? "s" : ""}
-                      </p>
-                    )}
-                    {course.seats && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1.5">
-                        <span>🪑</span> {course.seats} seats
-                      </p>
-                    )}
-                    <p className="text-xs flex items-center gap-1.5">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          course.isActive ? "bg-green-400" : "bg-gray-300"
-                        }`}
-                      />
-                      <span
-                        className={
-                          course.isActive ? "text-green-600" : "text-gray-400"
-                        }
-                      >
-                        {course.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2 pt-3 border-t border-gray-50">
-                    <button
-                      onClick={() => openEditCourse(course)}
-                      className="flex-1 text-xs font-medium py-1.5 border border-amber-100 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCourse(course._id)}
-                      className="flex-1 text-xs font-medium py-1.5 border border-red-100 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -697,18 +178,20 @@ export default function InstitutionalDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [showScholarshipForm, setShowScholarshipForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState(null); // null = create mode, string = edit mode
   const [form, setForm] = useState(EMPTY_FORM);
   const [schLoading, setSchLoading] = useState(false);
   const [schError, setSchError] = useState("");
 
   const token = localStorage.getItem("token");
 
+  // ── Logout ──────────────────────────────────────────────────────────────────
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
   };
 
+  // ── Data fetch ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!token) {
       navigate("/login");
@@ -742,6 +225,7 @@ export default function InstitutionalDashboard() {
     );
   }, [navigate, token]);
 
+  // ── Open create form ─────────────────────────────────────────────────────────
   const openCreateForm = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
@@ -749,11 +233,13 @@ export default function InstitutionalDashboard() {
     setShowScholarshipForm(true);
   };
 
+  // ── Open edit form ───────────────────────────────────────────────────────────
   const openEditForm = (scholarship) => {
     setEditingId(scholarship._id);
     setForm(scholarshipToForm(scholarship));
     setSchError("");
     setShowScholarshipForm(true);
+    // Scroll form into view
     setTimeout(() => {
       document
         .getElementById("scholarship-form")
@@ -761,6 +247,7 @@ export default function InstitutionalDashboard() {
     }, 50);
   };
 
+  // ── Close form ───────────────────────────────────────────────────────────────
   const closeForm = () => {
     setShowScholarshipForm(false);
     setEditingId(null);
@@ -768,12 +255,14 @@ export default function InstitutionalDashboard() {
     setSchError("");
   };
 
+  // ── Field change ─────────────────────────────────────────────────────────────
   const set = (field) => (e) => {
     const val =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((f) => ({ ...f, [field]: val }));
   };
 
+  // ── Build payload (shared by create & edit) ──────────────────────────────────
   const buildPayload = () => ({
     scholarshipTitle: form.scholarshipTitle,
     description: form.description || undefined,
@@ -787,6 +276,9 @@ export default function InstitutionalDashboard() {
     eligibilityCriteria: {
       targetLevel: form.targetLevel || undefined,
       targetFaculty: form.targetFaculty || undefined,
+      degreeProgram: form.degreeProgram || undefined,
+      university: form.university || undefined,
+      collegeType: form.collegeType || undefined,
       subject: form.subject || undefined,
       gender: form.gender,
       isNepali: form.isNepali,
@@ -816,6 +308,7 @@ export default function InstitutionalDashboard() {
     },
   });
 
+  // ── Submit (create or edit) ──────────────────────────────────────────────────
   const handleScholarshipSubmit = async (e) => {
     e.preventDefault();
     setSchError("");
@@ -831,6 +324,7 @@ export default function InstitutionalDashboard() {
       const headers = { Authorization: `Bearer ${token}` };
 
       if (editingId) {
+        // ── EDIT ──
         const res = await axios.put(
           `${API}/api/scholarship/${editingId}`,
           payload,
@@ -841,6 +335,7 @@ export default function InstitutionalDashboard() {
           prev.map((s) => (s._id === editingId ? updated : s)),
         );
       } else {
+        // ── CREATE ──
         const res = await axios.post(`${API}/api/scholarship/create`, payload, {
           headers,
         });
@@ -860,6 +355,7 @@ export default function InstitutionalDashboard() {
     }
   };
 
+  // ── Delete ────────────────────────────────────────────────────────────────────
   const handleDeleteScholarship = async (id) => {
     if (!window.confirm("Delete this scholarship?")) return;
     try {
@@ -872,6 +368,7 @@ export default function InstitutionalDashboard() {
     }
   };
 
+  // ── Review ────────────────────────────────────────────────────────────────────
   const handleReview = async (appId, status) => {
     try {
       await axios.patch(
@@ -889,6 +386,7 @@ export default function InstitutionalDashboard() {
     }
   };
 
+  // ── Loading / error ──────────────────────────────────────────────────────────
   if (loading)
     return (
       <>
@@ -920,6 +418,7 @@ export default function InstitutionalDashboard() {
     );
 
   const loc = data?.location || {};
+  const contact = data?.contactPerson || {};
   const user = data?.user || {};
   const initials = (data?.institutionName || "IN")
     .split(" ")
@@ -939,9 +438,10 @@ export default function InstitutionalDashboard() {
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white";
   const labelCls = "block text-sm font-medium text-gray-700 mb-1";
 
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ── TOP NAV ── */}
+      {/* ── TOP NAV ──────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Left – institution identity */}
@@ -959,16 +459,12 @@ export default function InstitutionalDashboard() {
             </div>
           </div>
 
-          {/* Center – tabs (now 3) */}
+          {/* Center – tabs */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-            {["scholarships", "applications", "profile"].map((t) => (
+            {["scholarships", "applications"].map((t) => (
               <button
                 key={t}
-                onClick={() => {
-                  setTab(t);
-                  // close sidebar when switching to profile tab
-                  if (t === "profile") setSidebarOpen(false);
-                }}
+                onClick={() => setTab(t)}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
                   tab === t
                     ? "bg-white text-gray-900 shadow-sm"
@@ -987,14 +483,10 @@ export default function InstitutionalDashboard() {
 
           {/* Right – profile toggle + logout */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Profile button now switches to profile tab */}
             <button
-              onClick={() => {
-                setTab("profile");
-                setSidebarOpen(false);
-              }}
+              onClick={() => setSidebarOpen((o) => !o)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                tab === "profile"
+                sidebarOpen
                   ? "bg-gray-900 text-white border-gray-900"
                   : "border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
@@ -1003,6 +495,12 @@ export default function InstitutionalDashboard() {
                 <div className="w-1.5 h-1.5 rounded-full bg-white" />
               </div>
               Profile
+              <span
+                className="transition-transform duration-200 text-[10px]"
+                style={{ transform: sidebarOpen ? "rotate(90deg)" : "none" }}
+              >
+                ›
+              </span>
             </button>
 
             <button
@@ -1028,42 +526,42 @@ export default function InstitutionalDashboard() {
         </div>
       </nav>
 
-      {/* ── BODY ── */}
+      {/* ── BODY (content + sidebar) ─────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
+        {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 space-y-6">
-          {/* Stats row — hidden on profile tab */}
-          {tab !== "profile" && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                {
-                  label: "Scholarships",
-                  value: scholarships.length,
-                  accent: true,
-                },
-                { label: "Applications", value: applications.length },
-                { label: "Pending", value: pendingCount },
-                { label: "Approved", value: approvedCount },
-              ].map(({ label, value, accent }) => (
-                <div
-                  key={label}
-                  className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center"
+          {/* Stats row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              {
+                label: "Scholarships",
+                value: scholarships.length,
+                accent: true,
+              },
+              { label: "Applications", value: applications.length },
+              { label: "Pending", value: pendingCount },
+              { label: "Approved", value: approvedCount },
+            ].map(({ label, value, accent }) => (
+              <div
+                key={label}
+                className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center"
+              >
+                <p
+                  className={`text-2xl font-bold ${accent ? "text-blue-600" : "text-gray-800"}`}
                 >
-                  <p
-                    className={`text-2xl font-bold ${accent ? "text-blue-600" : "text-gray-800"}`}
-                  >
-                    {value}
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest">
-                    {label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
+                  {value}
+                </p>
+                <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest">
+                  {label}
+                </p>
+              </div>
+            ))}
+          </div>
 
-          {/* ── SCHOLARSHIPS TAB ── */}
+          {/* ── SCHOLARSHIPS TAB ─────────────────────────────────────────────── */}
           {tab === "scholarships" && (
             <div className="space-y-6">
+              {/* Action bar */}
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-gray-900">
                   Scholarships
@@ -1077,11 +575,13 @@ export default function InstitutionalDashboard() {
                 </button>
               </div>
 
+              {/* ── CREATE / EDIT FORM ─────────────────────────────────────── */}
               {showScholarshipForm && (
                 <div
                   id="scholarship-form"
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
                 >
+                  {/* Form header – changes based on mode */}
                   <div className="flex items-center justify-between mb-1">
                     <div>
                       <h3 className="font-bold text-gray-900 text-lg">
@@ -1245,22 +745,80 @@ export default function InstitutionalDashboard() {
                           onChange={set("targetLevel")}
                         >
                           <option value="">— Any level —</option>
-                          <option value="plus_two">Plus Two</option>
-                          <option value="bachelor">Bachelor</option>
-                          <option value="master">Master</option>
-                          <option value="mphil">M.Phil</option>
-                          <option value="phd">PhD</option>
-                          <option value="diploma">Diploma</option>
+                          {STUDY_LEVELS.map((l) => (
+                            <option key={l.value} value={l.value}>
+                              {l.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
                         <label className={labelCls}>Target Faculty</label>
-                        <input
+                        <select
                           className={inputCls}
                           value={form.targetFaculty}
                           onChange={set("targetFaculty")}
-                          placeholder="e.g. Science, Management"
-                        />
+                        >
+                          <option value="">— Any faculty —</option>
+                          {FACULTIES.map((f) => (
+                            <option key={f} value={f}>
+                              {f}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Degree / Program</label>
+                        <select
+                          className={inputCls}
+                          value={form.degreeProgram}
+                          onChange={set("degreeProgram")}
+                        >
+                          <option value="">— Any degree / program —</option>
+                          {DEGREE_PROGRAMS.map((g) => (
+                            <optgroup key={g.group} label={g.group}>
+                              {g.options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>University / Affiliation</label>
+                        <select
+                          className={inputCls}
+                          value={form.university}
+                          onChange={set("university")}
+                        >
+                          <option value="">— Any university —</option>
+                          {UNIVERSITIES.map((g) => (
+                            <optgroup key={g.group} label={g.group}>
+                              {g.options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>College Type</label>
+                        <select
+                          className={inputCls}
+                          value={form.collegeType}
+                          onChange={set("collegeType")}
+                        >
+                          <option value="">— Any college type —</option>
+                          {COLLEGE_TYPES.map((c) => (
+                            <option key={c.value} value={c.value}>
+                              {c.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label className={labelCls}>Subject</label>
@@ -1346,34 +904,21 @@ export default function InstitutionalDashboard() {
                         (leave blank = open to all)
                       </span>
                     </SectionHeading>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className={labelCls}>Province</label>
-                        <input
-                          className={inputCls}
-                          value={form.provinceName}
-                          onChange={set("provinceName")}
-                          placeholder="e.g. Bagmati"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>District</label>
-                        <input
-                          className={inputCls}
-                          value={form.districtName}
-                          onChange={set("districtName")}
-                          placeholder="e.g. Kathmandu"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Municipality</label>
-                        <input
-                          className={inputCls}
-                          value={form.municipalityName}
-                          onChange={set("municipalityName")}
-                          placeholder="e.g. Kathmandu Metropolitan"
-                        />
-                      </div>
+                    <div>
+                      <LocationCascade
+                        idMode="name"
+                        province={form.provinceName}
+                        district={form.districtName}
+                        municipality={form.municipalityName}
+                        onChange={({ province, district, municipality }) =>
+                          setForm((f) => ({
+                            ...f,
+                            provinceName: province,
+                            districtName: district,
+                            municipalityName: municipality,
+                          }))
+                        }
+                      />
                     </div>
 
                     <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
@@ -1402,6 +947,7 @@ export default function InstitutionalDashboard() {
                 </div>
               )}
 
+              {/* ── CARD GRID ──────────────────────────────────────────────── */}
               {scholarships.length === 0 && !showScholarshipForm ? (
                 <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
                   <div className="text-5xl mb-3">📋</div>
@@ -1643,7 +1189,7 @@ export default function InstitutionalDashboard() {
             </div>
           )}
 
-          {/* ── APPLICATIONS TAB ── */}
+          {/* ── APPLICATIONS TAB ─────────────────────────────────────────────── */}
           {tab === "applications" && (
             <div>
               <div className="flex items-center justify-between mb-5">
@@ -1778,10 +1324,106 @@ export default function InstitutionalDashboard() {
               )}
             </div>
           )}
-
-          {/* ── PROFILE TAB ── */}
-          {tab === "profile" && <ProfileTab data={data} token={token} />}
         </main>
+
+        {/* ── PROFILE SIDEBAR ──────────────────────────────────────────────── */}
+        {sidebarOpen && (
+          <aside className="w-72 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm self-start sticky top-20 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+              <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">
+                Profile
+              </span>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex flex-col items-center py-5 px-4 border-b border-gray-50">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-xl font-bold text-blue-700 mb-3">
+                {initials}
+              </div>
+              <p className="text-sm font-bold text-gray-900 text-center">
+                {data?.institutionName}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                {data?.institutionType}
+              </p>
+              {data?.establishedYear && (
+                <p className="text-[10px] text-gray-400">
+                  Est. {data.establishedYear}
+                </p>
+              )}
+            </div>
+            <div className="p-3 space-y-1.5">
+              <ExpandSection title="Account">
+                <InfoRow label="Name" value={user.name} />
+                <InfoRow label="Email" value={user.email} />
+              </ExpandSection>
+              <ExpandSection title="Location">
+                {loc.street && <InfoRow label="Street" value={loc.street} />}
+                {loc.ward && (
+                  <InfoRow label="Ward" value={`Ward ${loc.ward}`} />
+                )}
+                {loc.municipality && (
+                  <InfoRow label="Municipality" value={loc.municipality} />
+                )}
+                {loc.district && (
+                  <InfoRow label="District" value={loc.district} />
+                )}
+                {loc.province && (
+                  <InfoRow label="Province" value={loc.province} />
+                )}
+                {data?.website && (
+                  <InfoRow label="Website" value={data.website} />
+                )}
+              </ExpandSection>
+              <ExpandSection title="Contact Person">
+                {contact.name ? (
+                  <>
+                    <InfoRow label="Name" value={contact.name} />
+                    <InfoRow label="Designation" value={contact.designation} />
+                    <InfoRow label="Phone" value={contact.phone} />
+                    <InfoRow label="Email" value={contact.email} />
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-400">
+                    No contact person added.
+                  </p>
+                )}
+              </ExpandSection>
+              {data?.description && (
+                <ExpandSection title="About">
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {data.description}
+                  </p>
+                </ExpandSection>
+              )}
+            </div>
+            <div className="px-3 pb-4">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Logout
+              </button>
+            </div>
+          </aside>
+        )}
       </div>
 
       <Footer />

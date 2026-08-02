@@ -105,6 +105,20 @@ const EMPTY_FORM = {
   // "this will go back to pending" warning when editing an approved one
 };
 
+// ── Applications filter defaults ───────────────────────────────────────────
+const EMPTY_APP_FILTERS = {
+  scholarshipId: "",
+  status: "",
+  applicationType: "",
+  gender: "",
+  province: "",
+  district: "",
+  scholarshipType: "",
+  minAmount: "",
+  maxAmount: "",
+  search: "",
+};
+
 // Convert a scholarship object → flat form shape for editing
 function scholarshipToForm(s) {
   // The saved entranceExamName might be a free-text value from before the
@@ -225,6 +239,10 @@ export default function InstitutionalDashboard() {
   const [data, setData] = useState(null);
   const [scholarships, setScholarships] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [appTotal, setAppTotal] = useState(0);
+  const [appPage, setAppPage] = useState(1);
+  const [appPages, setAppPages] = useState(1);
+  const [appLoading, setAppLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("scholarships");
@@ -236,6 +254,8 @@ export default function InstitutionalDashboard() {
   const [schLoading, setSchLoading] = useState(false);
   const [schError, setSchError] = useState("");
 
+  const [appFilters, setAppFilters] = useState(EMPTY_APP_FILTERS);
+
   const token = localStorage.getItem("token");
 
   // ── Logout ──────────────────────────────────────────────────────────────────
@@ -243,6 +263,41 @@ export default function InstitutionalDashboard() {
     localStorage.clear();
     navigate("/login");
   };
+
+  // ── Applications fetch (filter/paginate aware) ──────────────────────────────
+  const fetchApplications = async (filters = appFilters, page = 1) => {
+    if (!token) return;
+    setAppLoading(true);
+    try {
+      const params = Object.fromEntries(
+        Object.entries(filters).filter(([, v]) => v !== ""),
+      );
+      params.page = page;
+      params.limit = 20;
+
+      const res = await axios.get(`${API}/api/application/institution`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
+      setApplications(res.data.applications || []);
+      setAppTotal(res.data.total || 0);
+      setAppPage(res.data.page || 1);
+      setAppPages(res.data.pages || 1);
+    } catch {
+      setApplications([]);
+    } finally {
+      setAppLoading(false);
+    }
+  };
+
+  // Re-fetch applications whenever filters change (debounced), reset to page 1
+  useEffect(() => {
+    const t = setTimeout(() => fetchApplications(appFilters, 1), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appFilters]);
+
+  const clearAppFilters = () => setAppFilters(EMPTY_APP_FILTERS);
 
   // ── Data fetch ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -268,14 +323,12 @@ export default function InstitutionalDashboard() {
       .then((res) => setScholarships(res.data.scholarships || []))
       .catch(() => setScholarships([]));
 
-    const applicationReq = axios
-      .get(`${API}/api/application/institution`, { headers })
-      .then((res) => setApplications(res.data.applications || []))
-      .catch(() => setApplications([]));
+    const applicationReq = fetchApplications(EMPTY_APP_FILTERS, 1);
 
     Promise.all([profileReq, scholarshipReq, applicationReq]).finally(() =>
       setLoading(false),
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, token]);
 
   // ── Open create form ─────────────────────────────────────────────────────────
@@ -543,6 +596,10 @@ export default function InstitutionalDashboard() {
     .join("")
     .toUpperCase();
 
+  // Note: pending/approved counts are computed from the *currently loaded
+  // page* of applications, since applications are now server-paginated.
+  // Good enough for a quick glance; for exact totals across all pages the
+  // backend would need to return status-bucketed counts separately.
   const pendingCount = applications.filter(
     (a) => a.applicationStatus === "pending",
   ).length;
@@ -553,6 +610,8 @@ export default function InstitutionalDashboard() {
   const inputCls =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent bg-white";
   const labelCls = "block text-sm font-medium text-gray-700 mb-1";
+  const filterInputCls =
+    "border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white";
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -654,9 +713,9 @@ export default function InstitutionalDashboard() {
                 value: scholarships.length,
                 accent: true,
               },
-              { label: "Applications", value: applications.length },
-              { label: "Pending", value: pendingCount },
-              { label: "Approved", value: approvedCount },
+              { label: "Applications", value: appTotal },
+              { label: "Pending (page)", value: pendingCount },
+              { label: "Approved (page)", value: approvedCount },
             ].map(({ label, value, accent }) => (
               <div
                 key={label}
@@ -994,135 +1053,330 @@ export default function InstitutionalDashboard() {
           {/* ── APPLICATIONS TAB ─────────────────────────────────────────────── */}
           {tab === "applications" && (
             <div>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-bold text-gray-900">
                   Applications
                 </h2>
                 <span className="text-xs text-gray-400">
-                  {applications.length} total · {pendingCount} pending
+                  {appTotal} total
                 </span>
               </div>
 
-              {applications.length === 0 ? (
+              {/* ── FILTER BAR ─────────────────────────────────────────────── */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4">
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    placeholder="Search student name…"
+                    value={appFilters.search}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({ ...f, search: e.target.value }))
+                    }
+                    className={`${filterInputCls} w-44`}
+                  />
+
+                  <select
+                    value={appFilters.scholarshipId}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        scholarshipId: e.target.value,
+                      }))
+                    }
+                    className={filterInputCls}
+                  >
+                    <option value="">All Scholarships</option>
+                    {scholarships.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.scholarshipTitle}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={appFilters.scholarshipType}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        scholarshipType: e.target.value,
+                      }))
+                    }
+                    className={filterInputCls}
+                  >
+                    <option value="">All Scholarship Types</option>
+                    {[
+                      "full_tuition",
+                      "partial_tuition",
+                      "merit_based",
+                      "need_based",
+                      "disability",
+                      "gender",
+                      "ethnic",
+                    ].map((t) => (
+                      <option key={t} value={t}>
+                        {t.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={appFilters.applicationType}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        applicationType: e.target.value,
+                      }))
+                    }
+                    className={filterInputCls}
+                  >
+                    <option value="">All Application Types</option>
+                    <option value="merit">Merit</option>
+                    <option value="reservation">Reservation</option>
+                  </select>
+
+                  <select
+                    value={appFilters.status}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({ ...f, status: e.target.value }))
+                    }
+                    className={filterInputCls}
+                  >
+                    <option value="">All Statuses</option>
+                    {[
+                      "pending",
+                      "under_review",
+                      "approved",
+                      "rejected",
+                      "withdrawn",
+                    ].map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={appFilters.gender}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({ ...f, gender: e.target.value }))
+                    }
+                    className={filterInputCls}
+                  >
+                    <option value="">Any Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+
+                  <input
+                    placeholder="Province"
+                    value={appFilters.province}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        province: e.target.value,
+                      }))
+                    }
+                    className={`${filterInputCls} w-28`}
+                  />
+                  <input
+                    placeholder="District"
+                    value={appFilters.district}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        district: e.target.value,
+                      }))
+                    }
+                    className={`${filterInputCls} w-28`}
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Min NPR"
+                    value={appFilters.minAmount}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        minAmount: e.target.value,
+                      }))
+                    }
+                    className={`${filterInputCls} w-24`}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max NPR"
+                    value={appFilters.maxAmount}
+                    onChange={(e) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        maxAmount: e.target.value,
+                      }))
+                    }
+                    className={`${filterInputCls} w-24`}
+                  />
+
+                  <button
+                    onClick={clearAppFilters}
+                    className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {appLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full" />
+                </div>
+              ) : applications.length === 0 ? (
                 <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
                   <div className="text-5xl mb-3">📨</div>
-                  <p className="font-medium">No applications yet</p>
+                  <p className="font-medium">No applications match these filters</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr>
-                        <th className="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                          Student
-                        </th>
-                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                          Scholarship
-                        </th>
-                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                          Type
-                        </th>
-                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                          Status
-                        </th>
-                        <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {applications.map((app) => (
-                        <tr
-                          key={app._id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-5 py-3">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {app.studentSnapshot?.fullName || "—"}
-                            </p>
-                            <p className="text-[10px] text-gray-400">
-                              {app.studentSnapshot?.location?.district}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-gray-600 max-w-[180px] truncate">
-                            {app.scholarshipId?.scholarshipTitle || "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[app.applicationType] || "bg-gray-100 text-gray-600"}`}
-                            >
-                              {app.applicationType}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[app.applicationStatus] || "bg-gray-100 text-gray-500"}`}
-                            >
-                              {app.applicationStatus}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            {app.applicationStatus === "pending" && (
-                              <div className="flex gap-1.5">
-                                <button
-                                  onClick={() =>
-                                    handleReview(app._id, "approved")
-                                  }
-                                  className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleReview(app._id, "under_review")
-                                  }
-                                  className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium"
-                                >
-                                  Review
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleReview(app._id, "rejected")
-                                  }
-                                  className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-                            {app.applicationStatus === "under_review" && (
-                              <div className="flex gap-1.5">
-                                <button
-                                  onClick={() =>
-                                    handleReview(app._id, "approved")
-                                  }
-                                  className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleReview(app._id, "rejected")
-                                  }
-                                  className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-                            {["approved", "rejected", "withdrawn"].includes(
-                              app.applicationStatus,
-                            ) && (
-                              <span className="text-[10px] text-gray-400">
-                                No actions
-                              </span>
-                            )}
-                          </td>
+                <>
+                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                          <th className="text-left px-5 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Student
+                          </th>
+                          <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Scholarship
+                          </th>
+                          <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Type
+                          </th>
+                          <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Status
+                          </th>
+                          <th className="text-left px-4 py-3 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                            Actions
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {applications.map((app) => (
+                          <tr
+                            key={app._id}
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-5 py-3">
+                              <p className="font-medium text-gray-900 text-sm">
+                                {app.studentSnapshot?.fullName || "—"}
+                              </p>
+                              <p className="text-[10px] text-gray-400">
+                                {app.studentSnapshot?.location?.district}
+                              </p>
+                            </td>
+                            {/* FIX: was app.scholarshipId?.scholarshipTitle —
+                                the aggregation now returns `scholarship`
+                                (singular, embedded object), not a populated
+                                `scholarshipId`. */}
+                            <td className="px-4 py-3 text-xs text-gray-600 max-w-[180px] truncate">
+                              {app.scholarship?.scholarshipTitle || "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[app.applicationType] || "bg-gray-100 text-gray-600"}`}
+                              >
+                                {app.applicationType}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[app.applicationStatus] || "bg-gray-100 text-gray-500"}`}
+                              >
+                                {app.applicationStatus}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {app.applicationStatus === "pending" && (
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() =>
+                                      handleReview(app._id, "approved")
+                                    }
+                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleReview(app._id, "under_review")
+                                    }
+                                    className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium"
+                                  >
+                                    Review
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleReview(app._id, "rejected")
+                                    }
+                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                              {app.applicationStatus === "under_review" && (
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() =>
+                                      handleReview(app._id, "approved")
+                                    }
+                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleReview(app._id, "rejected")
+                                    }
+                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                              {["approved", "rejected", "withdrawn"].includes(
+                                app.applicationStatus,
+                              ) && (
+                                <span className="text-[10px] text-gray-400">
+                                  No actions
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ── PAGINATION ──────────────────────────────────────────── */}
+                  {appPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 mt-4">
+                      <button
+                        disabled={appPage <= 1}
+                        onClick={() => fetchApplications(appFilters, appPage - 1)}
+                        className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs text-gray-400">
+                        Page {appPage} of {appPages}
+                      </span>
+                      <button
+                        disabled={appPage >= appPages}
+                        onClick={() => fetchApplications(appFilters, appPage + 1)}
+                        className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

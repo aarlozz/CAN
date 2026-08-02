@@ -7,6 +7,14 @@ import User from "../models/User.js";
 import { createNotification } from "../utils/notificationHelper.js";
 
 // Helper — builds the student snapshot frozen at apply time
+//
+// StudentProfile.address stores location TWO ways: flat strings
+// (province/district/municipality — required) and parallel Ref objects
+// (provinceRef.provinceName / districtRef.districtName /
+// municipalityRef.municipalityName) presumably populated by a cascading
+// dropdown. If the dropdown component only writes the Ref shape and doesn't
+// keep the flat string in sync, buildSnapshot would previously capture
+// nothing. Falling back to the Ref name covers both cases.
 const buildSnapshot = (student, user) => ({
   fullName: user.name,
   gender: student.personal_info?.gender || "",
@@ -14,11 +22,17 @@ const buildSnapshot = (student, user) => ({
   phone: student.personal_info?.phone || "",
   email: user.email,
   location: {
-    province: student.address?.province || "",
-    district: student.address?.district || "",
-    municipality: student.address?.municipality || "",
+    province:
+      student.address?.province || student.address?.provinceRef?.provinceName || "",
+    district:
+      student.address?.district || student.address?.districtRef?.districtName || "",
+    municipality:
+      student.address?.municipality ||
+      student.address?.municipalityRef?.municipalityName ||
+      "",
     addressLine: student.address?.street || "",
   },
+
   educationInfo: {
     schoolName: student.educationInfo?.schoolName || "",
     schoolType: student.educationInfo?.schoolType || "",
@@ -185,7 +199,6 @@ export const applyForScholarship = async (req, res) => {
 // GET /api/application/my  (student)
 export const getMyApplications = async (req, res) => {
   try {
-    // ── FIX: removed isDeleted: false ────────────────────────────────────────
     const student = await StudentProfile.findOne({ user: req.user.id });
 
     if (!student) {
@@ -209,42 +222,152 @@ export const getMyApplications = async (req, res) => {
 };
 
 // GET /api/application/institution  (institution)
+//
+// Query params supported:
+//   scholarshipId, status, applicationType, gender, hasDisability,
+//   ethnicCategory, province, district, municipality, scholarshipType,
+//   minAmount, maxAmount, minFee, maxFee, fromDate, toDate, search,
+//   page, limit
 export const getInstitutionApplications = async (req, res) => {
   try {
-    // ── FIX: removed isDeleted: false ────────────────────────────────────────
     const institution = await InstitutionProfile.findOne({ user: req.user.id });
 
     if (!institution) {
       return res.status(404).json({ message: "Institution not found." });
     }
 
-    const scholarships = await Scholarship.find({
+    const ownScholarships = await Scholarship.find({
       institutionId: institution._id,
       isDeleted: false,
     }).select("_id");
+    const scholarshipIds = ownScholarships.map((s) => s._id);
 
-    const scholarshipIds = scholarships.map((s) => s._id);
-    const { scholarshipId, status, page = 1, limit = 20 } = req.query;
+    const {
+      scholarshipId,
+      status,
+      applicationType,
+      gender,
+      hasDisability,
+      ethnicCategory,
+      province,
+      district,
+      municipality,
+      scholarshipType,
+      minAmount,
+      maxAmount,
+      minFee,
+      maxFee,
+      fromDate,
+      toDate,
+      search,
+      page = 1,
+      limit = 20,
+    } = req.query;
 
-    const filter = { scholarshipId: { $in: scholarshipIds } };
-    if (scholarshipId) filter.scholarshipId = scholarshipId;
-    if (status) filter.applicationStatus = status;
+    // ── Application-level match (indexed fields, cheap) ──────────────────────
+    const match = { scholarshipId: { $in: scholarshipIds } };
+    if (scholarshipId) match.scholarshipId = new mongoose.Types.ObjectId(scholarshipId);
+    if (status) match.applicationStatus = status;
+    if (applicationType) match.applicationType = applicationType;
+    // StudentProfile.personal_info.gender is stored capitalized
+    // ("Male"/"Female"/"Other"), so match case-insensitively regardless of
+    // how the frontend sends it.
+    if (gender) {
+      match["studentSnapshot.gender"] = { $regex: `^${gender}$`, $options: "i" };
+    }
+    if (hasDisability !== undefined) {
+      match["studentSnapshot.reservationInfo.hasDisability"] = hasDisability === "true";
+    }
+    // caste is free text on StudentProfile (not tied to the Scholarship
+    // ethnicCategory enum), so match case-insensitively rather than exact.
+    if (ethnicCategory) {
+      match["studentSnapshot.reservationInfo.caste"] = {
+        $regex: `^${ethnicCategory}$`,
+        $options: "i",
+      };
+    }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    if (province) match["studentSnapshot.location.province"] = province;
+    if (district) match["studentSnapshot.location.district"] = district;
+    if (municipality) match["studentSnapshot.location.municipality"] = municipality;
+    if (search) {
+      match["studentSnapshot.fullName"] = { $regex: search, $options: "i" };
+    }
+    if (fromDate || toDate) {
+      match.appliedAt = {};
+      if (fromDate) match.appliedAt.$gte = new Date(fromDate);
+      if (toDate) match.appliedAt.$lte = new Date(toDate);
+    }
 
-    const [applications, total] = await Promise.all([
-      ScholarshipApplication.find(filter)
-        .populate("scholarshipId", "scholarshipTitle")
-        .sort({ appliedAt: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
-      ScholarshipApplication.countDocuments(filter),
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "scholarships",
+          localField: "scholarshipId",
+          foreignField: "_id",
+          as: "scholarship",
+        },
+      },
+      { $unwind: "$scholarship" },
+    ];
+
+    // ── Scholarship-level match (requires the $lookup above) ─────────────────
+    const scholarshipMatch = {};
+    if (scholarshipType) {
+      scholarshipMatch["scholarship.coverage.scholarshipType2"] = scholarshipType;
+    }
+    if (minAmount || maxAmount) {
+      scholarshipMatch["scholarship.coverage.amountNpr"] = {};
+      if (minAmount) scholarshipMatch["scholarship.coverage.amountNpr"].$gte = Number(minAmount);
+      if (maxAmount) scholarshipMatch["scholarship.coverage.amountNpr"].$lte = Number(maxAmount);
+    }
+    if (minFee || maxFee) {
+      scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"] = {};
+      if (minFee) scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$gte = Number(minFee);
+      if (maxFee) scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$lte = Number(maxFee);
+    }
+    if (Object.keys(scholarshipMatch).length) {
+      pipeline.push({ $match: scholarshipMatch });
+    }
+
+    pipeline.push({ $sort: { appliedAt: -1 } });
+
+    const countPipeline = [...pipeline, { $count: "total" }];
+
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.max(1, Number(limit));
+    const skip = (pageNum - 1) * limitNum;
+
+    pipeline.push(
+      { $skip: skip },
+      { $limit: limitNum },
+      {
+        $project: {
+          applicationType: 1,
+          applicationStatus: 1,
+          studentSnapshot: 1,
+          appliedAt: 1,
+          review: 1,
+          "scholarship._id": 1,
+          "scholarship.scholarshipTitle": 1,
+          "scholarship.coverage": 1,
+          "scholarship.applicationDeadline": 1,
+        },
+      },
+    );
+
+    const [applications, countResult] = await Promise.all([
+      ScholarshipApplication.aggregate(pipeline),
+      ScholarshipApplication.aggregate(countPipeline),
     ]);
+
+    const total = countResult[0]?.total || 0;
 
     res.json({
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
       applications,
     });
   } catch (error) {
@@ -268,7 +391,6 @@ export const getApplicationById = async (req, res) => {
     }
 
     if (req.user.role === "student") {
-      // ── FIX: removed isDeleted: false ──────────────────────────────────────
       const student = await StudentProfile.findOne({ user: req.user.id });
       if (
         !student ||
@@ -279,7 +401,6 @@ export const getApplicationById = async (req, res) => {
     }
 
     if (req.user.role === "institution") {
-      // ── FIX: removed isDeleted: false ──────────────────────────────────────
       const institution = await InstitutionProfile.findOne({
         user: req.user.id,
       });
@@ -316,7 +437,6 @@ export const reviewApplication = async (req, res) => {
         .json({ message: `status must be: ${validTransitions.join(", ")}` });
     }
 
-    // ── FIX: removed isDeleted: false ────────────────────────────────────────
     const institution = await InstitutionProfile.findOne({
       user: req.user.id,
     }).session(session);

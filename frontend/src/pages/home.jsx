@@ -45,7 +45,6 @@ export default function Home() {
 
   return (
     <>
-      <Header />
 
       {/* Hero */}
       <section className="bg-gradient-to-br from-red-50 to-white py-24">
@@ -164,8 +163,6 @@ export default function Home() {
     </Link>
   </div>
 </section>
-
-      <Footer />
     </>
   );
 }

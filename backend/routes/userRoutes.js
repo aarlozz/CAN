@@ -1,22 +1,15 @@
-// userRoutes.js — Placeholder protected profile route
-// Will be replaced by dedicated college/student route files in Steps 5 & 6.
+import express from "express";
+import { uploadAvatar, deleteAvatar, getMe } from "../controllers/userController.js";
+import { protect } from "../middleware/authMiddleware.js";
+import avatarUpload from "../middleware/avatarUpload.js";
 
-const express           = require('express');
-const router            = express.Router();
-const { protect }       = require('../middleware/authMiddleware');  // ✅ named import (was default)
+const router = express.Router();
 
-// GET /api/institutional/profile
-// Returns the authenticated user's basic info.
-// Placeholder until collegeController.getProfile is wired up in Step 5.
-router.get('/profile', protect, (req, res) => {
-  res.json({
-    message: 'Protected route accessed',
-    user: {
-      id:       req.user._id,
-      email:    req.user.email,
-      userType: req.user.userType,
-    },
-  });
-});
+// Lightweight identity/avatar fetch — used by the header
+router.get("/me", protect, getMe);
 
-module.exports = router;
+// Any logged-in user (student or institution) can manage their own avatar
+router.post("/avatar", protect, avatarUpload.single("avatar"), uploadAvatar);
+router.delete("/avatar", protect, deleteAvatar);
+
+export default router;

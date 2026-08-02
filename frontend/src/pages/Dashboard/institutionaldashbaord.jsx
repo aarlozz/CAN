@@ -7,8 +7,10 @@ import ScholarshipFormWizard, {
   ENTRANCE_EXAMS,
 } from "../../Components/scholarshipformwizard";
 import InstitutionCourses from "../../Components/InstitutionCourses";
+import LocationCascade from "../../Components/LocationCascade";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,6 +115,7 @@ const EMPTY_APP_FILTERS = {
   gender: "",
   province: "",
   district: "",
+  municipality: "",
   scholarshipType: "",
   minAmount: "",
   maxAmount: "",
@@ -1168,29 +1171,6 @@ export default function InstitutionalDashboard() {
                   </select>
 
                   <input
-                    placeholder="Province"
-                    value={appFilters.province}
-                    onChange={(e) =>
-                      setAppFilters((f) => ({
-                        ...f,
-                        province: e.target.value,
-                      }))
-                    }
-                    className={`${filterInputCls} w-28`}
-                  />
-                  <input
-                    placeholder="District"
-                    value={appFilters.district}
-                    onChange={(e) =>
-                      setAppFilters((f) => ({
-                        ...f,
-                        district: e.target.value,
-                      }))
-                    }
-                    className={`${filterInputCls} w-28`}
-                  />
-
-                  <input
                     type="number"
                     placeholder="Min NPR"
                     value={appFilters.minAmount}
@@ -1221,6 +1201,28 @@ export default function InstitutionalDashboard() {
                   >
                     Clear
                   </button>
+                </div>
+
+                {/* Location cascade — Province → District → Municipality,
+                    filtering by name (matches studentSnapshot.location, which
+                    stores plain name strings, not ObjectIds). Own row since
+                    the component renders as a 3-column grid. */}
+                <div className="mt-3 pt-3 border-t border-gray-50">
+                  <LocationCascade
+                    idMode="name"
+                    province={appFilters.province}
+                    district={appFilters.district}
+                    municipality={appFilters.municipality}
+                    onChange={({ province, district, municipality }) =>
+                      setAppFilters((f) => ({
+                        ...f,
+                        province,
+                        district,
+                        municipality,
+                      }))
+                    }
+                    gridClassName="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                  />
                 </div>
               </div>
 

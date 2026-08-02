@@ -152,7 +152,7 @@ export default function Home() {
             Register today and connect with thousands of students seeking scholarships.
           </p>
           <Link
-            to="/signup"
+            to="/signup?role=institution"
             className="bg-white text-gray-700 hover:bg-gray-100 hover:scale-105 font-bold px-8 py-3 rounded-lg transition-all duration-200 shadow-lg inline-block"
           >
             Register Institution →

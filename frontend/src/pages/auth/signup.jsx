@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { GoogleLogin } from '@react-oauth/google';
 import Header from "../../Components/header";
@@ -10,7 +10,10 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [role, setRole] = useState("student");
+  const [searchParams] = useSearchParams();
+  const [role, setRole] = useState(
+    searchParams.get("role") === "institution" ? "institution" : "student"
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

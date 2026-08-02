@@ -4,6 +4,7 @@ import Province from "../models/Province.js";
 import District from "../models/District.js";
 import Municipality from "../models/Municipality.js";
 
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VALID_TYPES = [
@@ -363,6 +364,12 @@ export const createScholarship = async (req, res) => {
     if (eligibilityErrors.length > 0)
       return res.status(400).json({ message: eligibilityErrors.join(" ") });
 
+    const builtEligibility = buildEligibility(eligibilityCriteria);
+
+    // An institution can only post a scholarship for a level/faculty/program
+    // it has actually registered as a Course. See backend/utils/courseEligibility.js.
+    
+
     const parsedTotalSeats = totalSeats ? Number(totalSeats) : undefined;
     const parsedRemainingSeats = remainingSeats
       ? Number(remainingSeats)
@@ -388,7 +395,7 @@ export const createScholarship = async (req, res) => {
       ...(termsAndConditions && { termsAndConditions }),
       applicationDeadline,
       coverage: buildCoverage(coverage),
-      eligibilityCriteria: buildEligibility(eligibilityCriteria),
+      eligibilityCriteria: builtEligibility,
       ...(parsedTotalSeats !== undefined && { totalSeats: parsedTotalSeats }),
       ...(parsedRemainingSeats !== undefined && {
         remainingSeats: parsedRemainingSeats,
@@ -692,10 +699,18 @@ export const updateScholarship = async (req, res) => {
         message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
       });
 
+    let builtEligibility;
     if (eligibilityCriteria !== undefined) {
       const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
       if (eligibilityErrors.length > 0)
         return res.status(400).json({ message: eligibilityErrors.join(" ") });
+
+      builtEligibility = buildEligibility(eligibilityCriteria);
+
+      // Only re-check against registered Courses when eligibilityCriteria is
+      // actually part of this update — leaving it untouched means whatever
+      // was already validated at creation time still stands.
+      
     }
 
     // ── Seats validation (compare incoming vs existing as fallback) ────────────
@@ -732,7 +747,7 @@ export const updateScholarship = async (req, res) => {
     // ── Nested objects — use the same builders as createScholarship ────────────
     if (coverage !== undefined) scholarship.coverage = buildCoverage(coverage);
     if (eligibilityCriteria !== undefined)
-      scholarship.eligibilityCriteria = buildEligibility(eligibilityCriteria);
+      scholarship.eligibilityCriteria = builtEligibility;
     if (locationFilter !== undefined)
       scholarship.locationFilter = await resolveLocationFilter(locationFilter);
     if (scholarship.verification?.status !== "pending") {

@@ -75,65 +75,6 @@ export const updateInstitutionProfile = async (req, res) => {
   }
 };
 
-// POST /api/institution/courses
-export const addCourse = async (req, res) => {
-  try {
-    const { courseName, courseLevel, duration, description } = req.body;
-
-    if (!courseName || !courseLevel) {
-      return res
-        .status(400)
-        .json({ message: "courseName and courseLevel are required." });
-    }
-
-    const institution = await InstitutionProfile.findOne({
-      user: req.user.id,
-    });
-
-    if (!institution) {
-      return res.status(404).json({ message: "Institution not found." });
-    }
-
-    institution.courses.push({ courseName, courseLevel, duration, description });
-    await institution.save();
-
-    res.status(201).json({
-      message: "Course added.",
-      courses: institution.courses,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// DELETE /api/institution/courses/:courseId
-export const removeCourse = async (req, res) => {
-  try {
-    const institution = await InstitutionProfile.findOne({
-      user: req.user.id,
-    });
-
-    if (!institution) {
-      return res.status(404).json({ message: "Institution not found." });
-    }
-
-    const idx = institution.courses.findIndex(
-      (c) => c._id.toString() === req.params.courseId
-    );
-
-    if (idx === -1) {
-      return res.status(404).json({ message: "Course not found." });
-    }
-
-    institution.courses.splice(idx, 1);
-    await institution.save();
-
-    res.json({ message: "Course removed.", courses: institution.courses });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 // PATCH /api/institution/verify/:institutionId  (admin only)
 export const verifyInstitution = async (req, res) => {
   try {

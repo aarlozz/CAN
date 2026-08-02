@@ -2,8 +2,6 @@ import express from "express";
 import {
   getInstitutionDashboard,
   updateInstitutionProfile,
-  addCourse,
-  removeCourse,
   verifyInstitution,
 } from "../controllers/InstitutionProfileController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
@@ -26,20 +24,7 @@ router.put(
   updateInstitutionProfile
 );
 
-// ── Course management ─────────────────────────────────────────────────────────
-router.post(
-  "/courses",
-  protect,
-  requireRole("institution"),
-  addCourse
-);
 
-router.delete(
-  "/courses/:courseId",
-  protect,
-  requireRole("institution"),
-  removeCourse
-);
 
 // ── Verification (admin only) ─────────────────────────────────────────────────
 router.patch(

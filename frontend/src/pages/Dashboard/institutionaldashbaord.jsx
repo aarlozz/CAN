@@ -6,6 +6,7 @@ import Footer from "../../Components/footer";
 import ScholarshipFormWizard, {
   ENTRANCE_EXAMS,
 } from "../../Components/scholarshipformwizard";
+import InstitutionCourses from "../../Components/InstitutionCourses";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -576,7 +577,7 @@ export default function InstitutionalDashboard() {
 
           {/* Center – tabs */}
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
-            {["scholarships", "applications"].map((t) => (
+            {["scholarships", "courses", "applications"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -983,6 +984,11 @@ export default function InstitutionalDashboard() {
                 </>
               )}
             </div>
+          )}
+
+          {/* ── COURSES TAB ──────────────────────────────────────────────────── */}
+          {tab === "courses" && (
+            <InstitutionCourses inputCls={inputCls} labelCls={labelCls} />
           )}
 
           {/* ── APPLICATIONS TAB ─────────────────────────────────────────────── */}

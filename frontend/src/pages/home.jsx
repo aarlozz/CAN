@@ -1,7 +1,4 @@
 import { Link } from "react-router-dom";
-import Header from "../Components/header";
-import Footer from "../Components/footer";
-
 import { useEffect, useState } from "react";
 
 import img1 from "../assets/images/image/can1.jpg";
@@ -45,8 +42,6 @@ export default function Home() {
 
   return (
     <>
-      <Header />
-
       {/* Hero */}
       <section className="bg-gradient-to-br from-red-50 to-white py-24">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
@@ -148,24 +143,22 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-<section className="bg-gray-500 py-10">
-  <div className="max-w-3xl mx-auto px-6 text-center">
-    <h2 className="text-3xl font-extrabold text-white mb-3">
-      Is your institution on CAN's portal?
-    </h2>
-    <p className="text-gray-100 text-lg mb-6 max-w-xl mx-auto">
-      Register today and connect with thousands of students seeking scholarships.
-    </p>
-    <Link
-      to="/signup-institution"
-      className="bg-white text-gray-700 hover:bg-gray-100 hover:scale-105 font-bold px-8 py-3 rounded-lg transition-all duration-200 shadow-lg inline-block"
-    >
-      Register Institution →
-    </Link>
-  </div>
-</section>
-
-      <Footer />
+      <section className="bg-gray-500 py-10">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <h2 className="text-3xl font-extrabold text-white mb-3">
+            Is your institution on CAN's portal?
+          </h2>
+          <p className="text-gray-100 text-lg mb-6 max-w-xl mx-auto">
+            Register today and connect with thousands of students seeking scholarships.
+          </p>
+          <Link
+            to="/signup?role=institution"
+            className="bg-white text-gray-700 hover:bg-gray-100 hover:scale-105 font-bold px-8 py-3 rounded-lg transition-all duration-200 shadow-lg inline-block"
+          >
+            Register Institution →
+          </Link>
+        </div>
+      </section>
     </>
   );
 }

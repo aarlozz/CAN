@@ -5,10 +5,11 @@ export const getInstitutionData = async (req, res) => {
 
     const institutions = await InstitutionProfile.find({
       isDeleted: { $ne: true },
+      "verification.status": "verified",
     })
       .populate("user", "name email")
       .select(
-        "institutionName institutionType location contactPerson website isApproved verification establishedYear description"
+        "institutionName institutionType location contactPerson website establishedYear description"
       )
       .sort({ institutionName: 1 })
       .lean();

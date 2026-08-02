@@ -3,22 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
-import LocationCascade from "../../Components/LocationCascade";
-import EducationCascade from "../../Components/EducationCascade";
-import { UNIVERSITIES, COLLEGE_TYPES } from "../../constants/educationTaxonomy";
+import ScholarshipFormWizard, {
+  ENTRANCE_EXAMS,
+} from "../../Components/scholarshipformwizard";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-// Mirrors VALID_ETHNIC_CATEGORIES on the backend — the real category system
-// used by Nepal government / TU scholarships.
-const ETHNIC_CATEGORIES = [
-  { value: "general", label: "General" },
-  { value: "dalit", label: "Dalit" },
-  { value: "janajati", label: "Janajati" },
-  { value: "madhesi", label: "Madhesi" },
-  { value: "muslim", label: "Muslim" },
-  { value: "backward_region", label: "Backward Region" },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -102,18 +91,28 @@ const EMPTY_FORM = {
   minGPA: "",
   minPercentage: "",
   entranceExamName: "",
+  entranceExamOther: "", // free-text value when entranceExamName === "Other"
   minEntranceScore: "",
   additionalRequirements: "",
-  requiredDocuments: "",
+  requiredDocuments: [], // array of document-type values, driven by checkboxes
   totalSeats: "",
   remainingSeats: "",
   provinceName: "",
   districtName: "",
   municipalityName: "",
+  __originalStatus: "", // not sent to backend — used only to show the
+  // "this will go back to pending" warning when editing an approved one
 };
 
 // Convert a scholarship object → flat form shape for editing
 function scholarshipToForm(s) {
+  // The saved entranceExamName might be a free-text value from before the
+  // dropdown existed, or it might match one of the known ENTRANCE_EXAMS
+  // options exactly. If it doesn't match, treat it as a custom "Other" value
+  // so the wizard's dropdown + free-text field render correctly.
+  const savedExamName = s.eligibilityCriteria?.entranceExamName || "";
+  const examIsKnown = savedExamName === "" || ENTRANCE_EXAMS.includes(savedExamName);
+
   return {
     scholarshipTitle: s.scholarshipTitle || "",
     description: s.description || "",
@@ -145,20 +144,22 @@ function scholarshipToForm(s) {
       s.eligibilityCriteria?.minPercentage != null
         ? String(s.eligibilityCriteria.minPercentage)
         : "",
-    entranceExamName: s.eligibilityCriteria?.entranceExamName || "",
+    entranceExamName: examIsKnown ? savedExamName : "Other",
+    entranceExamOther: examIsKnown ? "" : savedExamName,
     minEntranceScore:
       s.eligibilityCriteria?.minEntranceScore != null
         ? String(s.eligibilityCriteria.minEntranceScore)
         : "",
     additionalRequirements: s.eligibilityCriteria?.additionalRequirements || "",
     requiredDocuments: Array.isArray(s.eligibilityCriteria?.requiredDocuments)
-      ? s.eligibilityCriteria.requiredDocuments.join(", ")
-      : "",
+      ? s.eligibilityCriteria.requiredDocuments
+      : [],
     totalSeats: s.totalSeats != null ? String(s.totalSeats) : "",
     remainingSeats: s.remainingSeats != null ? String(s.remainingSeats) : "",
     provinceName: s.locationFilter?.province?.provinceName || "",
     districtName: s.locationFilter?.district?.districtName || "",
     municipalityName: s.locationFilter?.municipality?.municipalityName || "",
+    __originalStatus: s.verification?.status || "",
   };
 }
 
@@ -213,16 +214,6 @@ function SeatsBar({ remaining, total }) {
         {remaining ?? total}/{total}
       </span>
     </div>
-  );
-}
-
-// ─── Section heading inside form ──────────────────────────────────────────────
-
-function SectionHeading({ children }) {
-  return (
-    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-3 mt-6 first:mt-0">
-      {children}
-    </p>
   );
 }
 
@@ -349,62 +340,73 @@ export default function InstitutionalDashboard() {
   };
 
   // ── Build payload (shared by create & edit) ──────────────────────────────────
-  const buildPayload = () => ({
-    scholarshipTitle: form.scholarshipTitle,
-    description: form.description || undefined,
-    termsAndConditions: form.termsAndConditions || undefined,
-    applicationDeadline: form.applicationDeadline,
-    coverage: {
-      scholarshipType2: form.scholarshipType2 || undefined,
-      totalProgramFeeNpr: form.totalProgramFeeNpr
-        ? Number(form.totalProgramFeeNpr)
+  const buildPayload = () => {
+    // Resolve the "Other" entrance exam option down to the actual name the
+    // institution typed, so the backend never sees the literal "Other".
+    const resolvedExamName =
+      form.entranceExamName === "Other"
+        ? form.entranceExamOther
+        : form.entranceExamName;
+
+    return {
+      scholarshipTitle: form.scholarshipTitle,
+      description: form.description || undefined,
+      termsAndConditions: form.termsAndConditions || undefined,
+      applicationDeadline: form.applicationDeadline,
+      coverage: {
+        scholarshipType2: form.scholarshipType2 || undefined,
+        totalProgramFeeNpr: form.totalProgramFeeNpr
+          ? Number(form.totalProgramFeeNpr)
+          : undefined,
+        amountNpr: form.amountNpr ? Number(form.amountNpr) : undefined,
+        percentage: form.percentage ? Number(form.percentage) : undefined,
+      },
+      eligibilityCriteria: {
+        targetLevel: form.targetLevel || undefined,
+        targetFaculty: form.targetFaculty || undefined,
+        degreeProgram: form.degreeProgram || undefined,
+        university: form.university || undefined,
+        collegeType: form.collegeType || undefined,
+        subject: form.subject || undefined,
+        gender: form.gender,
+        isNepali: form.isNepali,
+        hasDisability: form.hasDisability,
+        ethnicCategory: form.ethnicCategory || undefined,
+        minGPA: form.minGPA ? Number(form.minGPA) : undefined,
+        minPercentage: form.minPercentage ? Number(form.minPercentage) : undefined,
+        entranceExamName: resolvedExamName || undefined,
+        minEntranceScore: form.minEntranceScore
+          ? Number(form.minEntranceScore)
+          : undefined,
+        additionalRequirements: form.additionalRequirements || undefined,
+        // Already an array from the wizard's checkboxes — no split/parse needed.
+        requiredDocuments: Array.isArray(form.requiredDocuments)
+          ? form.requiredDocuments
+          : [],
+      },
+      totalSeats: form.totalSeats ? Number(form.totalSeats) : undefined,
+      remainingSeats: form.remainingSeats
+        ? Number(form.remainingSeats)
         : undefined,
-      amountNpr: form.amountNpr ? Number(form.amountNpr) : undefined,
-      percentage: form.percentage ? Number(form.percentage) : undefined,
-    },
-    eligibilityCriteria: {
-      targetLevel: form.targetLevel || undefined,
-      targetFaculty: form.targetFaculty || undefined,
-      degreeProgram: form.degreeProgram || undefined,
-      university: form.university || undefined,
-      collegeType: form.collegeType || undefined,
-      subject: form.subject || undefined,
-      gender: form.gender,
-      isNepali: form.isNepali,
-      hasDisability: form.hasDisability,
-      ethnicCategory: form.ethnicCategory || undefined,
-      minGPA: form.minGPA ? Number(form.minGPA) : undefined,
-      minPercentage: form.minPercentage ? Number(form.minPercentage) : undefined,
-      entranceExamName: form.entranceExamName || undefined,
-      minEntranceScore: form.minEntranceScore
-        ? Number(form.minEntranceScore)
-        : undefined,
-      additionalRequirements: form.additionalRequirements || undefined,
-      requiredDocuments: form.requiredDocuments
-        ? form.requiredDocuments
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [],
-    },
-    totalSeats: form.totalSeats ? Number(form.totalSeats) : undefined,
-    remainingSeats: form.remainingSeats
-      ? Number(form.remainingSeats)
-      : undefined,
-    locationFilter: {
-      province: form.provinceName
-        ? { provinceName: form.provinceName }
-        : undefined,
-      district: form.districtName
-        ? { districtName: form.districtName }
-        : undefined,
-      municipality: form.municipalityName
-        ? { municipalityName: form.municipalityName }
-        : undefined,
-    },
-  });
+      locationFilter: {
+        province: form.provinceName
+          ? { provinceName: form.provinceName }
+          : undefined,
+        district: form.districtName
+          ? { districtName: form.districtName }
+          : undefined,
+        municipality: form.municipalityName
+          ? { municipalityName: form.municipalityName }
+          : undefined,
+      },
+    };
+  };
 
   // ── Submit (create or edit) ──────────────────────────────────────────────────
+  // Final safety-net validation — the wizard already blocks these at the
+  // per-step level, but this guards against any edge case (e.g. someone
+  // submitting the form programmatically) and matches the backend's own
+  // validateEligibilityExtras rules.
   const handleScholarshipSubmit = async (e) => {
     e.preventDefault();
     setSchError("");
@@ -420,6 +422,14 @@ export default function InstitutionalDashboard() {
       );
       return;
     }
+    if (
+      form.minEntranceScore &&
+      form.entranceExamName === "Other" &&
+      !form.entranceExamOther
+    ) {
+      setSchError("Please name the entrance exam.");
+      return;
+    }
     setSchLoading(true);
     try {
       const payload = buildPayload();
@@ -427,6 +437,9 @@ export default function InstitutionalDashboard() {
 
       if (editingId) {
         // ── EDIT ──
+        // Backend resets verification.status to "pending" on any edit unless
+        // it's already pending, so a re-submitted approved scholarship goes
+        // back under provincial-admin review automatically.
         const res = await axios.put(
           `${API}/api/scholarship/${editingId}`,
           payload,
@@ -677,466 +690,22 @@ export default function InstitutionalDashboard() {
                 </button>
               </div>
 
-              {/* ── CREATE / EDIT FORM ─────────────────────────────────────── */}
+              {/* ── CREATE / EDIT WIZARD ───────────────────────────────────── */}
               {showScholarshipForm && (
-                <div
-                  id="scholarship-form"
-                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
-                >
-                  {/* Form header – changes based on mode */}
-                  <div className="flex items-center justify-between mb-1">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">
-                        {editingId ? "Edit Scholarship" : "New Scholarship"}
-                      </h3>
-                      <p className="text-gray-400 text-xs mt-0.5">
-                        Fields marked <span className="text-red-400">*</span>{" "}
-                        are required.
-                      </p>
-                    </div>
-                    {editingId && (
-                      <span className="text-[10px] font-semibold px-2.5 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full">
-                        ✏️ Editing
-                      </span>
-                    )}
-                  </div>
-
-                  {schError && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-6 mt-4">
-                      {schError}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleScholarshipSubmit}>
-                    <SectionHeading>Core Details</SectionHeading>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>
-                          Scholarship Title{" "}
-                          <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          required
-                          value={form.scholarshipTitle}
-                          onChange={set("scholarshipTitle")}
-                          placeholder="e.g. Merit Scholarship 2025"
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>Description</label>
-                        <textarea
-                          className={inputCls + " resize-none"}
-                          rows={3}
-                          value={form.description}
-                          onChange={set("description")}
-                          placeholder="Describe the scholarship and its purpose..."
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>Terms & Conditions</label>
-                        <textarea
-                          className={inputCls + " resize-none"}
-                          rows={3}
-                          value={form.termsAndConditions}
-                          onChange={set("termsAndConditions")}
-                          placeholder="Any terms and conditions applicants should be aware of..."
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Application Deadline{" "}
-                          <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="date"
-                          required
-                          value={form.applicationDeadline}
-                          onChange={set("applicationDeadline")}
-                        />
-                      </div>
-                    </div>
-
-                    <SectionHeading>Coverage</SectionHeading>
-                    <p className="text-xs text-gray-400 -mt-2 mb-3">
-                      Fill in any two of the three amounts below and the
-                      third fills in automatically.
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <label className={labelCls}>Scholarship Type</label>
-                        <select
-                          className={inputCls}
-                          value={form.scholarshipType2}
-                          onChange={set("scholarshipType2")}
-                        >
-                          <option value="">— Select type —</option>
-                          <option value="full_tuition">Full Tuition</option>
-                          <option value="partial_tuition">
-                            Partial Tuition
-                          </option>
-                          <option value="merit_based">Merit Based</option>
-                          <option value="need_based">Need Based</option>
-                          <option value="disability">Disability</option>
-                          <option value="gender">Gender</option>
-                          <option value="ethnic">Ethnic</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Total Program Fee (NPR){" "}
-                          <span className="text-gray-400 font-normal">
-                            (optional)
-                          </span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="0"
-                          value={form.totalProgramFeeNpr}
-                          onChange={setCoverageField("totalProgramFeeNpr")}
-                          placeholder="e.g. 800000"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Amount (NPR)</label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="0"
-                          value={form.amountNpr}
-                          onChange={setCoverageField("amountNpr")}
-                          placeholder="e.g. 50000"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Coverage Percentage (%)
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={form.percentage}
-                          onChange={setCoverageField("percentage")}
-                          placeholder="e.g. 100"
-                        />
-                      </div>
-                    </div>
-
-                    <SectionHeading>Seats</SectionHeading>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelCls}>Total Seats</label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="1"
-                          value={form.totalSeats}
-                          onChange={set("totalSeats")}
-                          placeholder="e.g. 10"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Remaining / Available Seats
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="0"
-                          value={form.remainingSeats}
-                          onChange={set("remainingSeats")}
-                          placeholder="Defaults to Total Seats if left empty"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Leave blank to default to total seats.
-                        </p>
-                      </div>
-                    </div>
-
-                    <SectionHeading>Eligibility Criteria</SectionHeading>
-
-                    {/* Level → Faculty → Program cascade — replaces the old
-                        3 independent selects so Faculty options are scoped
-                        to the chosen Level, and Program options are scoped
-                        to the chosen Faculty. */}
-                    <EducationCascade
-                      level={form.targetLevel}
-                      faculty={form.targetFaculty}
-                      program={form.degreeProgram}
-                      onChange={({ level, faculty, program }) =>
-                        setForm((f) => ({
-                          ...f,
-                          targetLevel: level,
-                          targetFaculty: faculty,
-                          degreeProgram: program,
-                        }))
-                      }
-                    />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <label className={labelCls}>University / Affiliation</label>
-                        <select
-                          className={inputCls}
-                          value={form.university}
-                          onChange={set("university")}
-                        >
-                          <option value="">— Any university —</option>
-                          {UNIVERSITIES.map((g) => (
-                            <optgroup key={g.group} label={g.group}>
-                              {g.options.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>College Type</label>
-                        <select
-                          className={inputCls}
-                          value={form.collegeType}
-                          onChange={set("collegeType")}
-                        >
-                          <option value="">— Any college type —</option>
-                          {COLLEGE_TYPES.map((c) => (
-                            <option key={c.value} value={c.value}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      {/* Specialization replaces the old free-text "Subject" field.
-                          Most granularity now comes from Program (via the cascade
-                          above); this is only for an extra narrowing detail, e.g.
-                          "Machine Learning" within an MSc CSIT. Optional. */}
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>
-                          Specialization{" "}
-                          <span className="text-gray-400 font-normal">
-                            (optional — e.g. a research focus within the program)
-                          </span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          value={form.subject}
-                          onChange={set("subject")}
-                          placeholder="e.g. Machine Learning, Structural Engineering"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Gender</label>
-                        <select
-                          className={inputCls}
-                          value={form.gender}
-                          onChange={set("gender")}
-                        >
-                          <option value="any">Any</option>
-                          <option value="male">Male</option>
-                          <option value="female">Female</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Category{" "}
-                          <span className="text-gray-400 font-normal">
-                            (optional quota)
-                          </span>
-                        </label>
-                        <select
-                          className={inputCls}
-                          value={form.ethnicCategory}
-                          onChange={set("ethnicCategory")}
-                        >
-                          <option value="">— Any / no preference —</option>
-                          {ETHNIC_CATEGORIES.map((c) => (
-                            <option key={c.value} value={c.value}>
-                              {c.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* GPA and Percentage are the same criterion on different
-                          scales — filling one clears the other. */}
-                      <div>
-                        <label className={labelCls}>
-                          Minimum GPA (previous exam){" "}
-                          <span className="text-gray-400 font-normal">
-                            (0–4)
-                          </span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="4"
-                          value={form.minGPA}
-                          onChange={setAcademicField("minGPA")}
-                          placeholder="e.g. 3.2"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Minimum Percentage (previous exam)
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="100"
-                          value={form.minPercentage}
-                          onChange={setAcademicField("minPercentage")}
-                          placeholder="e.g. 60"
-                        />
-                      </div>
-
-                      <div>
-                        <label className={labelCls}>
-                          Entrance Exam{" "}
-                          <span className="text-gray-400 font-normal">
-                            (optional — e.g. IOE Entrance, MBBS CEE)
-                          </span>
-                        </label>
-                        <input
-                          className={inputCls}
-                          value={form.entranceExamName}
-                          onChange={set("entranceExamName")}
-                          placeholder="e.g. IOE Entrance"
-                        />
-                      </div>
-                      <div>
-                        <label className={labelCls}>
-                          Minimum Entrance Score
-                        </label>
-                        <input
-                          className={inputCls}
-                          type="number"
-                          min="0"
-                          value={form.minEntranceScore}
-                          onChange={set("minEntranceScore")}
-                          placeholder="e.g. 65"
-                        />
-                        {form.minEntranceScore && !form.entranceExamName && (
-                          <p className="text-xs text-amber-500 mt-1">
-                            Name the exam above so applicants know what this
-                            score refers to.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>
-                          Additional Requirements
-                        </label>
-                        <textarea
-                          className={inputCls + " resize-none"}
-                          rows={2}
-                          value={form.additionalRequirements}
-                          onChange={set("additionalRequirements")}
-                          placeholder="Any other eligibility details..."
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <label className={labelCls}>Required Documents</label>
-                        <input
-                          className={inputCls}
-                          value={form.requiredDocuments}
-                          onChange={set("requiredDocuments")}
-                          placeholder="Comma-separated: slc_marksheet, plus2_gradesheet, citizenship"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Separate multiple documents with a comma.
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          id="isNepali"
-                          type="checkbox"
-                          className="w-4 h-4 accent-red-500"
-                          checked={form.isNepali}
-                          onChange={set("isNepali")}
-                        />
-                        <label
-                          htmlFor="isNepali"
-                          className="text-sm text-gray-700"
-                        >
-                          Nepali citizens only
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          id="hasDisability"
-                          type="checkbox"
-                          className="w-4 h-4 accent-red-500"
-                          checked={form.hasDisability}
-                          onChange={set("hasDisability")}
-                        />
-                        <label
-                          htmlFor="hasDisability"
-                          className="text-sm text-gray-700"
-                        >
-                          For students with disability
-                        </label>
-                      </div>
-                    </div>
-
-                    <SectionHeading>
-                      Location Filter{" "}
-                      <span className="normal-case font-normal text-gray-400">
-                        (leave blank = open to all)
-                      </span>
-                    </SectionHeading>
-                    <div>
-                      <LocationCascade
-                        idMode="name"
-                        province={form.provinceName}
-                        district={form.districtName}
-                        municipality={form.municipalityName}
-                        onChange={({ province, district, municipality }) =>
-                          setForm((f) => ({
-                            ...f,
-                            provinceName: province,
-                            districtName: district,
-                            municipalityName: municipality,
-                          }))
-                        }
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
-                      <button
-                        type="button"
-                        onClick={closeForm}
-                        className="px-5 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={schLoading}
-                        className="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
-                      >
-                        {schLoading
-                          ? editingId
-                            ? "Saving…"
-                            : "Posting…"
-                          : editingId
-                            ? "Save Changes"
-                            : "Post Scholarship"}
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                <ScholarshipFormWizard
+                  form={form}
+                  setForm={setForm}
+                  set={set}
+                  setCoverageField={setCoverageField}
+                  setAcademicField={setAcademicField}
+                  editingId={editingId}
+                  schError={schError}
+                  schLoading={schLoading}
+                  onSubmit={handleScholarshipSubmit}
+                  onCancel={closeForm}
+                  inputCls={inputCls}
+                  labelCls={labelCls}
+                />
               )}
 
               {/* ── CARD GRID ──────────────────────────────────────────────── */}

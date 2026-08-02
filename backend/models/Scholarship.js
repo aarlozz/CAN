@@ -92,7 +92,7 @@ const scholarshipSchema = new mongoose.Schema(
           "affiliated_college",
         ],
       },
-      subject: { type: String, trim: true },
+      
       gender: {
         type: String,
         enum: ["male", "female", "other", "any"],
@@ -146,7 +146,7 @@ const scholarshipSchema = new mongoose.Schema(
       minEntranceScore: { type: Number, min: 0 },
 
       // ── Other common flags ───────────────────────────────────────────────────
-      isFirstGenerationLearner: { type: Boolean, default: false }, // required to be a first-gen learner
+      
       minAttendancePercent: { type: Number, min: 0, max: 100 }, // continuation/renewal condition
 
       additionalRequirements: { type: String, trim: true },

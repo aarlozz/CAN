@@ -456,6 +456,7 @@ function ScholarshipTable({ scholarships }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const FILTER_LABELS = {
+  search: "Search",
   scholarshipType: "Type",
   targetLevel: "Level",
   targetFaculty: "Faculty",
@@ -475,10 +476,15 @@ const FILTER_LABELS = {
   minGPA: "Your GPA",
   minPercentage: "Your Percentage",
   studentAge: "Your Age",
-  isFirstGenerationLearner: "First-Gen Learner",
+ 
 };
 
 const DEFAULT_FILTERS = {
+  // Free-text search — now sent to the backend and matched against title,
+  // institution, description, AND targetLevel/targetFaculty/degreeProgram/
+  // university/subject. So typing "BE Computer", "Master's", or "Bachelors"
+  // finds scholarships by what a student is studying, not just by name.
+  search: "",
   scholarshipType: "",
   targetLevel: "",
   targetFaculty: "",
@@ -500,7 +506,7 @@ const DEFAULT_FILTERS = {
   minGPA: "",
   minPercentage: "",
   studentAge: "",
-  isFirstGenerationLearner: false,
+  
 };
 
 export default function ScholarshipList() {
@@ -522,10 +528,7 @@ export default function ScholarshipList() {
   // Panel toggle
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Search (frontend only)
-  const [search, setSearch] = useState("");
-
-  // Filters (backend)
+  // Filters (backend) — includes `search` now
   const [filters, setFilters] = useState(() => {
     const f = { ...DEFAULT_FILTERS };
     for (const key of Object.keys(DEFAULT_FILTERS)) {
@@ -534,6 +537,22 @@ export default function ScholarshipList() {
     }
     return f;
   });
+
+  // ── Search box: local input state + debounce into filters.search ───────────
+  // Typing updates `searchInput` immediately (so the box feels responsive),
+  // but the actual backend request (via filters.search) only fires 400ms
+  // after the person stops typing, so we don't spam the API on every
+  // keystroke.
+  const [searchInput, setSearchInput] = useState(filters.search);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setFilters((prev) =>
+        prev.search === searchInput ? prev : { ...prev, search: searchInput },
+      );
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   // ── Cascade-derived options ─────────────────────────────────────────────────
   // Faculty options depend on the selected Level; Program options depend on
@@ -571,6 +590,7 @@ export default function ScholarshipList() {
       const params = new URLSearchParams({ page: p, limit: 12 });
 
       const MAP = {
+        search: "search",
         scholarshipType: "scholarshipType",
         targetLevel: "targetLevel",
         targetFaculty: "targetFaculty",
@@ -590,7 +610,7 @@ export default function ScholarshipList() {
         minGPA: "minGPA",
         minPercentage: "minPercentage",
         studentAge: "studentAge",
-        isFirstGenerationLearner: "isFirstGenerationLearner",
+       
       };
 
       for (const [fk, pk] of Object.entries(MAP)) {
@@ -646,22 +666,24 @@ export default function ScholarshipList() {
     });
   };
 
-  const removeFilter = (key) => setFilter(key, DEFAULT_FILTERS[key]);
+  const removeFilter = (key) => {
+    if (key === "search") setSearchInput("");
+    setFilter(key, DEFAULT_FILTERS[key]);
+  };
 
-  const clearAll = () => setFilters({ ...DEFAULT_FILTERS });
+  const clearAll = () => {
+    setSearchInput("");
+    setFilters({ ...DEFAULT_FILTERS });
+  };
 
   const activeFilterCount = Object.entries(filters).filter(
     ([, v]) => v !== "" && v !== false && v !== null,
   ).length;
 
-  // ── Frontend search ─────────────────────────────────────────────────────────
-  const filtered = search.trim()
-    ? scholarships.filter(
-        (s) =>
-          s.scholarshipTitle?.toLowerCase().includes(search.toLowerCase()) ||
-          s.institutionName?.toLowerCase().includes(search.toLowerCase()),
-      )
-    : scholarships;
+  // Backend already applies `search` (title/institution/description/level/
+  // faculty/degree/university/subject), so results just render as-is —
+  // no separate client-side re-filtering needed anymore.
+  const filtered = scholarships;
 
   // ── View mode toggle ────────────────────────────────────────────────────────
   const toggleView = (mode) => {
@@ -688,17 +710,17 @@ export default function ScholarshipList() {
 
       {/* ── Search + View Toggle + Filter Button ── */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        {/* Search */}
+        {/* Search — now hits the backend (debounced) and matches degree,
+            faculty, level, and university too, not just title/institution.
+            e.g. "BE Computer", "Master's", "Bachelors" all work. */}
         <div className="relative flex-1">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-            🔍
-          </span>
+          
           <input
             type="text"
-            placeholder="Search by title or institution…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+            placeholder="Search by title, institution, degree, or level"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl pl-4 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
           />
         </div>
 
@@ -838,13 +860,7 @@ export default function ScholarshipList() {
               placeholder="All College Types"
             />
 
-            <FilterInput
-              label="Subject"
-              value={filters.subject}
-              onChange={(v) => setFilter("subject", v)}
-              placeholder="e.g. Computer Science…"
-            />
-
+            
             <FilterSelect
               label="Gender"
               value={filters.gender}
@@ -897,16 +913,16 @@ export default function ScholarshipList() {
                 }
                 className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   filters.hasDisability
-                    ? "bg-purple-50 border-purple-300 text-purple-700"
+                    ? "bg-white"
                     : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.hasDisability ? "bg-purple-500 border-purple-500" : "border-gray-300"}`}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.hasDisability ? "bg-white" : "border-gray-300"}`}
                 >
                   {filters.hasDisability && (
                     <svg
-                      className="w-2.5 h-2.5 text-white"
+                      className="w-2.5 h-2.5 text-black"
                       fill="currentColor"
                       viewBox="0 0 12 12"
                     >
@@ -983,39 +999,6 @@ export default function ScholarshipList() {
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  First-Generation Learner
-                </label>
-                <button
-                  onClick={() =>
-                    setFilter(
-                      "isFirstGenerationLearner",
-                      !filters.isFirstGenerationLearner,
-                    )
-                  }
-                  className={`flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    filters.isFirstGenerationLearner
-                      ? "bg-purple-50 border-purple-300 text-purple-700"
-                      : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${filters.isFirstGenerationLearner ? "bg-purple-500 border-purple-500" : "border-gray-300"}`}
-                  >
-                    {filters.isFirstGenerationLearner && (
-                      <svg
-                        className="w-2.5 h-2.5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 12 12"
-                      >
-                        <path d="M10 3L5 8.5 2 5.5 1 6.5l4 4 6-7z" />
-                      </svg>
-                    )}
-                  </span>
-                  Yes, I am
-                </button>
-              </div>
             </div>
           </div>
 

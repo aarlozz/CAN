@@ -14,6 +14,7 @@ import superadminroutes from "./routes/superAdminRoutes.js";
 import provinceadminroutes from "./routes/provinceAdminRoutes.js";
 import bookmarkroutes from "./routes/bookmarkRoutes.js";
 import notificationroutes from "./routes/notificationRoutes.js";
+import courseroutes from "./routes/courseRoutes.js"
 
 dotenv.config();
 
@@ -54,7 +55,7 @@ app.use("/api/super-admin", superadminroutes);
 app.use("/api/province-admin", provinceadminroutes);
 app.use("/api/bookmarks", bookmarkroutes);
 app.use("/api/notifications", notificationroutes);
-
+app.use("/api/institution", courseroutes)
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

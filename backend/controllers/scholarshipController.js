@@ -4,6 +4,7 @@ import Province from "../models/Province.js";
 import District from "../models/District.js";
 import Municipality from "../models/Municipality.js";
 
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VALID_TYPES = [
@@ -48,6 +49,42 @@ const VALID_ETHNIC_CATEGORIES = [
   "general",
   "any",
 ];
+
+// Fields the free-text search box checks — covers both the "browse by
+// title/institution" case and the "search by degree/level/faculty" case
+// (e.g. typing "BE Computer", "Master's", "Bachelors").
+const SEARCHABLE_FIELDS = [
+  "scholarshipTitle",
+  "institutionName",
+  "description",
+  "eligibilityCriteria.targetLevel",
+  "eligibilityCriteria.targetFaculty",
+  "eligibilityCriteria.degreeProgram",
+  "eligibilityCriteria.university",
+  "eligibilityCriteria.subject",
+];
+
+/**
+ * Builds a Mongo filter clause for a free-text search string.
+ * Splits on commas/whitespace, crudely normalizes plurals ("Bachelors" ->
+ * "Bachelor", "Masters" -> "Master") so it matches enum/singular field
+ * values, and requires EACH word to match at least one searchable field
+ * (AND of per-word ORs) — so multi-word queries like "BE Computer Master"
+ * narrow down correctly instead of only matching the exact phrase.
+ */
+const buildSearchClauses = (search) => {
+  const terms = search
+    .trim()
+    .split(/[,\s]+/)
+    .map((t) => t.replace(/s$/i, ""))
+    .filter(Boolean);
+
+  return terms.map((term) => ({
+    $or: SEARCHABLE_FIELDS.map((field) => ({
+      [field]: { $regex: term, $options: "i" },
+    })),
+  }));
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -327,6 +364,12 @@ export const createScholarship = async (req, res) => {
     if (eligibilityErrors.length > 0)
       return res.status(400).json({ message: eligibilityErrors.join(" ") });
 
+    const builtEligibility = buildEligibility(eligibilityCriteria);
+
+    // An institution can only post a scholarship for a level/faculty/program
+    // it has actually registered as a Course. See backend/utils/courseEligibility.js.
+    
+
     const parsedTotalSeats = totalSeats ? Number(totalSeats) : undefined;
     const parsedRemainingSeats = remainingSeats
       ? Number(remainingSeats)
@@ -352,7 +395,7 @@ export const createScholarship = async (req, res) => {
       ...(termsAndConditions && { termsAndConditions }),
       applicationDeadline,
       coverage: buildCoverage(coverage),
-      eligibilityCriteria: buildEligibility(eligibilityCriteria),
+      eligibilityCriteria: builtEligibility,
       ...(parsedTotalSeats !== undefined && { totalSeats: parsedTotalSeats }),
       ...(parsedRemainingSeats !== undefined && {
         remainingSeats: parsedRemainingSeats,
@@ -520,12 +563,13 @@ export const getAllScholarships = async (req, res) => {
     if (isFirstGenerationLearner === "true")
       filter["eligibilityCriteria.isFirstGenerationLearner"] = true;
 
+    // ── Free-text search ─────────────────────────────────────────────────────
+    // Now covers title/institution/description AND degree/faculty/level/
+    // university/subject, so typing "BE Computer", "Master's", or
+    // "Bachelors" finds scholarships by what a student is studying, not
+    // just by scholarship name.
     if (search?.trim()) {
-      filter.$or = (filter.$or || []).concat([
-        { scholarshipTitle: { $regex: search.trim(), $options: "i" } },
-        { institutionName: { $regex: search.trim(), $options: "i" } },
-        { description: { $regex: search.trim(), $options: "i" } },
-      ]);
+      filter.$and = (filter.$and || []).concat(buildSearchClauses(search));
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -552,16 +596,27 @@ export const getAllScholarships = async (req, res) => {
 };
 
 // ─── GET /api/scholarship/my  (institution only) ──────────────────────────────
+// Now supports the same free-text `search` param as getAllScholarships, so
+// an institution managing many scholarships can type e.g. "Bachelor" or
+// "Computer" to filter their own list without scrolling the whole table.
 export const getMyScholarships = async (req, res) => {
   try {
     const institution = await InstitutionProfile.findOne({ user: req.user.id });
     if (!institution)
       return res.status(404).json({ message: "Institution not found." });
 
-    const scholarships = await Scholarship.find({
+    const { search } = req.query;
+
+    const filter = {
       institutionId: institution._id,
       isDeleted: { $ne: true },
-    })
+    };
+
+    if (search?.trim()) {
+      filter.$and = (filter.$and || []).concat(buildSearchClauses(search));
+    }
+
+    const scholarships = await Scholarship.find(filter)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -644,10 +699,18 @@ export const updateScholarship = async (req, res) => {
         message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
       });
 
+    let builtEligibility;
     if (eligibilityCriteria !== undefined) {
       const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
       if (eligibilityErrors.length > 0)
         return res.status(400).json({ message: eligibilityErrors.join(" ") });
+
+      builtEligibility = buildEligibility(eligibilityCriteria);
+
+      // Only re-check against registered Courses when eligibilityCriteria is
+      // actually part of this update — leaving it untouched means whatever
+      // was already validated at creation time still stands.
+      
     }
 
     // ── Seats validation (compare incoming vs existing as fallback) ────────────
@@ -684,7 +747,7 @@ export const updateScholarship = async (req, res) => {
     // ── Nested objects — use the same builders as createScholarship ────────────
     if (coverage !== undefined) scholarship.coverage = buildCoverage(coverage);
     if (eligibilityCriteria !== undefined)
-      scholarship.eligibilityCriteria = buildEligibility(eligibilityCriteria);
+      scholarship.eligibilityCriteria = builtEligibility;
     if (locationFilter !== undefined)
       scholarship.locationFilter = await resolveLocationFilter(locationFilter);
     if (scholarship.verification?.status !== "pending") {

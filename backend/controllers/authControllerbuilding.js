@@ -4,7 +4,7 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
-
+import Province from "../models/Province.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const signup = async (req, res) => {
@@ -72,6 +72,17 @@ export const signup = async (req, res) => {
         contactPerson,
       } = req.body;
 
+      let provinceRefInfo = {};
+      if (location?.province) {
+        const prov = await Province.findOne({ provinceName: location.province });
+        if (prov) {
+          provinceRefInfo = {
+            provinceId: prov._id,
+            provinceName: prov.provinceName
+          };
+        }
+      }
+
       await InstitutionProfile.create({
         user: user._id,
         institutionName,
@@ -84,6 +95,7 @@ export const signup = async (req, res) => {
           municipality: location?.municipality || "",
           ward:         location?.ward         || "",
           street:       location?.street       || "",
+          provinceRef:  provinceRefInfo
         },
         description:   description || "",
         contactPerson: {
@@ -92,8 +104,8 @@ export const signup = async (req, res) => {
           email:       contactPerson?.email       || "",
           designation: contactPerson?.designation || "",
         },
-        isApproved: true,                    
-        verification: { status: "verified" }, // approve
+        isApproved: false,                    
+        verification: { status: "pending" },
       });
     }
 

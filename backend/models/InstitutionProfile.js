@@ -95,7 +95,7 @@ const institutionSchema = new mongoose.Schema(
     // Legacy approval flag
     isApproved: {
       type: Boolean,
-      default: true,
+      default: false,
     },
 
     // Soft delete
@@ -113,14 +113,36 @@ institutionSchema.index({ "verification.status": 1 });
 institutionSchema.index({ "location.provinceRef.provinceId": 1 });
 institutionSchema.index({ "location.districtRef.districtId": 1 });
 
+// Optimize Super Admin searches by Status + Pagination
+institutionSchema.index({ "verification.status": 1, createdAt: -1 });
+
+// Optimize Province Admin queries
+institutionSchema.index({ "location.provinceRef.provinceId": 1, "verification.status": 1 });
+
 
 institutionSchema.virtual("totalCourses").get(function () {
   return (this.courses || []).length;
 });
 
-// Middleware: keep isApproved in sync with verification.status
-institutionSchema.pre("save", async function () {
+institutionSchema.pre("save", function () {
+  const requiresReview =
+    this.isModified("institutionName") ||
+    this.isModified("institutionType") ||
+    this.isModified("location") ||
+    this.isModified("courses") ||
+    this.isModified("website") ||
+    this.isModified("description");
+
+  if (
+    requiresReview &&
+    this.verification?.status === "rejected"
+  ) {
+    this.verification.status = "pending";
+    this.verification.remarks = "";
+    this.verification.verifiedBy = undefined;
+    this.verification.verifiedAt = undefined;
+  }
+
   this.isApproved = this.verification?.status === "verified";
 });
-
 export default mongoose.model("InstitutionProfile", institutionSchema);

@@ -5,6 +5,7 @@ import Signup from "./pages/auth/signup";
 import InstitutionSignup from "./pages/auth/institutionsignup";
 import InstitutionLogin from "./pages/auth/institutionallogin";
 import InstitutionList from "./pages/auth/InstitutionList";
+import InstitutionDetail from "./pages/auth/InstitutionDetail";
 import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
 import StudentDashboard from "./pages/Dashboard/studentdashboard";
 import ScholarshipList from "./pages/scholarships/scholarshipList";
@@ -26,6 +27,7 @@ function App() {
         <Route path="/scholarships" element={<ScholarshipList />} />
         <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
         <Route path="/institutions" element={<InstitutionList />} />
+        <Route path="/institutions/:id" element={<InstitutionDetail />} />
 
         {/* Protected — any logged-in user (student or institution) */}
         <Route
@@ -62,7 +64,7 @@ function App() {
         }
       />
 
-      {/* Protected — Student (manages its own Header internally) */}
+      {/* Protected — Student */}
       <Route
         path="/dashboard-student"
         element={

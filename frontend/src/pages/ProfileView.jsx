@@ -38,17 +38,27 @@ function Field({ label, children }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function DetailCard({ icon, label, value }) {
+  const isEmpty = !value && value !== 0;
   return (
-    <div className="flex flex-col gap-0.5 py-3 border-b border-gray-50 last:border-0">
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-        {label}
-      </span>
-      <span className="text-gray-800 text-sm">
-        {value || <span className="text-gray-300">Not provided</span>}
-      </span>
+    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-4 hover:bg-gray-50 hover:border-gray-200 transition-colors">
+      <div className="w-9 h-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-base shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+          {label}
+        </p>
+        <p className={`text-sm font-semibold break-words ${isEmpty ? "text-gray-300 font-normal" : "text-gray-900"}`}>
+          {isEmpty ? "Not provided" : value}
+        </p>
+      </div>
     </div>
   );
+}
+
+function DetailGrid({ children }) {
+  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>;
 }
 
 function Avatar({ url, name, size = "w-16 h-16", textSize = "text-2xl" }) {
@@ -564,8 +574,10 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return (
       <div>
         <SectionTitle>Account</SectionTitle>
-        <InfoRow label="Full Name" value={displayName} />
-        <InfoRow label="Email" value={displayEmail} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Full Name" value={displayName} />
+          <DetailCard icon="✉️" label="Email" value={displayEmail} />
+        </DetailGrid>
         <p className="text-xs text-gray-400 mt-4">
           Name and email are tied to your login account. To change them, contact support.
         </p>
@@ -583,9 +595,11 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Personal Info</SectionTitle>
-        <InfoRow label="Date of Birth" value={form.dob} />
-        <InfoRow label="Gender" value={form.gender} />
-        <InfoRow label="Phone" value={form.phone} />
+        <DetailGrid>
+          <DetailCard icon="🎂" label="Date of Birth" value={form.dob} />
+          <DetailCard icon="⚥" label="Gender" value={form.gender} />
+          <DetailCard icon="📞" label="Phone" value={form.phone} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -612,11 +626,13 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Address</SectionTitle>
-        <InfoRow label="Province" value={form.province} />
-        <InfoRow label="District" value={form.district} />
-        <InfoRow label="Municipality" value={form.municipality} />
-        <InfoRow label="Ward" value={form.ward} />
-        <InfoRow label="Street" value={form.street} />
+        <DetailGrid>
+          <DetailCard icon="🗺️" label="Province" value={form.province} />
+          <DetailCard icon="📍" label="District" value={form.district} />
+          <DetailCard icon="🏘️" label="Municipality" value={form.municipality} />
+          <DetailCard icon="#️⃣" label="Ward" value={form.ward} />
+          <DetailCard icon="🛣️" label="Street" value={form.street} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -636,10 +652,12 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Guardian</SectionTitle>
-        <InfoRow label="Name" value={form.guardianName} />
-        <InfoRow label="Relation" value={form.guardianRelation} />
-        <InfoRow label="Phone" value={form.guardianPhone} />
-        <InfoRow label="Occupation" value={form.guardianOccupation} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Name" value={form.guardianName} />
+          <DetailCard icon="🔗" label="Relation" value={form.guardianRelation} />
+          <DetailCard icon="📞" label="Phone" value={form.guardianPhone} />
+          <DetailCard icon="💼" label="Occupation" value={form.guardianOccupation} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -658,9 +676,11 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Education</SectionTitle>
-        <InfoRow label="School / College" value={form.schoolName} />
-        <InfoRow label="School Type" value={form.schoolType} />
-        <InfoRow label="Current Level" value={form.currentEducationLevel} />
+        <DetailGrid>
+          <DetailCard icon="🏫" label="School / College" value={form.schoolName} />
+          <DetailCard icon="🏷️" label="School Type" value={form.schoolType} />
+          <DetailCard icon="🎓" label="Current Level" value={form.currentEducationLevel} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -699,12 +719,15 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return (
       <div>
         <SectionTitle>Account</SectionTitle>
-        <InfoRow label="Registered Name" value={displayName} />
-        <InfoRow label="Email" value={displayEmail} />
-        <InfoRow
-          label="Verification Status"
-          value={isApproved ? "✓ Approved" : "⏳ Pending Approval"}
-        />
+        <DetailGrid>
+          <DetailCard icon="🏢" label="Registered Name" value={displayName} />
+          <DetailCard icon="✉️" label="Email" value={displayEmail} />
+          <DetailCard
+            icon={isApproved ? "✓" : "⏳"}
+            label="Verification Status"
+            value={isApproved ? "Approved" : "Pending Approval"}
+          />
+        </DetailGrid>
         {completenessPct < 100 && (
           <div className="mt-5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl">
             Your institution profile is {completenessPct}% complete. A fuller profile builds
@@ -719,11 +742,13 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Institution Info</SectionTitle>
-        <InfoRow label="Name" value={form.institutionName} />
-        <InfoRow label="Type" value={form.institutionType} />
-        <InfoRow label="Established Year" value={form.establishedYear} />
-        <InfoRow label="Website" value={form.website} />
-        <InfoRow label="Description" value={form.description} />
+        <DetailGrid>
+          <DetailCard icon="🏢" label="Name" value={form.institutionName} />
+          <DetailCard icon="🏷️" label="Type" value={form.institutionType} />
+          <DetailCard icon="📅" label="Established Year" value={form.establishedYear} />
+          <DetailCard icon="🌐" label="Website" value={form.website} />
+          <DetailCard icon="📝" label="Description" value={form.description} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -756,11 +781,13 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Location</SectionTitle>
-        <InfoRow label="Province" value={form.province} />
-        <InfoRow label="District" value={form.district} />
-        <InfoRow label="Municipality" value={form.municipality} />
-        <InfoRow label="Ward" value={form.ward} />
-        <InfoRow label="Street" value={form.street} />
+        <DetailGrid>
+          <DetailCard icon="🗺️" label="Province" value={form.province} />
+          <DetailCard icon="📍" label="District" value={form.district} />
+          <DetailCard icon="🏘️" label="Municipality" value={form.municipality} />
+          <DetailCard icon="#️⃣" label="Ward" value={form.ward} />
+          <DetailCard icon="🛣️" label="Street" value={form.street} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -780,10 +807,12 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Contact Person</SectionTitle>
-        <InfoRow label="Name" value={form.contactName} />
-        <InfoRow label="Phone" value={form.contactPhone} />
-        <InfoRow label="Email" value={form.contactEmail} />
-        <InfoRow label="Designation" value={form.contactDesignation} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Name" value={form.contactName} />
+          <DetailCard icon="📞" label="Phone" value={form.contactPhone} />
+          <DetailCard icon="✉️" label="Email" value={form.contactEmail} />
+          <DetailCard icon="🏷️" label="Designation" value={form.contactDesignation} />
+        </DetailGrid>
       </div>
     ) : (
       <div>

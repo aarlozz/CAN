@@ -617,24 +617,24 @@ export default function ScholarshipDetail() {
   if (loading)
     return (
       <>
-        <Header />
+
         <div className="flex justify-center items-center min-h-[60vh]">
           <div className="animate-spin w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full" />
         </div>
-        <Footer />
+
       </>
     );
 
   if (error)
     return (
       <>
-        <Header />
+
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <div className="text-5xl mb-4">❌</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">{error}</h2>
           <Link to="/scholarships" className="text-red-500 hover:underline text-sm">← Back to scholarships</Link>
         </div>
-        <Footer />
+
       </>
     );
 
@@ -647,7 +647,7 @@ export default function ScholarshipDetail() {
 
   return (
     <>
-      <Header />
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <Link to="/scholarships" className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1 mb-6">
           ← Back to scholarships
@@ -1324,7 +1324,6 @@ export default function ScholarshipDetail() {
           </div>
         )}
       </main>
-      <Footer />
     </>
   );
 }

@@ -8,6 +8,8 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export default function ProvinceAdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("institutions");
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
+  const [selectedScholarship, setSelectedScholarship] = useState(null);
   
   const [institutions, setInstitutions] = useState([]);
   const [scholarships, setScholarships] = useState([]);
@@ -208,6 +210,7 @@ export default function ProvinceAdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right space-x-2">
+                            <button onClick={() => setSelectedInstitution(inst)} className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-medium transition-colors">View Details</button>
                             {inst.verification?.status === "pending" && (
                               <>
                                 <button onClick={() => verifyInstitution(inst._id, 'verified')} className="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-medium transition-colors">Approve</button>
@@ -256,6 +259,7 @@ export default function ProvinceAdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right space-x-2">
+                            <button onClick={() => setSelectedScholarship(schol)} className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-medium transition-colors">View Details</button>
                             {schol.verification?.status === "pending" && (
                               <>
                                 <button onClick={() => verifyScholarship(schol._id, 'approved')} className="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-medium transition-colors">Approve</button>
@@ -276,6 +280,140 @@ export default function ProvinceAdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Institution Modal */}
+      {selectedInstitution && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Institution Details</h3>
+              <button onClick={() => setSelectedInstitution(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.institutionName}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Type</p>
+                  <p className="text-sm font-semibold text-gray-900 capitalize">{selectedInstitution.institutionType}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Account Email</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.user?.email}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Established Year</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.establishedYear || "N/A"}</p>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">Location & Contact</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Address</p>
+                    <p className="text-sm text-gray-800">{[selectedInstitution.location?.street, selectedInstitution.location?.municipality, selectedInstitution.location?.district, selectedInstitution.location?.province].filter(Boolean).join(", ")}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Website</p>
+                    <p className="text-sm text-blue-600">{selectedInstitution.website || "N/A"}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Contact Person</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.name || "N/A"}</p>
+                    <p className="text-xs text-gray-500">{selectedInstitution.contactPerson?.designation || ""}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Contact Details</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.email || "N/A"}</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.phone || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedInstitution.description && (
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">About</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{selectedInstitution.description}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setSelectedInstitution(null)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scholarship Modal */}
+      {selectedScholarship && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Scholarship Details</h3>
+              <button onClick={() => setSelectedScholarship(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Title</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedScholarship.scholarshipTitle}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Institution</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedScholarship.institutionName}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Deadline</p>
+                  <p className="text-sm font-semibold text-gray-900">{new Date(selectedScholarship.applicationDeadline).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-100 pt-4 grid grid-cols-2 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Coverage Type</p>
+                  <p className="text-sm font-semibold text-gray-800 capitalize">{selectedScholarship.coverage?.scholarshipType2?.replace("_", " ")}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Seats</p>
+                  <p className="text-sm font-semibold text-gray-800">{selectedScholarship.totalSeats} Total / {selectedScholarship.remainingSeats} Remaining</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Target Level</p>
+                  <p className="text-sm font-semibold text-gray-800 capitalize">{selectedScholarship.eligibilityCriteria?.targetLevel?.replace("_", " ") || "N/A"}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Target Faculty / Subject</p>
+                  <p className="text-sm font-semibold text-gray-800">{selectedScholarship.eligibilityCriteria?.targetFaculty || "N/A"} - {selectedScholarship.eligibilityCriteria?.subject || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">Eligibility Criteria</h4>
+                <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                  {selectedScholarship.eligibilityCriteria?.minGPA != null && <li>Min GPA: {selectedScholarship.eligibilityCriteria.minGPA}</li>}
+                  {selectedScholarship.eligibilityCriteria?.minPercentage != null && <li>Min Percentage: {selectedScholarship.eligibilityCriteria.minPercentage}%</li>}
+                  {selectedScholarship.eligibilityCriteria?.entranceExamName && <li>Entrance Exam: {selectedScholarship.eligibilityCriteria.entranceExamName} {selectedScholarship.eligibilityCriteria.minEntranceScore ? `(Min Score: ${selectedScholarship.eligibilityCriteria.minEntranceScore})` : ''}</li>}
+                  <li>Gender: {selectedScholarship.eligibilityCriteria?.gender || "Any"}</li>
+                  {selectedScholarship.eligibilityCriteria?.ethnicCategory && <li>Ethnic Category: <span className="capitalize">{selectedScholarship.eligibilityCriteria.ethnicCategory.replace("_", " ")}</span></li>}
+                </ul>
+              </div>
+              
+              {selectedScholarship.description && (
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{selectedScholarship.description}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setSelectedScholarship(null)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

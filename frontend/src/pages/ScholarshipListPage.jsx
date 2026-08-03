@@ -150,7 +150,7 @@ function ScholarshipListPage() {
   // ─────────────────────────────────────────
   return (
     <>
-      <Header />
+    
       <main className="min-h-screen pt-20 pb-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
@@ -369,7 +369,6 @@ function ScholarshipListPage() {
 
         </div>
       </main>
-      <Footer />
     </>
   );
 }

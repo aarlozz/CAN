@@ -247,6 +247,7 @@ export default function InstitutionalDashboard() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("scholarships");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedApp, setSelectedApp] = useState(null);
 
   const [showScholarshipForm, setShowScholarshipForm] = useState(false);
   const [editingId, setEditingId] = useState(null); // null = create mode, string = edit mode
@@ -1292,61 +1293,62 @@ export default function InstitutionalDashboard() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              {app.applicationStatus === "pending" && (
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "approved")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "under_review")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium"
-                                  >
-                                    Review
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "rejected")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              )}
-                              {app.applicationStatus === "under_review" && (
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "approved")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "rejected")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              )}
-                              {["approved", "rejected", "withdrawn"].includes(
-                                app.applicationStatus,
-                              ) && (
-                                <span className="text-[10px] text-gray-400">
-                                  No actions
-                                </span>
-                              )}
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => setSelectedApp(app)}
+                                  className="text-[10px] px-2 py-1.5 bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 font-medium w-max border border-indigo-100 transition-colors shadow-sm"
+                                >
+                                  View Details
+                                </button>
+                                {app.applicationStatus === "pending" && (
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "approved")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium border border-green-100"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "under_review")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium border border-blue-100"
+                                    >
+                                      Review
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "rejected")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium border border-red-100"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                                {app.applicationStatus === "under_review" && (
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "approved")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium border border-green-100"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "rejected")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium border border-red-100"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1481,6 +1483,143 @@ export default function InstitutionalDashboard() {
           </aside>
         )}
       </div>
+
+      {selectedApp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">
+                Application Details
+              </h3>
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="text-gray-400 hover:text-gray-600 bg-white rounded-full p-1.5 shadow-sm hover:shadow transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-6 space-y-6">
+              {/* Header Info */}
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl font-bold text-indigo-700 shrink-0 border border-indigo-100">
+                  {selectedApp.studentSnapshot?.fullName?.charAt(0) || "S"}
+                </div>
+                <div>
+                  <h4 className="text-xl font-bold text-gray-900 leading-tight mb-1">
+                    {selectedApp.studentSnapshot?.fullName || "N/A"}
+                  </h4>
+                  <div className="flex flex-wrap gap-2 items-center text-xs text-gray-500 font-medium">
+                    <span className="flex items-center gap-1"><span>📧</span> {selectedApp.studentSnapshot?.contact?.email || "N/A"}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1"><span>📞</span> {selectedApp.studentSnapshot?.contact?.phone || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Personal Details</p>
+                  <p className="text-sm font-medium text-gray-800">Gender: <span className="font-normal text-gray-600">{selectedApp.studentSnapshot?.gender || "N/A"}</span></p>
+                  <p className="text-sm font-medium text-gray-800">DOB: <span className="font-normal text-gray-600">{selectedApp.studentSnapshot?.dateOfBirth ? new Date(selectedApp.studentSnapshot.dateOfBirth).toLocaleDateString() : "N/A"}</span></p>
+                  <p className="text-sm font-medium text-gray-800">Location: <span className="font-normal text-gray-600">{[selectedApp.studentSnapshot?.location?.municipality, selectedApp.studentSnapshot?.location?.district].filter(Boolean).join(", ") || "N/A"}</span></p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Application Info</p>
+                  <p className="text-sm font-medium text-blue-900">Type: <span className="font-normal text-blue-700 capitalize">{selectedApp.applicationType}</span></p>
+                  <p className="text-sm font-medium text-blue-900">Status: <span className="font-normal text-blue-700 capitalize">{selectedApp.applicationStatus?.replace("_", " ")}</span></p>
+                  <p className="text-sm font-medium text-blue-900">Applied: <span className="font-normal text-blue-700">{new Date(selectedApp.createdAt).toLocaleDateString()}</span></p>
+                </div>
+              </div>
+
+              {/* Academic Info */}
+              <div>
+                <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <span>🎓</span> Academic Background
+                </h5>
+                <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b border-gray-100">
+                      <tr>
+                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Level</th>
+                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Institution</th>
+                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Passed Year</th>
+                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {selectedApp.studentSnapshot?.academicDetails?.length > 0 ? (
+                        selectedApp.studentSnapshot.academicDetails.map((acd, idx) => (
+                          <tr key={idx}>
+                            <td className="px-4 py-3 font-medium text-gray-800 capitalize">{acd.level}</td>
+                            <td className="px-4 py-3 text-gray-600">{acd.institutionName}</td>
+                            <td className="px-4 py-3 text-gray-600">{acd.passedYear}</td>
+                            <td className="px-4 py-3 text-gray-600">{acd.gpa ? `${acd.gpa} GPA` : acd.percentage ? `${acd.percentage}%` : "N/A"}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr><td colSpan="4" className="px-4 py-4 text-center text-gray-400 text-xs">No academic records provided</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Answers */}
+              {selectedApp.answers && Object.keys(selectedApp.answers).length > 0 && (
+                <div>
+                  <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span>📝</span> Questionnaire Responses
+                  </h5>
+                  <div className="space-y-3">
+                    {Object.entries(selectedApp.answers).map(([question, answer], idx) => (
+                      <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <p className="text-xs font-semibold text-gray-700 mb-1">{question}</p>
+                        <p className="text-sm text-gray-600">{String(answer)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {selectedApp.documents && selectedApp.documents.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <span>📎</span> Uploaded Documents
+                  </h5>
+                  <div className="flex flex-wrap gap-3">
+                    {selectedApp.documents.map((doc, idx) => (
+                      <a
+                        key={idx}
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 hover:shadow transition-all group"
+                      >
+                        <span className="text-lg opacity-70 group-hover:opacity-100 transition-opacity">📄</span>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800 capitalize">{doc.documentType?.replace("_", " ")}</p>
+                          <p className="text-[10px] text-blue-500 font-medium mt-0.5">View Document ↗</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

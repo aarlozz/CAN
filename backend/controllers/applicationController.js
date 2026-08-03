@@ -6,6 +6,10 @@ import InstitutionProfile from "../models/InstitutionProfile.js";
 import User from "../models/User.js";
 import { createNotification } from "../utils/notificationHelper.js";
 
+// Escapes regex special characters so free-text filter values (location
+// names, search terms) can't break — or unintentionally act as — a regex.
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Helper — builds the student snapshot frozen at apply time
 //
 // StudentProfile.address stores location TWO ways: flat strings
@@ -23,9 +27,13 @@ const buildSnapshot = (student, user) => ({
   email: user.email,
   location: {
     province:
-      student.address?.province || student.address?.provinceRef?.provinceName || "",
+      student.address?.province ||
+      student.address?.provinceRef?.provinceName ||
+      "",
     district:
-      student.address?.district || student.address?.districtRef?.districtName || "",
+      student.address?.district ||
+      student.address?.districtRef?.districtName ||
+      "",
     municipality:
       student.address?.municipality ||
       student.address?.municipalityRef?.municipalityName ||
@@ -266,32 +274,65 @@ export const getInstitutionApplications = async (req, res) => {
 
     // ── Application-level match (indexed fields, cheap) ──────────────────────
     const match = { scholarshipId: { $in: scholarshipIds } };
-    if (scholarshipId) match.scholarshipId = new mongoose.Types.ObjectId(scholarshipId);
+    if (scholarshipId)
+      match.scholarshipId = new mongoose.Types.ObjectId(scholarshipId);
     if (status) match.applicationStatus = status;
     if (applicationType) match.applicationType = applicationType;
     // StudentProfile.personal_info.gender is stored capitalized
     // ("Male"/"Female"/"Other"), so match case-insensitively regardless of
     // how the frontend sends it.
     if (gender) {
-      match["studentSnapshot.gender"] = { $regex: `^${gender}$`, $options: "i" };
+      match["studentSnapshot.gender"] = {
+        $regex: `^${escapeRegex(gender)}$`,
+        $options: "i",
+      };
     }
     if (hasDisability !== undefined) {
-      match["studentSnapshot.reservationInfo.hasDisability"] = hasDisability === "true";
+      match["studentSnapshot.reservationInfo.hasDisability"] =
+        hasDisability === "true";
     }
     // caste is free text on StudentProfile (not tied to the Scholarship
     // ethnicCategory enum), so match case-insensitively rather than exact.
     if (ethnicCategory) {
       match["studentSnapshot.reservationInfo.caste"] = {
-        $regex: `^${ethnicCategory}$`,
+        $regex: `^${escapeRegex(ethnicCategory)}$`,
         $options: "i",
       };
     }
 
-    if (province) match["studentSnapshot.location.province"] = province;
-    if (district) match["studentSnapshot.location.district"] = district;
-    if (municipality) match["studentSnapshot.location.municipality"] = municipality;
+    // Province (supports both old: "Bagmati" and new: "Bagmati Province")
+    if (province) {
+      let provinceName = province.trim();
+
+      // Remove " Province" if the frontend sends it
+      provinceName = provinceName.replace(/\s+Province$/i, "");
+
+      match["studentSnapshot.location.province"] = {
+        $regex: `^${escapeRegex(provinceName)}( Province)?$`,
+        $options: "i",
+      };
+    }
+
+    // District (case-insensitive)
+    if (district) {
+      match["studentSnapshot.location.district"] = {
+        $regex: `^${escapeRegex(district.trim())}$`,
+        $options: "i",
+      };
+    }
+
+    // Municipality (case-insensitive)
+    if (municipality) {
+      match["studentSnapshot.location.municipality"] = {
+        $regex: `^${escapeRegex(municipality.trim())}$`,
+        $options: "i",
+      };
+    }
     if (search) {
-      match["studentSnapshot.fullName"] = { $regex: search, $options: "i" };
+      match["studentSnapshot.fullName"] = {
+        $regex: escapeRegex(search),
+        $options: "i",
+      };
     }
     if (fromDate || toDate) {
       match.appliedAt = {};
@@ -315,17 +356,26 @@ export const getInstitutionApplications = async (req, res) => {
     // ── Scholarship-level match (requires the $lookup above) ─────────────────
     const scholarshipMatch = {};
     if (scholarshipType) {
-      scholarshipMatch["scholarship.coverage.scholarshipType2"] = scholarshipType;
+      scholarshipMatch["scholarship.coverage.scholarshipType2"] =
+        scholarshipType;
     }
     if (minAmount || maxAmount) {
       scholarshipMatch["scholarship.coverage.amountNpr"] = {};
-      if (minAmount) scholarshipMatch["scholarship.coverage.amountNpr"].$gte = Number(minAmount);
-      if (maxAmount) scholarshipMatch["scholarship.coverage.amountNpr"].$lte = Number(maxAmount);
+      if (minAmount)
+        scholarshipMatch["scholarship.coverage.amountNpr"].$gte =
+          Number(minAmount);
+      if (maxAmount)
+        scholarshipMatch["scholarship.coverage.amountNpr"].$lte =
+          Number(maxAmount);
     }
     if (minFee || maxFee) {
       scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"] = {};
-      if (minFee) scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$gte = Number(minFee);
-      if (maxFee) scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$lte = Number(maxFee);
+      if (minFee)
+        scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$gte =
+          Number(minFee);
+      if (maxFee)
+        scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$lte =
+          Number(maxFee);
     }
     if (Object.keys(scholarshipMatch).length) {
       pipeline.push({ $match: scholarshipMatch });
@@ -499,7 +549,11 @@ export const reviewApplication = async (req, res) => {
     await session.commitTransaction();
 
     // ── Notify the student (fire-and-forget — never blocks the response) ────
-    if (status === "approved" || status === "rejected" || status === "under_review") {
+    if (
+      status === "approved" ||
+      status === "rejected" ||
+      status === "under_review"
+    ) {
       StudentProfile.findById(application.studentId)
         .select("user")
         .then((studentProfile) => {
@@ -531,12 +585,18 @@ export const reviewApplication = async (req, res) => {
             notificationType: `application_${status}`,
             title: copy.title,
             message: copy.message,
-            relatedEntity: { entityType: "Application", entityId: application._id },
+            relatedEntity: {
+              entityType: "Application",
+              entityId: application._id,
+            },
             priority: copy.priority,
           });
         })
         .catch((err) =>
-          console.warn("⚠️  Failed to look up student for notification:", err.message),
+          console.warn(
+            "⚠️  Failed to look up student for notification:",
+            err.message,
+          ),
         );
     }
 

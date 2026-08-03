@@ -1,8 +1,12 @@
-import { getInstitutionData } from "../controllers/Institutionbuilding.js";
+import { getInstitutionData, getInstitutionById } from "../controllers/Institutionbuilding.js";
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Named routes MUST come before /:id — otherwise Express/Mongoose will try
+// to treat "all-institution" as an :id and throw a CastError.
 router.get("/all-institution", getInstitutionData);
-export default router
+router.get("/:id", getInstitutionById);
+
+export default router;

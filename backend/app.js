@@ -14,7 +14,8 @@ import superadminroutes from "./routes/superAdminRoutes.js";
 import provinceadminroutes from "./routes/provinceAdminRoutes.js";
 import bookmarkroutes from "./routes/bookmarkRoutes.js";
 import notificationroutes from "./routes/notificationRoutes.js";
-import courseroutes from "./routes/courseRoutes.js"
+import courseroutes from "./routes/courseRoutes.js";
+import userroutes from "./routes/userRoutes.js"; // avatar endpoints
 
 dotenv.config();
 
@@ -39,6 +40,12 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /* =========================================================
+   STATIC FILES — serves uploaded avatars/documents
+   e.g. GET /uploads/avatars/<userId>/<file>
+========================================================= */
+app.use("/uploads", express.static("uploads"));
+
+/* =========================================================
    ROUTES
 ========================================================= */
 
@@ -55,7 +62,9 @@ app.use("/api/super-admin", superadminroutes);
 app.use("/api/province-admin", provinceadminroutes);
 app.use("/api/bookmarks", bookmarkroutes);
 app.use("/api/notifications", notificationroutes);
-app.use("/api/institution", courseroutes)
+app.use("/api/institution", courseroutes);
+app.use("/api/user", userroutes); // avatar endpoints
+
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

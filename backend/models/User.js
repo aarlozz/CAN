@@ -48,6 +48,17 @@ const finaluserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Profile photo
+    avatar: {
+      type: String,     // full public URL, e.g. http://host/uploads/avatars/<userId>/<file>
+      default: null,
+    },
+    avatarPath: {
+      type: String,     // relative disk path, used internally to delete the old file
+      default: null,
+      select: false,    // internal only — never sent to the frontend
+    },
   },
   { timestamps: true },
 );

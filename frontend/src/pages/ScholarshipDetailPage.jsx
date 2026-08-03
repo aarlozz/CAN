@@ -121,7 +121,7 @@ function ScholarshipDetailPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        
         <main className="min-h-screen pt-20 pb-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-pulse">
             <div className="h-6 w-24 bg-gray-100 rounded-full mb-6" />
@@ -135,7 +135,6 @@ function ScholarshipDetailPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </>
     );
   }
@@ -146,7 +145,7 @@ function ScholarshipDetailPage() {
   if (error || !scholarship) {
     return (
       <>
-        <Header />
+
         <main className="min-h-screen pt-20 pb-16 bg-gray-50 flex items-center justify-center">
           <div className="text-center px-4">
             <p className="text-5xl mb-4">🎓</p>
@@ -157,7 +156,7 @@ function ScholarshipDetailPage() {
             </Link>
           </div>
         </main>
-        <Footer />
+
       </>
     );
   }
@@ -169,7 +168,7 @@ function ScholarshipDetailPage() {
 
   return (
     <>
-      <Header />
+
       <main className="min-h-screen pt-20 pb-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
@@ -379,7 +378,7 @@ function ScholarshipDetailPage() {
           </div>
         </div>
       </main>
-      <Footer />
+
     </>
   );
 }

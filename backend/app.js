@@ -16,7 +16,9 @@ import bookmarkroutes from "./routes/bookmarkRoutes.js";
 import notificationroutes from "./routes/notificationRoutes.js";
 import courseroutes from "./routes/courseRoutes.js";
 import userroutes from "./routes/userRoutes.js"; // avatar endpoints
-
+import programOfferingRoutes from "./routes/programOfferingRoutes.js"; // adjust path
+import documentTypeRoutes from "./routes/documentTypes.js";
+import studentDocumentRoutes from "./routes/studentDocuments.js";
 dotenv.config();
 
 const app = express();
@@ -62,8 +64,14 @@ app.use("/api/super-admin", superadminroutes);
 app.use("/api/province-admin", provinceadminroutes);
 app.use("/api/bookmarks", bookmarkroutes);
 app.use("/api/notifications", notificationroutes);
+
 app.use("/api/institution", courseroutes);
 app.use("/api/user", userroutes); // avatar endpoints
+app.use("/api/document-types", documentTypeRoutes);
+app.use("/api/student/documents", studentDocumentRoutes);
+
+
+app.use("/api/admin", programOfferingRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");

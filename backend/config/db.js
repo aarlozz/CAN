@@ -1,12 +1,15 @@
 // MongoDB connection
 
 import mongoose from "mongoose";
+import { initGridFS } from "./gridfs.js";
 
 
 const connectionDM = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
+    initGridFS();
     console.log("MongoDB connected");
+    
   } catch (error) {
     console.error("MongoDB connection error:", error.message);
     process.exit(1);

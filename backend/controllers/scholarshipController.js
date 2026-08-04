@@ -414,187 +414,140 @@ export const createScholarship = async (req, res) => {
 };
 
 // ─── GET /api/scholarship/all  (public) ──────────────────────────────────────
+ 
+ 
 export const getAllScholarships = async (req, res) => {
   try {
     const {
-      // Location cascade
-      provinceId,
-      districtId,
-      municipalityId,
-      // Coverage
-      scholarshipType,
-      scholarshipType2, // accepted as an alias for backwards compatibility
-      minAmount,
-      maxAmount,
-      // Eligibility — academic / demographic
+      search,
+      subject,
       targetLevel,
       targetFaculty,
       degreeProgram,
       university,
       collegeType,
-      subject,
+      scholarshipType,
       gender,
-      hasDisability,
-      // Eligibility — new fields
       ethnicCategory,
-      minGPA, // student's own GPA; matches scholarships whose requirement is <= this
-      minPercentage, // same idea, percentage scale
-      studentAge, // matches scholarships whose [minAge, maxAge] window contains this
-      isFirstGenerationLearner,
-      // Status / lifecycle
-      status = "active",
-      search,
+      hasDisability,
+      province,
+      district,
+      municipality,
+      minAmount,
+      maxAmount,
+      includeExpired,
+      sort = "deadline",
       page = 1,
-      limit = 10,
+      limit = 12,
     } = req.query;
-
-    const filter = {
-      isDeleted: { $ne: true },
-      "verification.status": "approved", // Only show approved scholarships to students
+ 
+    const query = {
+      isDeleted: false,
+      isActive: true,
+      "verification.status": "approved",
     };
-
-    // ── Status (active / expired / all) ─────────────────────────────────────
-    const now = new Date();
-    if (status === "active") {
-      filter.isActive = { $ne: false };
-      filter.applicationDeadline = { $gte: now };
-    } else if (status === "expired") {
-      filter.applicationDeadline = { $lt: now };
-    } // status === "all" → no extra constraint
-
-    // ── Location cascade ─────────────────────────────────────────────────────
-    if (municipalityId)
-      filter["locationFilter.municipality.municipalityId"] = municipalityId;
-    else if (districtId)
-      filter["locationFilter.district.districtId"] = districtId;
-    else if (provinceId)
-      filter["locationFilter.province.provinceId"] = provinceId;
-
-    // ── Coverage ──────────────────────────────────────────────────────────────
-    const type = scholarshipType || scholarshipType2;
-    if (type) filter["coverage.scholarshipType2"] = type;
-
-    if (minAmount || maxAmount) {
-      filter["coverage.amountNpr"] = {};
-      if (minAmount) filter["coverage.amountNpr"].$gte = Number(minAmount);
-      if (maxAmount) filter["coverage.amountNpr"].$lte = Number(maxAmount);
+ 
+    if (includeExpired !== "true") {
+      query.applicationDeadline = { $gte: new Date() };
     }
-
-    // ── Eligibility ───────────────────────────────────────────────────────────
-    if (targetLevel) filter["eligibilityCriteria.targetLevel"] = targetLevel;
-    if (targetFaculty)
-      filter["eligibilityCriteria.targetFaculty"] = {
+ 
+    if (search) {
+      query.$text = { $search: search };
+    }
+ 
+    if (subject) {
+      query["eligibilityCriteria.subject"] = { $regex: subject, $options: "i" };
+    }
+    if (targetLevel) {
+      query["eligibilityCriteria.targetLevel"] = targetLevel;
+    }
+    if (targetFaculty) {
+      query["eligibilityCriteria.targetFaculty"] = {
         $regex: targetFaculty,
         $options: "i",
       };
-    if (degreeProgram)
-      filter["eligibilityCriteria.degreeProgram"] = {
+    }
+    if (degreeProgram) {
+      query["eligibilityCriteria.degreeProgram"] = {
         $regex: degreeProgram,
         $options: "i",
       };
-    if (university)
-      filter["eligibilityCriteria.university"] = {
+    }
+    if (university) {
+      query["eligibilityCriteria.university"] = {
         $regex: university,
         $options: "i",
       };
-    if (collegeType) filter["eligibilityCriteria.collegeType"] = collegeType;
-    if (subject)
-      filter["eligibilityCriteria.subject"] = {
-        $regex: subject,
-        $options: "i",
-      };
-    if (gender && gender !== "any")
-      filter["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
-    if (hasDisability === "true")
-      filter["eligibilityCriteria.hasDisability"] = true;
-
-    // Category: student picks their own category, we match scholarships
-    // targeting that category OR open to everyone ("any"/unset).
-    if (ethnicCategory && ethnicCategory !== "any")
-      filter["eligibilityCriteria.ethnicCategory"] = {
-        $in: [ethnicCategory, "any", null],
-      };
-
-    // GPA/percentage: student enters their own score; only show scholarships
-    // whose minimum requirement they clear (or scholarships with no requirement).
-    if (minGPA != null && minGPA !== "")
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minGPA": { $exists: false } },
-            { "eligibilityCriteria.minGPA": { $lte: Number(minGPA) } },
-          ],
-        },
-      ]);
-    if (minPercentage != null && minPercentage !== "")
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minPercentage": { $exists: false } },
-            {
-              "eligibilityCriteria.minPercentage": {
-                $lte: Number(minPercentage),
-              },
-            },
-          ],
-        },
-      ]);
-
-    // Age: student enters their age; only show scholarships whose [min,max]
-    // window contains it (unset bounds are treated as open).
-    if (studentAge != null && studentAge !== "") {
-      const age = Number(studentAge);
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minAge": { $exists: false } },
-            { "eligibilityCriteria.minAge": { $lte: age } },
-          ],
-        },
-        {
-          $or: [
-            { "eligibilityCriteria.maxAge": { $exists: false } },
-            { "eligibilityCriteria.maxAge": { $gte: age } },
-          ],
-        },
-      ]);
     }
-
-    if (isFirstGenerationLearner === "true")
-      filter["eligibilityCriteria.isFirstGenerationLearner"] = true;
-
-    // ── Free-text search ─────────────────────────────────────────────────────
-    // Now covers title/institution/description AND degree/faculty/level/
-    // university/subject, so typing "BE Computer", "Master's", or
-    // "Bachelors" finds scholarships by what a student is studying, not
-    // just by scholarship name.
-    if (search?.trim()) {
-      filter.$and = (filter.$and || []).concat(buildSearchClauses(search));
+    if (collegeType) {
+      query["eligibilityCriteria.collegeType"] = collegeType;
     }
-
-    const skip = (Number(page) - 1) * Number(limit);
-
+    if (scholarshipType) {
+      query["coverage.scholarshipType2"] = scholarshipType;
+    }
+    if (gender && gender !== "any") {
+      // A scholarship open to "any" gender should still show up when a
+      // student filters by their own gender, so match either.
+      query["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
+    }
+    if (ethnicCategory && ethnicCategory !== "any") {
+      query["eligibilityCriteria.ethnicCategory"] = {
+        $in: [ethnicCategory, "any"],
+      };
+    }
+    if (hasDisability === "true") {
+      query["eligibilityCriteria.hasDisability"] = true;
+    }
+ 
+    if (province) {
+      query["locationFilter.province.provinceName"] = province;
+    }
+    if (district) {
+      query["locationFilter.district.districtName"] = district;
+    }
+    if (municipality) {
+      query["locationFilter.municipality.municipalityName"] = municipality;
+    }
+ 
+    if (minAmount || maxAmount) {
+      query["coverage.amountNpr"] = {};
+      if (minAmount) query["coverage.amountNpr"].$gte = Number(minAmount);
+      if (maxAmount) query["coverage.amountNpr"].$lte = Number(maxAmount);
+    }
+ 
+    const sortMap = {
+      deadline: { applicationDeadline: 1 },
+      newest: { createdAt: -1 },
+      amount: { "coverage.amountNpr": -1 },
+    };
+    const sortSpec = sortMap[sort] || sortMap.deadline;
+ 
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 12));
+ 
     const [scholarships, total] = await Promise.all([
-      Scholarship.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
+      Scholarship.find(query)
+        .sort(sortSpec)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .lean(),
-      Scholarship.countDocuments(filter),
+      Scholarship.countDocuments(query),
     ]);
-
-    res.json({
-      total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)) || 1,
+ 
+    return res.status(200).json({
       scholarships,
+      total,
+      page: pageNum,
+      pages: Math.max(1, Math.ceil(total / limitNum)),
     });
   } catch (error) {
     console.error("getAllScholarships error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
-
 // ─── GET /api/scholarship/my  (institution only) ──────────────────────────────
 // Now supports the same free-text `search` param as getAllScholarships, so
 // an institution managing many scholarships can type e.g. "Bachelor" or

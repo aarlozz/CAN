@@ -25,8 +25,9 @@ const SCHOLARSHIP_TYPES = [
   { value: "ethnic", label: "Ethnic" },
 ];
 
-// Use the shared taxonomy so this always matches the backend enum
-const TARGET_LEVELS = STUDY_LEVELS;
+// STUDY_LEVELS (v2) items look like { id, name, hasFaculty, ... } — normalize
+// to the { value, label } shape the filter selects expect.
+const TARGET_LEVELS = STUDY_LEVELS.map((l) => ({ value: l.id, label: l.name }));
 
 const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
@@ -65,13 +66,34 @@ const TYPE_LABEL = {
   ethnic: "Ethnic",
 };
 
-const LEVEL_LABEL = Object.fromEntries(
-  STUDY_LEVELS.map((l) => [l.value, l.label]),
-);
+// id -> display name, e.g. LEVEL_LABEL["bachelor"] === "Bachelor's"
+const LEVEL_LABEL = Object.fromEntries(STUDY_LEVELS.map((l) => [l.id, l.name]));
 
 const COLLEGE_TYPE_LABEL = Object.fromEntries(
   COLLEGE_TYPES.map((c) => [c.value, c.label]),
 );
+
+// UNIVERSITIES (v2) is a flat array of { id, name, shortName, group,
+// hasOwnPlusTwo } — `group` is "nepal" | "foreign_affiliation". Bucket it
+// into the { group, options: [{value,label}] } shape FilterGroupedSelect
+// renders as <optgroup>s.
+const UNIVERSITY_GROUP_LABELS = {
+  nepal: "Nepal",
+  foreign_affiliation: "Foreign Affiliation",
+};
+
+const UNIVERSITY_GROUPS = Object.entries(
+  UNIVERSITIES.reduce((acc, u) => {
+    (acc[u.group] ||= []).push({ value: u.id, label: u.name });
+    return acc;
+  }, {}),
+).map(([group, options]) => ({
+  group: UNIVERSITY_GROUP_LABELS[group] || group,
+  options,
+}));
+
+// id -> display name, e.g. UNIVERSITY_LABEL["ku"] === "Kathmandu University"
+const UNIVERSITY_LABEL = Object.fromEntries(UNIVERSITIES.map((u) => [u.id, u.name]));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -121,7 +143,7 @@ function FilterSelect({
         }`}
       >
         <option value="">{placeholder}</option>
-        {options.map((o) => (
+        {(options || []).map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
@@ -151,8 +173,9 @@ function FilterInput({ label, value, onChange, placeholder }) {
   );
 }
 
-// Select with <optgroup> support — still used for University, which is
-// grouped by region rather than a flat list.
+// Select with <optgroup> support — used for University, which is grouped
+// (Nepal / Foreign Affiliation) rather than a flat list. `groups` is
+// [{ group: string, options: [{ value, label }] }].
 function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "All" }) {
   return (
     <div className="flex flex-col gap-1">
@@ -165,11 +188,11 @@ function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "Al
         className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-700"
       >
         <option value="">{placeholder}</option>
-        {groups.map((g) => (
+        {(groups || []).map((g) => (
           <optgroup key={g.group} label={g.group}>
-            {g.options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+            {(g.options || []).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </optgroup>
@@ -314,21 +337,7 @@ function ScholarshipCard({ s }) {
             🎓 Program fee: {formatNPR(s.coverage.totalProgramFeeNpr)}
           </p>
         )}
-        {s.remainingSeats != null && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-red-400 h-full rounded-full"
-                style={{
-                  width: `${Math.round(((s.totalSeats - s.remainingSeats) / s.totalSeats) * 100)}%`,
-                }}
-              />
-            </div>
-            <span className="shrink-0">
-              {s.remainingSeats} / {s.totalSeats} seats left
-            </span>
-          </div>
-        )}
+        
         {s.locationFilter?.province?.provinceName && (
           <p className="text-xs text-gray-400">
             📍 {s.locationFilter.province.provinceName}
@@ -476,7 +485,6 @@ const FILTER_LABELS = {
   minGPA: "Your GPA",
   minPercentage: "Your Percentage",
   studentAge: "Your Age",
- 
 };
 
 const DEFAULT_FILTERS = {
@@ -506,7 +514,6 @@ const DEFAULT_FILTERS = {
   minGPA: "",
   minPercentage: "",
   studentAge: "",
-  
 };
 
 export default function ScholarshipList() {
@@ -559,17 +566,20 @@ export default function ScholarshipList() {
   // Level + Faculty. Mirrors the Level → Faculty → Program hierarchy in
   // educationTaxonomy.js, same pattern as the province/district/municipality
   // cascade used below for location.
+  //
+  // NOTE: getFacultiesForLevel / getProgramsForFaculty return full objects
+  // ({ id, name, ... }), not plain strings — map id -> value, name -> label.
   const levelHasFaculty = LEVELS_WITH_FACULTY.includes(filters.targetLevel);
   const facultyOptions = levelHasFaculty
     ? getFacultiesForLevel(filters.targetLevel).map((f) => ({
-        value: f,
-        label: f,
+        value: f.id,
+        label: f.name,
       }))
     : [];
   const programOptions =
     levelHasFaculty && filters.targetFaculty
       ? getProgramsForFaculty(filters.targetLevel, filters.targetFaculty).map(
-          (p) => ({ value: p, label: p }),
+          (p) => ({ value: p.id, label: p.name }),
         )
       : [];
 
@@ -610,7 +620,6 @@ export default function ScholarshipList() {
         minGPA: "minGPA",
         minPercentage: "minPercentage",
         studentAge: "studentAge",
-       
       };
 
       for (const [fk, pk] of Object.entries(MAP)) {
@@ -714,7 +723,6 @@ export default function ScholarshipList() {
             faculty, level, and university too, not just title/institution.
             e.g. "BE Computer", "Master's", "Bachelors" all work. */}
         <div className="relative flex-1">
-          
           <input
             type="text"
             placeholder="Search by title, institution, degree, or level"
@@ -848,7 +856,7 @@ export default function ScholarshipList() {
               label="University / Affiliation"
               value={filters.university}
               onChange={(v) => setFilter("university", v)}
-              groups={UNIVERSITIES}
+              groups={UNIVERSITY_GROUPS}
               placeholder="All Universities"
             />
 
@@ -860,7 +868,6 @@ export default function ScholarshipList() {
               placeholder="All College Types"
             />
 
-            
             <FilterSelect
               label="Gender"
               value={filters.gender}
@@ -998,7 +1005,6 @@ export default function ScholarshipList() {
                   className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
               </div>
-
             </div>
           </div>
 

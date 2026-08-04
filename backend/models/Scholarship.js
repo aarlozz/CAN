@@ -32,8 +32,9 @@ const scholarshipSchema = new mongoose.Schema(
           "gender",
           "ethnic",
         ],
-         //
-         // required: [true, "Scholarship type is required"],
+
+        //
+        // required: [true, "Scholarship type is required"],
       },
       // Total cost of the target degree/program (or per-year fee), used to
       // auto-derive whichever of amountNpr / percentage the institution
@@ -77,6 +78,12 @@ const scholarshipSchema = new mongoose.Schema(
         // required: [true, "Scholarship type is required"],
       },
       targetFaculty: { type: String, trim: true },
+      // Free-text subject / field of study, e.g. "Computer Science",
+      // "Nursing" — distinct from targetFaculty (broad faculty, e.g.
+      // "Computer & IT") and degreeProgram (specific program name, e.g.
+      // "BSc CSIT"). Previously sent by the frontend but not declared here,
+      // so Mongoose was silently dropping it on save.
+      subject: { type: String, trim: true },
       // Specific degree/program this scholarship targets, e.g. "BSc CSIT", "MBBS"
       degreeProgram: { type: String, trim: true },
       // University / affiliation this scholarship is tied to, e.g. "Tribhuvan University (TU)"
@@ -92,7 +99,7 @@ const scholarshipSchema = new mongoose.Schema(
           "affiliated_college",
         ],
       },
-      
+
       gender: {
         type: String,
         enum: ["male", "female", "other", "any"],
@@ -146,7 +153,7 @@ const scholarshipSchema = new mongoose.Schema(
       minEntranceScore: { type: Number, min: 0 },
 
       // ── Other common flags ───────────────────────────────────────────────────
-      
+
       minAttendancePercent: { type: Number, min: 0, max: 100 }, // continuation/renewal condition
 
       additionalRequirements: { type: String, trim: true },
@@ -234,6 +241,7 @@ scholarshipSchema.index({ "coverage.scholarshipType2": 1 });
 scholarshipSchema.index({ "coverage.amountNpr": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetLevel": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetFaculty": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.subject": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.degreeProgram": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.university": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.collegeType": 1 });
@@ -250,7 +258,7 @@ scholarshipSchema.index(
   { name: "scholarship_text_search" },
 );
 
-// ─── Virtuals ──────────────────────────────────────────────────────────────────
+// ─── Virtuals ────────────────────────────────────────────────────────────────
 scholarshipSchema.virtual("isExpired").get(function () {
   return new Date() > this.applicationDeadline;
 });

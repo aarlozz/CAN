@@ -58,7 +58,7 @@ export default function LocationCascade({
       .finally(() => setLoadingProvinces(false));
   }, []);
 
-  // ── Resolve the province's _id whether we're in id or name mode ────────
+  // ── Resolve the province's/district's _id whether we're in id or name mode ─
   const selectedProvinceId =
     idMode === "id"
       ? province
@@ -68,6 +68,14 @@ export default function LocationCascade({
     idMode === "id"
       ? district
       : districts.find((d) => d.districtName === district)?._id || "";
+
+  // Municipality select's `value` needs to match whatever the <option>
+  // values are for the CURRENT mode: in "id" mode options are m._id, in
+  // "name" mode options are m.municipalityName. Since the `municipality`
+  // prop is already stored in exactly that shape for each mode, no lookup
+  // is needed here (unlike province/district, whose <option> values are
+  // ALWAYS _id regardless of mode).
+  const selectedMunicipalityValue = municipality;
 
   // ── Load districts when province changes ────────────────────────────────
   useEffect(() => {
@@ -125,14 +133,15 @@ export default function LocationCascade({
     }
   };
 
+  // FIX: the <option value> for municipality is already m._id (idMode="id")
+  // or m.municipalityName (idMode="name") — see the render below. So
+  // e.target.value IS the value we want to emit directly; doing another
+  // `.find(m => m._id === val)` here (as before) broke name mode, since val
+  // was a name, not an _id, so the lookup always failed and silently reset
+  // the filter to "".
   const handleMunicipalityChange = (e) => {
     const val = e.target.value;
-    if (idMode === "id") {
-      emit({ province, district, municipality: val });
-    } else {
-      const muni = municipalities.find((m) => m._id === val);
-      emit({ province, district, municipality: muni?.municipalityName || "" });
-    }
+    emit({ province, district, municipality: val });
   };
 
   return (
@@ -183,7 +192,7 @@ export default function LocationCascade({
         <label className={labelCls}>{labels.municipality}</label>
         <select
           className={selectCls}
-          value={municipality}
+          value={selectedMunicipalityValue}
           onChange={handleMunicipalityChange}
           disabled={!selectedDistrictId || loadingMunicipalities}
         >

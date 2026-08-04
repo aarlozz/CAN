@@ -1,3 +1,5 @@
+// models/Courses.js
+
 import mongoose from "mongoose";
 import {
   STUDY_LEVELS,
@@ -6,13 +8,14 @@ import {
   getProgramsForFaculty,
 } from "../constants/educationTaxonomy.js";
 
-const VALID_LEVELS = STUDY_LEVELS.map((l) => l.value);
+// Fixed: taxonomy objects use `id`, not `value`.
+const VALID_LEVELS = STUDY_LEVELS.map((l) => l.id);
 
 const courseSchema = new mongoose.Schema(
   {
     institution: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "InstitutionProfile", // must exactly match mongoose.model("InstitutionProfile", ...)
+      ref: "InstitutionProfile",
       required: true,
       index: true,
     },
@@ -23,7 +26,7 @@ const courseSchema = new mongoose.Schema(
       enum: VALID_LEVELS,
     },
 
-    // Only set for levels that have a faculty step (bachelors, masters, ...)
+    // Only set for levels that have a faculty step (bachelor's, master's, ...)
     faculty: {
       type: String,
       default: undefined,
@@ -32,13 +35,14 @@ const courseSchema = new mongoose.Schema(
           const needsFaculty = LEVELS_WITH_FACULTY.includes(this.level);
           if (!needsFaculty) return !val; // must be empty for levels without a faculty step
           if (!val) return false; // required when the level has one
-          return getFacultiesForLevel(this.level).includes(val);
+          // Fixed: getFacultiesForLevel returns objects, not strings.
+          return getFacultiesForLevel(this.level).some((f) => f.id === val);
         },
         message: "Faculty does not match the selected level.",
       },
     },
 
-    // The actual degree/program name, e.g. "B.Sc. Computer Science"
+    // The program id, e.g. "bsc_csit" (not the display name)
     program: {
       type: String,
       default: undefined,
@@ -47,14 +51,17 @@ const courseSchema = new mongoose.Schema(
           const needsFaculty = LEVELS_WITH_FACULTY.includes(this.level);
           if (!needsFaculty) return !val;
           if (!val || !this.faculty) return false;
-          return getProgramsForFaculty(this.level, this.faculty).includes(val);
+          // Fixed: getProgramsForFaculty returns objects, not strings.
+          return getProgramsForFaculty(this.level, this.faculty).some((p) => p.id === val);
         },
         message: "Program does not match the selected faculty.",
       },
     },
 
-    duration: { type: String, trim: true }, // e.g. "4 years" — string, not Number
-    description: { type: String, trim: true, required: true },
+    duration: { type: String, trim: true }, // display string, e.g. "4 years"
+    durationYears: { type: Number }, // structured value, set by institution at add-time
+
+    description: { type: String, trim: true }, // no longer required
 
     // Soft-disable instead of hard delete, so old scholarships/applications
     // that reference this course still resolve correctly.

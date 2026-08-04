@@ -17,6 +17,8 @@ import ProvinceAdminDashboard from "./pages/Dashboard/ProvinceAdminDashboard";
 import Layout from "./Components/Layout";
 import ProfileView from "./pages/ProfileView";
 import BookmarksPage from "./pages/BookmarksPage";
+import ScholarshipBrowse from "./pages/scholarships/scholarshipbrowse";
+
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        <Route path="/scholarships" element={<ScholarshipBrowse />} />
 
         {/* Protected — students only */}
         <Route

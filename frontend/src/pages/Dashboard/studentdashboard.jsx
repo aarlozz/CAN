@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
-import NotificationToast from "../../Components/NotificationToast";
+import NotificationToast from "../../Components/NotificationToast.jsx";
+import DocumentManager from "../../Components/DocumentManager.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -246,6 +247,10 @@ export default function StudentDashboard() {
           {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-6">
             {/* Stats bar */}
+             
+
+  {/* SCHOLARSHIPS SECTION */}
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"></div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 {
@@ -359,7 +364,7 @@ export default function StudentDashboard() {
                   </p>
                   {filter === "all" && (
                     <a
-                      href="/institutions"
+                      href="/scholarships"
                       className="inline-flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
                     >
                       Browse Scholarships

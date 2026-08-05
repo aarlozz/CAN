@@ -18,6 +18,9 @@ import Layout from "./Components/Layout";
 import ProfileView from "./pages/ProfileView";
 import BookmarksPage from "./pages/BookmarksPage";
 import ScholarshipBrowse from "./pages/scholarships/scholarshipbrowse";
+import InstitutionSignupStart from "./pages/Auth/InstitutionSignupStart";
+import CompleteInstitutionProfile from "./pages/Auth/CompleteInstitutionProfile";
+// ...
 
 
 function App() {
@@ -40,7 +43,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route path="/scholarships" element={<ScholarshipBrowse />} />
 
         {/* Protected — students only */}
@@ -53,6 +56,8 @@ function App() {
           }
         />
       </Route>
+      <Route path="/signup/institution" element={<InstitutionSignupStart />} />
+<Route path="/complete-institution-profile" element={<CompleteInstitutionProfile />} />
 
       {/* Auth pages — no shared header needed */}
       <Route path="/login" element={<Login />} />

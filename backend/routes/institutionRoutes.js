@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getInstitutionDashboard,
+  completeInstitutionProfile,
   updateInstitutionProfile,
   verifyInstitution,
 } from "../controllers/InstitutionProfileController.js";
@@ -16,15 +17,21 @@ router.get(
   getInstitutionDashboard
 );
 
-// ── Profile (NEW) ──────────────────────────────────────────────────────────────
+// ── Complete profile (Step 3 of stepwise Google signup) ────────────────────────
+router.put(
+  "/complete-profile",
+  protect,
+  requireRole("institution"),
+  completeInstitutionProfile
+);
+
+// ── Profile (edit after signup) ─────────────────────────────────────────────────
 router.put(
   "/profile",
   protect,
   requireRole("institution"),
   updateInstitutionProfile
 );
-
-
 
 // ── Verification (admin only) ─────────────────────────────────────────────────
 router.patch(

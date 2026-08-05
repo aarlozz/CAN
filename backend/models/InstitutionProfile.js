@@ -28,6 +28,14 @@ const institutionSchema = new mongoose.Schema(
       unique: true,
     },
 
+    // ── Stepwise Google signup ────────────────────────────────────────────────
+    // Captured in Step 1 (before Google auth) and sent along with the Google
+    // credential on first login, so the profile stub exists as soon as the
+    // account is created — Step 3 (completeInstitutionProfile) then fills in
+    // everything else and flips profileCompleted to true.
+    affiliatedUniversity: { type: String, trim: true },
+    profileCompleted: { type: Boolean, default: false },
+
     // Basic info
     institutionName: {
       type: String,
@@ -112,6 +120,7 @@ institutionSchema.index({ institutionName: 1 });
 institutionSchema.index({ "verification.status": 1 });
 institutionSchema.index({ "location.provinceRef.provinceId": 1 });
 institutionSchema.index({ "location.districtRef.districtId": 1 });
+institutionSchema.index({ profileCompleted: 1 });
 
 // Optimize Super Admin searches by Status + Pagination
 institutionSchema.index({ "verification.status": 1, createdAt: -1 });

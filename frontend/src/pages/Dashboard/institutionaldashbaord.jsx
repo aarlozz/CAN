@@ -311,16 +311,24 @@ export default function InstitutionalDashboard() {
     }
     const headers = { Authorization: `Bearer ${token}` };
 
-    const profileReq = axios
-      .get(`${API}/api/institution/dashboard-institution`, { headers })
-      .then((res) => setData(res.data))
-      .catch((err) => {
-        if (err.response?.status === 401) {
-          localStorage.clear();
-          navigate("/login");
-        } else
-          setError(err.response?.data?.message || "Failed to load dashboard.");
-      });
+   const profileReq = axios
+  .get(`${API}/api/institution/dashboard-institution`, { headers })
+  .then((res) => {
+    if (res.data.profileCompleted === false) {
+      navigate("/complete-institution-profile");
+      return;
+    }
+
+    setData(res.data);
+  })
+  .catch((err) => {
+    if (err.response?.status === 401) {
+      localStorage.clear();
+      navigate("/login");
+    } else {
+      setError(err.response?.data?.message || "Failed to load dashboard.");
+    }
+  });
 
     const scholarshipReq = axios
       .get(`${API}/api/scholarship/my`, { headers })
@@ -1397,7 +1405,7 @@ export default function InstitutionalDashboard() {
                 onClick={() => setSidebarOpen(false)}
                 className="text-gray-400 hover:text-gray-600 text-lg leading-none"
               >
-                ×
+                
               </button>
             </div>
             <div className="flex flex-col items-center py-5 px-4 border-b border-gray-50">

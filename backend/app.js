@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 
 import authroutes from "./routes/authRoutes.js";
 import institutionroutes from "./routes/institutionRoutes.js";
@@ -19,11 +20,21 @@ import userroutes from "./routes/userRoutes.js"; // avatar endpoints
 import programOfferingRoutes from "./routes/programOfferingRoutes.js"; // adjust path
 import documentTypeRoutes from "./routes/documentTypes.js";
 import studentDocumentRoutes from "./routes/studentDocuments.js";
-dotenv.config();
+import userRoutes from "./routes/userRoutes.js";
+
+
+
 
 const app = express();
 
 app.use(cors());
+// 1. Serve uploaded files as static assets — this is what makes the
+//    avatar URLs (e.g. http://localhost:5000/uploads/avatars/<id>/<file>)
+//    actually load in the browser.
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// 2. Mount the new route
+app.use("/api/user", userRoutes);
 
 /* =========================================================
    🔥 FIX: PayloadTooLargeError

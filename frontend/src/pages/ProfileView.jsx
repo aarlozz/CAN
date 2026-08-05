@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import { UNIVERSITIES } from "../constants/educationTaxonomy"; // adjust path
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const SCHOOL_TYPES = ["Government", "Community", "Private", "Other"];
@@ -122,7 +123,8 @@ export default function ProfileView() {
 
   // ── Institution form state ──────────────────────────────────────────────
   const [institutionForm, setInstitutionForm] = useState({
-    institutionName: "", institutionType: "", establishedYear: "", website: "", description: "",
+    institutionName: "", institutionType: "", affiliatedUniversity: "",
+    establishedYear: "", website: "", description: "",
     province: "", district: "", municipality: "", ward: "", street: "",
     contactName: "", contactPhone: "", contactEmail: "", contactDesignation: "",
   });
@@ -159,6 +161,7 @@ export default function ProfileView() {
         setInstitutionForm({
           institutionName: p.institutionName || "",
           institutionType: p.institutionType || "",
+          affiliatedUniversity: p.affiliatedUniversity || "",
           establishedYear: p.establishedYear || "",
           website: p.website || "",
           description: p.description || "",
@@ -215,6 +218,7 @@ export default function ProfileView() {
         await api.put("/institution/profile", {
           institutionName: institutionForm.institutionName,
           institutionType: institutionForm.institutionType,
+          affiliatedUniversity: institutionForm.affiliatedUniversity,
           establishedYear: institutionForm.establishedYear ? Number(institutionForm.establishedYear) : undefined,
           website: institutionForm.website,
           description: institutionForm.description,
@@ -315,6 +319,7 @@ export default function ProfileView() {
           ]
         : [
             ["Institution Type", institutionForm.institutionType],
+            ["Affiliated University", institutionForm.affiliatedUniversity],
             ["Established Year", institutionForm.establishedYear],
             ["Website", institutionForm.website],
             ["Description", institutionForm.description],
@@ -745,6 +750,7 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
         <DetailGrid>
           <DetailCard icon="🏢" label="Name" value={form.institutionName} />
           <DetailCard icon="🏷️" label="Type" value={form.institutionType} />
+          <DetailCard icon="🎓" label="Affiliated University" value={form.affiliatedUniversity} />
           <DetailCard icon="📅" label="Established Year" value={form.establishedYear} />
           <DetailCard icon="🌐" label="Website" value={form.website} />
           <DetailCard icon="📝" label="Description" value={form.description} />
@@ -761,6 +767,12 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
             <select className={inputCls} value={form.institutionType} onChange={upd("institutionType")}>
               <option value="">Select…</option>
               {INSTITUTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Affiliated University">
+            <select className={inputCls} value={form.affiliatedUniversity} onChange={upd("affiliatedUniversity")}>
+              <option value="">Select…</option>
+              {UNIVERSITIES.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
             </select>
           </Field>
           <Field label="Established Year">

@@ -104,6 +104,11 @@ export const signup = async (req, res) => {
           email:       contactPerson?.email       || "",
           designation: contactPerson?.designation || "",
         },
+        // This form is the full institution signup (email/password path) —
+        // everything's filled in already, so mark it complete. Only the
+        // stepwise Google signup path (googleLogin below) creates a
+        // profileCompleted: false stub that still needs Step 2.
+        profileCompleted: true,
         isApproved: false,                    
         verification: { status: "pending" },
       });
@@ -159,8 +164,13 @@ export const login = async (req, res) => {
 
 export const googleLogin = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, role, institutionType, affiliatedUniversity } = req.body;
     if (!token) return res.status(400).json({ message: "Google token is required" });
+
+    // Only "institution" may be requested explicitly — anything else (or
+    // omitted, as the existing student flow does) falls back to "student"
+    // so this stays backward-compatible with the current student signup.
+    const requestedRole = role === "institution" ? "institution" : "student";
 
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -175,33 +185,53 @@ export const googleLogin = async (req, res) => {
     let profile = null;
 
     if (!user) {
-      // Create new student user
       user = await User.create({
         name,
         email,
-        role: "student",
+        role: requestedRole,
         authProvider: "google",
         googleId,
         isVerified: true,
       });
 
-      console.log("Creating StudentProfile...");
-      // Create empty student profile
-      profile = await StudentProfile.create({
-        user: user._id,
-        address: {
-          province: "Not Specified",
-          district: "Not Specified",
-          municipality: "Not Specified",
-        },
-        guardian_info: {
-          name: "Not Specified",
-          relation: "Not Specified",
-          phone_number: "0000000000",
-        }
-      });
-      console.log("✅ StudentProfile created:");
-      console.log(profile);
+      if (requestedRole === "institution") {
+        console.log("Creating InstitutionProfile stub...");
+        // Stub only — institutionName/type are placeholders the institution
+        // will confirm/fill in during Step 2 (completeInstitutionProfile).
+        // profileCompleted stays false until that step runs, which is what
+        // drives the /complete-institution-profile redirect on the frontend.
+        profile = await InstitutionProfile.create({
+          user: user._id,
+          institutionName: name || "Untitled Institution",
+          institutionType: ["School", "College", "University"].includes(institutionType)
+            ? institutionType
+            : "College",
+          affiliatedUniversity: affiliatedUniversity || undefined,
+          profileCompleted: false,
+          location: {},
+          contactPerson: {},
+          verification: { status: "pending" },
+        });
+        console.log("✅ InstitutionProfile created:");
+        console.log(profile);
+      } else {
+        console.log("Creating StudentProfile...");
+        profile = await StudentProfile.create({
+          user: user._id,
+          address: {
+            province: "Not Specified",
+            district: "Not Specified",
+            municipality: "Not Specified",
+          },
+          guardian_info: {
+            name: "Not Specified",
+            relation: "Not Specified",
+            phone_number: "0000000000",
+          }
+        });
+        console.log("✅ StudentProfile created:");
+        console.log(profile);
+      }
     } else {
       // Existing user
       if (user.role === "student") {

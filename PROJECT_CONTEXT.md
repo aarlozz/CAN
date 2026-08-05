@@ -1,5 +1,5 @@
 # 📦 PROJECT CONTEXT — AI-Ready Summary
-> Generated: 2026-08-05 14:15:33
+> Generated: 2026-08-05 14:58:24
 > Root: `C:\Users\Asus\CAN`
 
 ---
@@ -30,10 +30,13 @@
 CAN/
 ├── backend
 │   ├── config
-│   │   └── db.js
+│   │   ├── db.js
+│   │   └── gridfs.js
 │   ├── constants
 │   │   └── educationTaxonomy.js
 │   ├── controllers
+│   │   ├── admin
+│   │   │   └── programOfferingController.js
 │   │   ├── adminController.js
 │   │   ├── applicationController.js
 │   │   ├── authController.js
@@ -60,7 +63,8 @@ CAN/
 │   │   ├── avatarUpload.js
 │   │   ├── errorHandler.js
 │   │   ├── logoUpload.js
-│   │   └── upload.js
+│   │   ├── upload.js
+│   │   └── uploadMemory.js
 │   ├── models
 │   │   ├── Activitylog.js
 │   │   ├── Admin.js
@@ -68,15 +72,18 @@ CAN/
 │   │   ├── College.js
 │   │   ├── Courses.js
 │   │   ├── District.js
+│   │   ├── DocumentType.js
 │   │   ├── InstitutionProfile.js
 │   │   ├── Municipality.js
 │   │   ├── Notification.js
 │   │   ├── Passwordresettoken.js
+│   │   ├── ProgramOffering.js
 │   │   ├── Province.js
 │   │   ├── ProvinceAdminProfile.js
 │   │   ├── Provincialadmin.js
 │   │   ├── Scholarship.js
 │   │   ├── ScholarshipApplication.js
+│   │   ├── ScholarshipCategory.js
 │   │   ├── Student.js
 │   │   ├── StudentDocument.js
 │   │   ├── StudentProfile.js
@@ -89,19 +96,24 @@ CAN/
 │   │   ├── bookmarkRoutes.js
 │   │   ├── collegeRoutes.js
 │   │   ├── courseRoutes.js
+│   │   ├── documentTypes.js
 │   │   ├── InstitutionbuildingRoutes.js
 │   │   ├── institutionRoutes.js
 │   │   ├── locationRoutes.js
 │   │   ├── notificationRoutes.js
+│   │   ├── programOfferingRoutes.js
 │   │   ├── provinceAdminRoutes.js
 │   │   ├── scholarshipRoutes.js
+│   │   ├── studentDocuments.js
 │   │   ├── studentRoutes.js
 │   │   ├── superAdminRoutes.js
 │   │   └── userRoutes.js
 │   ├── scripts
+│   │   ├── seedProgramOfferings.js
 │   │   └── seedSuperAdmin.js
 │   ├── seeder
-│   │   └── adminseeder.js
+│   │   ├── adminseeder.js
+│   │   └── seedDocumentTypes.js
 │   ├── uploads
 │   │   └── avatars
 │   │       └── 6a6ccf6c86ae7d18e9af5215
@@ -165,6 +177,8 @@ CAN/
 │   │   │   │       └── CAN_logo.png
 │   │   │   └── react.svg
 │   │   ├── Components
+│   │   │   ├── CourseCatalogPicker.jsx
+│   │   │   ├── DocumentManager.jsx
 │   │   │   ├── educationCascade.jsx
 │   │   │   ├── footer.jsx
 │   │   │   ├── header.jsx
@@ -195,10 +209,13 @@ CAN/
 │   │   │   │   ├── CollegeDashboard.jsx
 │   │   │   │   ├── dashboard.jsx
 │   │   │   │   ├── institutionaldashbaord.jsx
+│   │   │   │   ├── InstitutionDetail.jsx
 │   │   │   │   ├── ProvinceAdminDashboard.jsx
 │   │   │   │   ├── studentdashboard.jsx
 │   │   │   │   └── SuperAdminDashboard.jsx
 │   │   │   ├── scholarships
+│   │   │   │   ├── scholarship.jsx
+│   │   │   │   ├── scholarshipbrowse.jsx
 │   │   │   │   ├── scholarshipDetail.jsx
 │   │   │   │   └── scholarshipList.jsx
 │   │   │   ├── BookmarksPage.jsx
@@ -230,7 +247,8 @@ CAN/
 ├── package.json
 ├── PROJECT_OVERVIEW.md
 ├── README.md
-└── structure.tx
+├── structure.tx
+└── structure.txt
 ```
 
 ---
@@ -426,8 +444,8 @@ module.exports = router;
 import express from "express";
 import {
   listMyCourses,
-  addCourse,
-  updateCourse,
+  getCourseCatalog,
+  addCoursesBulk,
   removeCourse,
 } from "../controllers/courseController.js";
 // ⚠️ Adjust this import path/name to match your actual auth middleware.
@@ -436,9 +454,148 @@ import { protect, requireRole } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.get("/courses", protect, requireRole("institution"), listMyCourses);
-router.post("/courses", protect, requireRole("institution"), addCourse);
-router.put("/courses/:courseId", protect, updateCourse);
+router.get("/courses/catalog", protect, requireRole("institution"), getCourseCatalog);
+router.post("/courses/bulk", protect, requireRole("institution"), addCoursesBulk);
 router.delete("/courses/:courseId", protect, requireRole("institution"), removeCourse);
+
+export default router;
+```
+
+#### `backend/routes/documentTypes.js`
+```js
+import express from "express";
+import DocumentType from "../models/DocumentType.js";
+import ScholarshipCategory from "../models/ScholarshipCategory.js";
+// Adjust this path to wherever protect/requireRole actually live in your project
+import { protect, requireRole } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+// ── GET /api/document-types ─────────────────────────────────────────────────
+// Any logged-in user: fetch the active master lists (used by the frontend
+// to render the level selector, category checkboxes, and checklist labels).
+router.get("/", protect, async (req, res) => {
+  try {
+    const documentTypes = await DocumentType.find({ isActive: true }).sort({
+      group: 1,
+      sortOrder: 1,
+    });
+    const categories = await ScholarshipCategory.find({
+      isActive: true,
+    }).sort({ sortOrder: 1 });
+
+    res.json({ documentTypes, categories });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to load document types", error: err.message });
+  }
+});
+
+// ── Admin: Document Types CRUD ──────────────────────────────────────────────
+router.post("/", protect, requireRole("admin"), async (req, res) => {
+  try {
+    const docType = await DocumentType.create(req.body);
+    res.status(201).json(docType);
+  } catch (err) {
+    res
+      .status(400)
+      .json({ message: "Failed to create document type", error: err.message });
+  }
+});
+
+router.put("/:id", protect, requireRole("admin"), async (req, res) => {
+  try {
+    const docType = await DocumentType.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!docType) return res.status(404).json({ message: "Not found" });
+    res.json(docType);
+  } catch (err) {
+    res
+      .status(400)
+      .json({ message: "Failed to update document type", error: err.message });
+  }
+});
+
+// Soft delete (deactivate) rather than hard delete — keeps historical
+// uploads referencing this type intact.
+router.delete("/:id", protect, requireRole("admin"), async (req, res) => {
+  try {
+    const docType = await DocumentType.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+    if (!docType) return res.status(404).json({ message: "Not found" });
+    res.json({ message: "Document type deactivated", docType });
+  } catch (err) {
+    res
+      .status(400)
+      .json({ message: "Failed to deactivate document type", error: err.message });
+  }
+});
+
+// ── Admin: Scholarship Categories CRUD ─────────────────────────────────────
+router.post(
+  "/categories",
+  protect,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const category = await ScholarshipCategory.create(req.body);
+      res.status(201).json(category);
+    } catch (err) {
+      res
+        .status(400)
+        .json({ message: "Failed to create category", error: err.message });
+    }
+  }
+);
+
+router.put(
+  "/categories/:id",
+  protect,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const category = await ScholarshipCategory.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (!category) return res.status(404).json({ message: "Not found" });
+      res.json(category);
+    } catch (err) {
+      res
+        .status(400)
+        .json({ message: "Failed to update category", error: err.message });
+    }
+  }
+);
+
+router.delete(
+  "/categories/:id",
+  protect,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const category = await ScholarshipCategory.findByIdAndUpdate(
+        req.params.id,
+        { isActive: false },
+        { new: true }
+      );
+      if (!category) return res.status(404).json({ message: "Not found" });
+      res.json({ message: "Category deactivated", category });
+    } catch (err) {
+      res
+        .status(400)
+        .json({ message: "Failed to deactivate category", error: err.message });
+    }
+  }
+);
 
 export default router;
 ```
@@ -547,6 +704,57 @@ router.put("/:id/read", protect, markAsRead);
 export default router;
 ```
 
+#### `backend/routes/programOfferingRoutes.js`
+```js
+import express from "express";
+import {
+  listOfferings,
+  createOrUpdateOffering,
+  bulkUpsertOfferings,
+  deleteOffering,
+  getCoverageReport,
+} from "../controllers/admin/programOfferingController.js";
+import { protect, requireRole } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+// Mirrors the province_admin/super_admin pattern used for verifyInstitution
+// in institutionRoutes.js. Adjust roles if catalog data should be
+// super_admin-only in your system.
+router.get(
+  "/program-offerings",
+  protect,
+  requireRole("province_admin", "super_admin"),
+  listOfferings,
+);
+router.get(
+  "/program-offerings/coverage",
+  protect,
+  requireRole("province_admin", "super_admin"),
+  getCoverageReport,
+);
+router.post(
+  "/program-offerings",
+  protect,
+  requireRole("province_admin", "super_admin"),
+  createOrUpdateOffering,
+);
+router.post(
+  "/program-offerings/bulk",
+  protect,
+  requireRole("province_admin", "super_admin"),
+  bulkUpsertOfferings,
+);
+router.delete(
+  "/program-offerings/:id",
+  protect,
+  requireRole("province_admin", "super_admin"),
+  deleteOffering,
+);
+
+export default router;
+```
+
 #### `backend/routes/provinceAdminRoutes.js`
 ```js
 import express from "express";
@@ -609,6 +817,309 @@ router.put("/:id", protect, requireRole("institution"), updateScholarship);
 
 export default router;
 
+```
+
+#### `backend/routes/studentDocuments.js`
+```js
+import express from "express";
+import mongoose from "mongoose";
+import upload from "../middleware/uploadMemory.js";
+import { getBucket } from "../config/gridfs.js";
+import StudentProfile from "../models/StudentProfile.js";
+import DocumentType from "../models/DocumentType.js";
+// Adjust this path to wherever protect/requireRole actually live in your project
+import { protect } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+const VALID_LEVELS = ["+2", "Bachelor", "Master", "PhD"];
+
+// ── Helper: required doc types for a given level + selected categories ────
+async function getRequiredDocTypes(level, categories = []) {
+  return DocumentType.find({
+    isActive: true,
+    $or: [
+      { group: "common" },
+      { group: "level", applicableLevels: level },
+      ...(categories.length
+        ? [{ group: "category", applicableCategories: { $in: categories } }]
+        : []),
+    ],
+  }).sort({ group: 1, sortOrder: 1 });
+}
+
+// ── GET /api/student/documents/requirements ─────────────────────────────────
+// Returns: required docs (common + level + selected categories) merged with
+// what the student has already uploaded, plus completion %, plus the
+// always-available "optional" bonus documents (not counted in %).
+router.get("/requirements", protect, async (req, res) => {
+  try {
+    const student = await StudentProfile.findOne({ user: req.user.id });
+    if (!student)
+      return res.status(404).json({ message: "Student profile not found" });
+
+    const level = req.query.level || student.currentLevel;
+    const categories = req.query.categories
+      ? req.query.categories.split(",").filter(Boolean)
+      : student.selectedCategories || [];
+
+    const optionalTypes = await DocumentType.find({
+      isActive: true,
+      group: "optional",
+    }).sort({ sortOrder: 1 });
+
+    const uploadedMap = new Map(
+      student.documents.map((d) => [d.documentTypeKey, d])
+    );
+
+    const toResponseShape = (dt) => {
+      const uploadedDoc = uploadedMap.get(dt.key);
+      return {
+        documentTypeId: dt._id,
+        key: dt.key,
+        label: dt.label,
+        description: dt.description,
+        group: dt.group,
+        isRequired: dt.isRequired,
+        uploaded: !!uploadedDoc,
+        document: uploadedDoc
+          ? {
+              _id: uploadedDoc._id,
+              fileId: uploadedDoc.fileId,
+              fileName: uploadedDoc.fileName,
+              fileSize: uploadedDoc.fileSize,
+              mimeType: uploadedDoc.mimeType,
+              status: uploadedDoc.status,
+              uploadedAt: uploadedDoc.uploadedAt,
+            }
+          : null,
+      };
+    };
+
+    if (!level) {
+      return res.json({
+        level: null,
+        categories,
+        requiredDocuments: [],
+        optionalDocuments: optionalTypes.map(toResponseShape),
+        completionPercent: 0,
+        totalRequired: 0,
+        totalUploaded: 0,
+        message: "Select your current study level first.",
+      });
+    }
+
+    const requiredTypes = await getRequiredDocTypes(level, categories);
+    const requiredDocuments = requiredTypes.map(toResponseShape);
+
+    const mandatoryDocs = requiredDocuments.filter((d) => d.isRequired);
+    const uploadedMandatory = mandatoryDocs.filter((d) => d.uploaded);
+    const completionPercent = mandatoryDocs.length
+      ? Math.round((uploadedMandatory.length / mandatoryDocs.length) * 100)
+      : 0;
+
+    res.json({
+      level,
+      categories,
+      requiredDocuments,
+      optionalDocuments: optionalTypes.map(toResponseShape),
+      completionPercent,
+      totalRequired: mandatoryDocs.length,
+      totalUploaded: uploadedMandatory.length,
+    });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to load requirements", error: err.message });
+  }
+});
+
+// ── PUT /api/student/documents/level ────────────────────────────────────────
+router.put("/level", protect, async (req, res) => {
+  try {
+    const { level } = req.body;
+    if (!VALID_LEVELS.includes(level)) {
+      return res.status(400).json({ message: "Invalid level" });
+    }
+    const student = await StudentProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { currentLevel: level },
+      { new: true }
+    );
+    if (!student)
+      return res.status(404).json({ message: "Student profile not found" });
+    res.json({ message: "Level updated", currentLevel: student.currentLevel });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to update level", error: err.message });
+  }
+});
+
+// ── PUT /api/student/documents/categories ───────────────────────────────────
+router.put("/categories", protect, async (req, res) => {
+  try {
+    const { categories } = req.body; // array of category keys
+    if (!Array.isArray(categories)) {
+      return res.status(400).json({ message: "categories must be an array" });
+    }
+    const student = await StudentProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { selectedCategories: categories },
+      { new: true }
+    );
+    if (!student)
+      return res.status(404).json({ message: "Student profile not found" });
+    res.json({
+      message: "Categories updated",
+      selectedCategories: student.selectedCategories,
+    });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to update categories", error: err.message });
+  }
+});
+
+// ── POST /api/student/documents/upload ──────────────────────────────────────
+// multipart/form-data: file=<binary>, documentTypeKey=<string>
+// If a document of this type was already uploaded, the old GridFS file is
+// deleted and replaced (upload acts as "replace" too).
+router.post(
+  "/upload",
+  protect,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+      const { documentTypeKey } = req.body;
+      if (!documentTypeKey) {
+        return res.status(400).json({ message: "documentTypeKey is required" });
+      }
+
+      const docType = await DocumentType.findOne({
+        key: documentTypeKey,
+        isActive: true,
+      });
+      if (!docType) {
+        return res.status(400).json({ message: "Unknown document type" });
+      }
+
+      const student = await StudentProfile.findOne({ user: req.user.id });
+      if (!student) {
+        return res.status(404).json({ message: "Student profile not found" });
+      }
+
+      const bucket = getBucket();
+
+      // Replace: delete old GridFS file + array entry for this type, if any
+      const existingIndex = student.documents.findIndex(
+        (d) => d.documentTypeKey === documentTypeKey
+      );
+      if (existingIndex !== -1) {
+        const oldFileId = student.documents[existingIndex].fileId;
+        try {
+          await bucket.delete(new mongoose.Types.ObjectId(oldFileId));
+        } catch (e) {
+          // old GridFS file already gone — safe to ignore
+        }
+        student.documents.splice(existingIndex, 1);
+      }
+
+      // Stream the buffer straight into GridFS
+      const uploadStream = bucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype,
+        metadata: { studentId: student._id, documentTypeKey },
+      });
+
+      uploadStream.on("error", (err) => {
+        res.status(500).json({ message: "Upload failed", error: err.message });
+      });
+
+      uploadStream.on("finish", async () => {
+        try {
+          student.documents.push({
+            documentType: docType._id,
+            documentTypeKey: docType.key,
+            fileId: uploadStream.id,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            mimeType: req.file.mimetype,
+            status: "uploaded",
+          });
+          await student.save();
+
+          res.status(201).json({
+            message: "Document uploaded",
+            document: student.documents[student.documents.length - 1],
+          });
+        } catch (err) {
+          res
+            .status(500)
+            .json({ message: "Failed to save document record", error: err.message });
+        }
+      });
+
+      uploadStream.end(req.file.buffer);
+    } catch (err) {
+      res
+        .status(500)
+        .json({ message: "Failed to upload document", error: err.message });
+    }
+  }
+);
+
+// ── GET /api/student/documents/file/:fileId ─────────────────────────────────
+// Streams the raw file back (viewed in a new tab / downloaded from the frontend).
+router.get("/file/:fileId", protect, async (req, res) => {
+  try {
+    const bucket = getBucket();
+    const fileId = new mongoose.Types.ObjectId(req.params.fileId);
+
+    const files = await bucket.find({ _id: fileId }).toArray();
+    if (!files.length) return res.status(404).json({ message: "File not found" });
+
+    res.set("Content-Type", files[0].contentType || "application/octet-stream");
+    res.set("Content-Disposition", `inline; filename="${files[0].filename}"`);
+
+    bucket
+      .openDownloadStream(fileId)
+      .on("error", () => res.status(404).end())
+      .pipe(res);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch file", error: err.message });
+  }
+});
+
+// ── DELETE /api/student/documents/:documentId ───────────────────────────────
+router.delete("/:documentId", protect, async (req, res) => {
+  try {
+    const student = await StudentProfile.findOne({ user: req.user.id });
+    if (!student)
+      return res.status(404).json({ message: "Student profile not found" });
+
+    const doc = student.documents.id(req.params.documentId);
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+
+    const bucket = getBucket();
+    try {
+      await bucket.delete(new mongoose.Types.ObjectId(doc.fileId));
+    } catch (e) {
+      // GridFS file already gone — safe to ignore
+    }
+
+    doc.deleteOne();
+    await student.save();
+
+    res.json({ message: "Document removed" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Failed to delete document", error: err.message });
+  }
+});
+
+export default router;
 ```
 
 #### `backend/routes/studentRoutes.js`
@@ -959,6 +1470,8 @@ module.exports = mongoose.model('College', collegeSchema);
 
 #### `backend/models/Courses.js`
 ```js
+// models/Courses.js
+
 import mongoose from "mongoose";
 import {
   STUDY_LEVELS,
@@ -967,13 +1480,14 @@ import {
   getProgramsForFaculty,
 } from "../constants/educationTaxonomy.js";
 
-const VALID_LEVELS = STUDY_LEVELS.map((l) => l.value);
+// Fixed: taxonomy objects use `id`, not `value`.
+const VALID_LEVELS = STUDY_LEVELS.map((l) => l.id);
 
 const courseSchema = new mongoose.Schema(
   {
     institution: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "InstitutionProfile", // must exactly match mongoose.model("InstitutionProfile", ...)
+      ref: "InstitutionProfile",
       required: true,
       index: true,
     },
@@ -984,7 +1498,7 @@ const courseSchema = new mongoose.Schema(
       enum: VALID_LEVELS,
     },
 
-    // Only set for levels that have a faculty step (bachelors, masters, ...)
+    // Only set for levels that have a faculty step (bachelor's, master's, ...)
     faculty: {
       type: String,
       default: undefined,
@@ -993,13 +1507,14 @@ const courseSchema = new mongoose.Schema(
           const needsFaculty = LEVELS_WITH_FACULTY.includes(this.level);
           if (!needsFaculty) return !val; // must be empty for levels without a faculty step
           if (!val) return false; // required when the level has one
-          return getFacultiesForLevel(this.level).includes(val);
+          // Fixed: getFacultiesForLevel returns objects, not strings.
+          return getFacultiesForLevel(this.level).some((f) => f.id === val);
         },
         message: "Faculty does not match the selected level.",
       },
     },
 
-    // The actual degree/program name, e.g. "B.Sc. Computer Science"
+    // The program id, e.g. "bsc_csit" (not the display name)
     program: {
       type: String,
       default: undefined,
@@ -1008,14 +1523,17 @@ const courseSchema = new mongoose.Schema(
           const needsFaculty = LEVELS_WITH_FACULTY.includes(this.level);
           if (!needsFaculty) return !val;
           if (!val || !this.faculty) return false;
-          return getProgramsForFaculty(this.level, this.faculty).includes(val);
+          // Fixed: getProgramsForFaculty returns objects, not strings.
+          return getProgramsForFaculty(this.level, this.faculty).some((p) => p.id === val);
         },
         message: "Program does not match the selected faculty.",
       },
     },
 
-    duration: { type: String, trim: true }, // e.g. "4 years" — string, not Number
-    description: { type: String, trim: true, required: true },
+    duration: { type: String, trim: true }, // display string, e.g. "4 years"
+    durationYears: { type: Number }, // structured value, set by institution at add-time
+
+    description: { type: String, trim: true }, // no longer required
 
     // Soft-disable instead of hard delete, so old scholarships/applications
     // that reference this course still resolve correctly.
@@ -1031,7 +1549,6 @@ courseSchema.index(
 );
 
 export default mongoose.model("Courses", courseSchema);
-
 ```
 
 #### `backend/models/District.js`
@@ -1063,6 +1580,61 @@ districtSchema.index({ districtName: 1 });
 
 export default mongoose.model("District", districtSchema);
 
+```
+
+#### `backend/models/DocumentType.js`
+```js
+import mongoose from "mongoose";
+
+/**
+ * DocumentType = one row in the master, admin-editable list of documents
+ * (e.g. "SEE Transcript", "Income Certificate").
+ *
+ * group:
+ *   "common"   -> required for every student regardless of level/category
+ *   "level"    -> required only for certain study levels (see applicableLevels)
+ *   "category" -> required only if the student opted into a special
+ *                 scholarship category (see applicableCategories)
+ *   "optional" -> never required, always shown as a bonus upload,
+ *                 never counted toward completion %
+ */
+const documentTypeSchema = new mongoose.Schema(
+  {
+    key: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    }, // e.g. "see_transcript" — stable machine key, never rename after go-live
+    label: { type: String, required: true, trim: true }, // "SEE Transcript"
+    description: { type: String, trim: true },
+
+    group: {
+      type: String,
+      enum: ["common", "level", "category", "optional"],
+      required: true,
+    },
+
+    applicableLevels: [
+      { type: String, enum: ["+2", "Bachelor", "Master", "PhD"] },
+    ], // only used when group === "level"
+
+    applicableCategories: [{ type: String, trim: true, lowercase: true }],
+    // only used when group === "category" — matches ScholarshipCategory.key
+
+    isRequired: { type: Boolean, default: true }, // false = "nice to have" even within its group
+    isActive: { type: Boolean, default: true }, // soft delete / hide from students
+    sortOrder: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+documentTypeSchema.index({ group: 1, isActive: 1 });
+documentTypeSchema.index({ applicableLevels: 1 });
+documentTypeSchema.index({ applicableCategories: 1 });
+
+export default mongoose.model("DocumentType", documentTypeSchema);
 ```
 
 #### `backend/models/InstitutionProfile.js`
@@ -1175,7 +1747,7 @@ const institutionSchema = new mongoose.Schema(
     // Legacy approval flag
     isApproved: {
       type: Boolean,
-      default: true,
+      default: false,
     },
 
     // Soft delete
@@ -1193,16 +1765,38 @@ institutionSchema.index({ "verification.status": 1 });
 institutionSchema.index({ "location.provinceRef.provinceId": 1 });
 institutionSchema.index({ "location.districtRef.districtId": 1 });
 
+// Optimize Super Admin searches by Status + Pagination
+institutionSchema.index({ "verification.status": 1, createdAt: -1 });
+
+// Optimize Province Admin queries
+institutionSchema.index({ "location.provinceRef.provinceId": 1, "verification.status": 1 });
+
 
 institutionSchema.virtual("totalCourses").get(function () {
   return (this.courses || []).length;
 });
 
-// Middleware: keep isApproved in sync with verification.status
-institutionSchema.pre("save", async function () {
+institutionSchema.pre("save", function () {
+  const requiresReview =
+    this.isModified("institutionName") ||
+    this.isModified("institutionType") ||
+    this.isModified("location") ||
+    this.isModified("courses") ||
+    this.isModified("website") ||
+    this.isModified("description");
+
+  if (
+    requiresReview &&
+    this.verification?.status === "rejected"
+  ) {
+    this.verification.status = "pending";
+    this.verification.remarks = "";
+    this.verification.verifiedBy = undefined;
+    this.verification.verifiedAt = undefined;
+  }
+
   this.isApproved = this.verification?.status === "verified";
 });
-
 export default mongoose.model("InstitutionProfile", institutionSchema);
 ```
 
@@ -1342,6 +1936,25 @@ passwordResetTokenSchema.index(
 );
 
 module.exports = mongoose.model('PasswordResetToken', passwordResetTokenSchema);
+```
+
+#### `backend/models/ProgramOffering.js`
+```js
+import mongoose from "mongoose";
+
+const programOfferingSchema = new mongoose.Schema(
+  {
+    programId: { type: String, required: true, index: true },   // matches PROGRAMS[].id
+    universityId: { type: String, required: true, index: true }, // matches UNIVERSITIES[].id
+    durationYears: { type: Number, required: true },
+    isAcceptingAdmissions: { type: Boolean, default: true },
+  },
+  { timestamps: true },
+);
+
+programOfferingSchema.index({ programId: 1, universityId: 1 }, { unique: true });
+
+export default mongoose.model("ProgramOffering", programOfferingSchema);
 ```
 
 #### `backend/models/Province.js`
@@ -1494,8 +2107,9 @@ const scholarshipSchema = new mongoose.Schema(
           "gender",
           "ethnic",
         ],
-         //
-         // required: [true, "Scholarship type is required"],
+
+        //
+        // required: [true, "Scholarship type is required"],
       },
       // Total cost of the target degree/program (or per-year fee), used to
       // auto-derive whichever of amountNpr / percentage the institution
@@ -1539,6 +2153,12 @@ const scholarshipSchema = new mongoose.Schema(
         // required: [true, "Scholarship type is required"],
       },
       targetFaculty: { type: String, trim: true },
+      // Free-text subject / field of study, e.g. "Computer Science",
+      // "Nursing" — distinct from targetFaculty (broad faculty, e.g.
+      // "Computer & IT") and degreeProgram (specific program name, e.g.
+      // "BSc CSIT"). Previously sent by the frontend but not declared here,
+      // so Mongoose was silently dropping it on save.
+      subject: { type: String, trim: true },
       // Specific degree/program this scholarship targets, e.g. "BSc CSIT", "MBBS"
       degreeProgram: { type: String, trim: true },
       // University / affiliation this scholarship is tied to, e.g. "Tribhuvan University (TU)"
@@ -1554,7 +2174,7 @@ const scholarshipSchema = new mongoose.Schema(
           "affiliated_college",
         ],
       },
-      
+
       gender: {
         type: String,
         enum: ["male", "female", "other", "any"],
@@ -1608,7 +2228,7 @@ const scholarshipSchema = new mongoose.Schema(
       minEntranceScore: { type: Number, min: 0 },
 
       // ── Other common flags ───────────────────────────────────────────────────
-      
+
       minAttendancePercent: { type: Number, min: 0, max: 100 }, // continuation/renewal condition
 
       additionalRequirements: { type: String, trim: true },
@@ -1696,6 +2316,7 @@ scholarshipSchema.index({ "coverage.scholarshipType2": 1 });
 scholarshipSchema.index({ "coverage.amountNpr": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetLevel": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.targetFaculty": 1 });
+scholarshipSchema.index({ "eligibilityCriteria.subject": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.degreeProgram": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.university": 1 });
 scholarshipSchema.index({ "eligibilityCriteria.collegeType": 1 });
@@ -1712,7 +2333,7 @@ scholarshipSchema.index(
   { name: "scholarship_text_search" },
 );
 
-// ─── Virtuals ──────────────────────────────────────────────────────────────────
+// ─── Virtuals ────────────────────────────────────────────────────────────────
 scholarshipSchema.virtual("isExpired").get(function () {
   return new Date() > this.applicationDeadline;
 });
@@ -1895,6 +2516,38 @@ export default mongoose.model(
 
 ```
 
+#### `backend/models/ScholarshipCategory.js`
+```js
+import mongoose from "mongoose";
+
+/**
+ * ScholarshipCategory = a special/reservation category a student can select
+ * (e.g. "Need-Based", "Disability", "Remote Area"). Selecting one or more
+ * of these unlocks the extra DocumentTypes tagged with the matching key
+ * in DocumentType.applicableCategories.
+ */
+const scholarshipCategorySchema = new mongoose.Schema(
+  {
+    key: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    }, // e.g. "need_based"
+    label: { type: String, required: true, trim: true }, // "Need-Based"
+    description: { type: String, trim: true },
+    isActive: { type: Boolean, default: true },
+    sortOrder: { type: Number, default: 0 },
+  },
+  { timestamps: true }
+);
+
+scholarshipCategorySchema.index({ isActive: 1, sortOrder: 1 });
+
+export default mongoose.model("ScholarshipCategory", scholarshipCategorySchema);
+```
+
 #### `backend/models/Student.js`
 ```js
 // Student.js — Student profile
@@ -2054,37 +2707,38 @@ export default mongoose.model("StudentDocument", documentSchema)
 ```js
 import mongoose from "mongoose";
 
-// Embedded document sub-schema (documents always queried with the student)
+// ─── Embedded document sub-schema ───────────────────────────────────────────
+// CHANGED: files now live in MongoDB via GridFS (see config/gridfs.js), so we
+// store a GridFS fileId reference instead of a local filePath.
 const documentSubSchema = new mongoose.Schema(
   {
     documentType: {
-      type: String,
-      enum: [
-        "admit_card",
-        "gradesheet",
-        "slc_marksheet",
-        "plus2_gradesheet",
-        "plus2_marksheet",
-        "certificate",
-        "caste_certificate",
-        "disability_certificate",
-        "school_certificate",
-        "other",
-      ],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DocumentType",
       required: true,
     },
-    documentTitle: { type: String, trim: true },
-    filePath:      { type: String, required: true },
-    fileName:      { type: String },
-    fileSize:      { type: Number },  // bytes
-    mimeType:      { type: String },
-    uploadedAt:    { type: Date, default: Date.now },
-  }
+    documentTypeKey: { type: String, required: true }, // denormalized for fast lookup, matches DocumentType.key
+
+    fileId: { type: mongoose.Schema.Types.ObjectId, required: true }, // GridFS file _id (studentDocuments bucket)
+    fileName: { type: String },
+    fileSize: { type: Number }, // bytes
+    mimeType: { type: String },
+
+    status: {
+      type: String,
+      enum: ["uploaded", "verified", "rejected"],
+      default: "uploaded",
+    },
+    rejectionReason: { type: String, trim: true },
+
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
 );
 
 const studentSchema = new mongoose.Schema(
   {
-    // ── Auth link ──────────────────────────────────────────────────────────────
+    // ── Auth link ──────────────────────────────────────────────────────────
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -2092,47 +2746,44 @@ const studentSchema = new mongoose.Schema(
       unique: true,
     },
 
-    // ── Personal info (upgraded from flat personal_info) ──────────────────────
+    // ── Personal info ────────────────────────────────────────────────────
     personal_info: {
-      // Old flat fields — kept for backward compat
-      dob:    { type: Date },
+      dob: { type: Date },
       gender: { type: String, enum: ["Male", "Female", "Other"] },
-      phone:  { type: String, maxlength: 10 },
+      phone: { type: String, maxlength: 10 },
     },
 
-    
     address: {
-      
-      province:     { type: String, required: true },
-      district:     { type: String, required: true },
+      province: { type: String, required: true },
+      district: { type: String, required: true },
       municipality: { type: String, required: true },
-      ward:         { type: String },
-      street:       { type: String },
+      ward: { type: String },
+      street: { type: String },
 
-      
       provinceRef: {
-        provinceId:   { type: mongoose.Schema.Types.ObjectId, ref: "Province" },
+        provinceId: { type: mongoose.Schema.Types.ObjectId, ref: "Province" },
         provinceName: { type: String },
       },
       districtRef: {
-        districtId:   { type: mongoose.Schema.Types.ObjectId, ref: "District" },
+        districtId: { type: mongoose.Schema.Types.ObjectId, ref: "District" },
         districtName: { type: String },
       },
       municipalityRef: {
-        municipalityId:   { type: mongoose.Schema.Types.ObjectId, ref: "Municipality" },
+        municipalityId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Municipality",
+        },
         municipalityName: { type: String },
       },
     },
 
-    
     guardian_info: {
-      name:         { type: String, required: true },
-      relation:     { type: String, required: true },
+      name: { type: String, required: true },
+      relation: { type: String, required: true },
       phone_number: { type: String, required: true, maxlength: 10 },
-      occupation:   { type: String },
+      occupation: { type: String },
     },
 
-    
     educationInfo: {
       schoolName: { type: String, trim: true },
       schoolType: {
@@ -2145,33 +2796,42 @@ const studentSchema = new mongoose.Schema(
       },
     },
 
-    
     reservationInfo: {
-      caste:         { type: String, trim: true },
+      caste: { type: String, trim: true },
       hasDisability: { type: Boolean, default: false },
-      disabilityType:{ type: String, trim: true },
+      disabilityType: { type: String, trim: true },
     },
 
-    // ── Embedded documents array (new) ────────────────────────────────────────
+    // ── NEW: drives the document requirements engine ───────────────────────
+    currentLevel: {
+      type: String,
+      enum: ["+2", "Bachelor", "Master", "PhD"],
+    },
+    selectedCategories: [{ type: String, trim: true, lowercase: true }],
+    // e.g. ["need_based", "disability"] — matches ScholarshipCategory.key
+
+    // ── Embedded documents array ────────────────────────────────────────────
     documents: [documentSubSchema],
 
-    // ── Profile completion flag (new) ─────────────────────────────────────────
+    // ── Profile completion flag ─────────────────────────────────────────────
     profileCompleted: { type: Boolean, default: false },
 
-    // ── Soft delete (new) ─────────────────────────────────────────────────────
+    // ── Soft delete ───────────────────────────────────────────────────────
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
   },
   { timestamps: true }
 );
 
-// ── Indexes ───────────────────────────────────────────────────────────────────
+// ── Indexes ───────────────────────────────────────────────────────────────
 studentSchema.index({ user: 1 });
 studentSchema.index({ "address.province": 1 });
 studentSchema.index({ "address.district": 1 });
 studentSchema.index({ "address.provinceRef.provinceId": 1 });
 studentSchema.index({ "address.districtRef.districtId": 1 });
 studentSchema.index({ "educationInfo.schoolType": 1 });
+studentSchema.index({ currentLevel: 1 });
+studentSchema.index({ "documents.documentTypeKey": 1 });
 
 export default mongoose.model("StudentProfile", studentSchema);
 ```
@@ -2250,6 +2910,176 @@ export default mongoose.model("User", finaluserSchema);
 ```
 
 ### 🔹 Controllers / Services
+#### `backend/controllers/admin/programOfferingController.js`
+```js
+// controllers/admin/programOfferingController.js
+//
+// Admin CRUD for ProgramOffering — the DB-backed table institutions'
+// course catalog reads from. Single-row endpoints for manual entry through
+// an admin UI, plus a bulk endpoint for pasting in a spreadsheet/CSV export
+// at once.
+
+import ProgramOffering from "../../models/ProgramOffering.js";
+import {
+  findProgramById,
+  findUniversityById,
+} from "../../constants/educationTaxonomy.js";
+
+function validateRow({ programId, universityId, durationYears }) {
+  if (!programId || !findProgramById(programId)) {
+    return `Unknown programId: ${programId}`;
+  }
+  if (!universityId || !findUniversityById(universityId)) {
+    return `Unknown universityId: ${universityId}`;
+  }
+  if (durationYears == null || Number.isNaN(Number(durationYears)) || Number(durationYears) <= 0) {
+    return `Invalid durationYears for ${programId}/${universityId}: ${durationYears}`;
+  }
+  return null;
+}
+
+// GET /api/admin/program-offerings?universityId=tu&programId=bba
+export const listOfferings = async (req, res) => {
+  try {
+    const { universityId, programId } = req.query;
+    const filter = {};
+    if (universityId) filter.universityId = universityId;
+    if (programId) filter.programId = programId;
+
+    const offerings = await ProgramOffering.find(filter).sort({ universityId: 1, programId: 1 });
+
+    // Attach display names so the admin UI doesn't need to re-look-up ids
+    const enriched = offerings.map((o) => ({
+      ...o.toObject(),
+      programName: findProgramById(o.programId)?.name || o.programId,
+      universityName: findUniversityById(o.universityId)?.name || o.universityId,
+    }));
+
+    res.json({ offerings: enriched, count: enriched.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/admin/program-offerings
+// body: { programId, universityId, durationYears, isAcceptingAdmissions? }
+export const createOrUpdateOffering = async (req, res) => {
+  try {
+    const { programId, universityId, durationYears, isAcceptingAdmissions } = req.body;
+
+    const err = validateRow({ programId, universityId, durationYears });
+    if (err) return res.status(400).json({ message: err });
+
+    const offering = await ProgramOffering.findOneAndUpdate(
+      { programId, universityId },
+      {
+        durationYears: Number(durationYears),
+        ...(isAcceptingAdmissions !== undefined && { isAcceptingAdmissions }),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+
+    res.json({ message: "Offering saved.", offering });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/admin/program-offerings/bulk
+// body: { offerings: [{ programId, universityId, durationYears, isAcceptingAdmissions? }, ...] }
+// Use this to paste in a whole spreadsheet's worth at once. Validates every
+// row up front and reports per-row errors instead of failing silently
+// partway through.
+export const bulkUpsertOfferings = async (req, res) => {
+  try {
+    const { offerings } = req.body;
+    if (!Array.isArray(offerings) || offerings.length === 0) {
+      return res.status(400).json({ message: "offerings array is required." });
+    }
+
+    const errors = [];
+    const validRows = [];
+
+    offerings.forEach((row, idx) => {
+      const err = validateRow(row);
+      if (err) errors.push({ row: idx, message: err });
+      else validRows.push(row);
+    });
+
+    const results = await Promise.allSettled(
+      validRows.map((row) =>
+        ProgramOffering.findOneAndUpdate(
+          { programId: row.programId, universityId: row.universityId },
+          {
+            durationYears: Number(row.durationYears),
+            ...(row.isAcceptingAdmissions !== undefined && {
+              isAcceptingAdmissions: row.isAcceptingAdmissions,
+            }),
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        ),
+      ),
+    );
+
+    const succeeded = results.filter((r) => r.status === "fulfilled").length;
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        errors.push({ row: i, message: r.reason?.message || "Unknown error" });
+      }
+    });
+
+    res.status(errors.length > 0 ? 207 : 200).json({
+      message: `${succeeded} offering(s) saved. ${errors.length} row(s) failed.`,
+      succeeded,
+      errors,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// DELETE /api/admin/program-offerings/:id
+export const deleteOffering = async (req, res) => {
+  try {
+    const offering = await ProgramOffering.findByIdAndDelete(req.params.id);
+    if (!offering) {
+      return res.status(404).json({ message: "Offering not found." });
+    }
+    res.json({ message: "Offering deleted.", offering });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET /api/admin/program-offerings/coverage
+// Diagnostic: which universities have ZERO offerings seeded yet, so an
+// admin knows where data entry is most needed.
+export const getCoverageReport = async (req, res) => {
+  try {
+    const counts = await ProgramOffering.aggregate([
+      { $group: { _id: "$universityId", count: { $sum: 1 } } },
+    ]);
+    const countByUniversity = Object.fromEntries(counts.map((c) => [c._id, c.count]));
+
+    const { UNIVERSITIES } = await import("../../constants/educationTaxonomy.js");
+    const report = UNIVERSITIES.filter((u) => u.group === "nepal").map((u) => ({
+      universityId: u.id,
+      universityName: u.name,
+      offeringsCount: countByUniversity[u.id] || 0,
+    }));
+
+    res.json({ report });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+```
+
 #### `backend/controllers/adminController.js`
 ```js
 // adminController.js — Admin and ProvincialAdmin management endpoints
@@ -3377,7 +4207,7 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
-
+import Province from "../models/Province.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const signup = async (req, res) => {
@@ -3445,6 +4275,17 @@ export const signup = async (req, res) => {
         contactPerson,
       } = req.body;
 
+      let provinceRefInfo = {};
+      if (location?.province) {
+        const prov = await Province.findOne({ provinceName: location.province });
+        if (prov) {
+          provinceRefInfo = {
+            provinceId: prov._id,
+            provinceName: prov.provinceName
+          };
+        }
+      }
+
       await InstitutionProfile.create({
         user: user._id,
         institutionName,
@@ -3457,6 +4298,7 @@ export const signup = async (req, res) => {
           municipality: location?.municipality || "",
           ward:         location?.ward         || "",
           street:       location?.street       || "",
+          provinceRef:  provinceRefInfo
         },
         description:   description || "",
         contactPerson: {
@@ -3465,8 +4307,8 @@ export const signup = async (req, res) => {
           email:       contactPerson?.email       || "",
           designation: contactPerson?.designation || "",
         },
-        isApproved: true,                    
-        verification: { status: "verified" }, // approve
+        isApproved: false,                    
+        verification: { status: "pending" },
       });
     }
 
@@ -3918,22 +4760,28 @@ exports.getCollegeById = asyncHandler(async (req, res) => {
 
 #### `backend/controllers/courseController.js`
 ```js
+// controllers/courseController.js
+
 import Courses from "../models/Courses.js";
 import InstitutionProfile from "../models/InstitutionProfile.js";
-import { LEVELS_WITH_FACULTY } from "../constants/educationTaxonomy.js";
+import ProgramOffering from "../models/ProgramOffering.js";
+import {
+  STUDY_LEVELS_BY_ID,
+  LEVELS_WITH_FACULTY,
+  getFacultiesForLevel,
+  getProgramsForFaculty,
+  getGoverningBodyLabel,
+  isUniversityAffiliatedLevel,
+} from "../constants/educationTaxonomy.js";
 
 async function getMyInstitution(userId) {
   return InstitutionProfile.findOne({ user: userId });
 }
 
+// GET /api/institution/courses
 export const listMyCourses = async (req, res) => {
   try {
-    console.log("User:", req.user);
-
     const institution = await getMyInstitution(req.user.id);
-
-    console.log("Institution:", institution);
-
     if (!institution) {
       return res.status(404).json({ message: "Institution not found." });
     }
@@ -3943,8 +4791,6 @@ export const listMyCourses = async (req, res) => {
       isActive: true,
     });
 
-    console.log("Courses:", courses);
-
     res.json({ courses });
   } catch (error) {
     console.error(error);
@@ -3952,24 +4798,12 @@ export const listMyCourses = async (req, res) => {
   }
 };
 
-// POST /api/institution/courses
-export const addCourse = async (req, res) => {
+// GET /api/institution/courses/catalog?level=bachelor
+export const getCourseCatalog = async (req, res) => {
   try {
-    const { level, faculty, program, duration, description } = req.body;
-
-    if (!level) {
-      return res.status(400).json({ message: "level is required." });
-    }
-    const needsFaculty = LEVELS_WITH_FACULTY.includes(level);
-    if (needsFaculty && (!faculty || !program)) {
-      return res
-        .status(400)
-        .json({ message: "faculty and program are required for this level." });
-    }
-    if (!description || !description.trim()) {
-      return res
-        .status(400)
-        .json({ message: "A short description of what you teach is required." });
+    const { level } = req.query;
+    if (!level || !STUDY_LEVELS_BY_ID[level]) {
+      return res.status(400).json({ message: "Valid level is required." });
     }
 
     const institution = await getMyInstitution(req.user.id);
@@ -3977,44 +4811,73 @@ export const addCourse = async (req, res) => {
       return res.status(404).json({ message: "Institution not found." });
     }
 
-    const course = await Courses.create({
-      institution: institution._id,
-      level,
-      faculty: needsFaculty ? faculty : undefined,
-      program: needsFaculty ? program : undefined,
-      duration,
-      description,
-    });
-
-    res.status(201).json({ message: "Course added.", course });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res
-        .status(409)
-        .json({ message: "This institution already offers this course." });
+    const needsFaculty = LEVELS_WITH_FACULTY.includes(level);
+    if (!needsFaculty) {
+      return res.json({
+        level,
+        needsFaculty: false,
+        governingBodyLabel: getGoverningBodyLabel(level),
+        faculties: [],
+      });
     }
-    res.status(500).json({ error: error.message });
+
+    const existing = await Courses.find(
+      { institution: institution._id, level, isActive: true },
+      "faculty program",
+    );
+    const existingSet = new Set(existing.map((c) => `${c.faculty}:${c.program}`));
+
+    const universityAffiliated = isUniversityAffiliatedLevel(level);
+    // NOTE: assumes InstitutionProfile has a `university` field holding a
+    // taxonomy university id (e.g. "tu", "ku"). Rename below if yours differs.
+    const offerings =
+      universityAffiliated && institution.university
+        ? await ProgramOffering.find({ universityId: institution.university })
+        : [];
+    const offeringByProgramId = Object.fromEntries(
+      offerings.map((o) => [o.programId, o]),
+    );
+
+    const faculties = getFacultiesForLevel(level).map((f) => ({
+      id: f.id,
+      name: f.name,
+      programs: getProgramsForFaculty(level, f.id).map((p) => {
+        const offering = offeringByProgramId[p.id];
+        return {
+          id: p.id,
+          name: p.name,
+          defaultDurationYears: offering?.durationYears ?? p.typicalDurationYears,
+          confirmedForYourUniversity: Boolean(offering),
+          alreadyAdded: existingSet.has(`${f.id}:${p.id}`),
+        };
+      }),
+    }));
+
+    res.json({
+      level,
+      needsFaculty: true,
+      universityAffiliated,
+      governingBodyLabel: getGoverningBodyLabel(level),
+      faculties,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
-// PUT /api/institution/courses/:courseId
-export const updateCourse = async (req, res) => {
+// POST /api/institution/courses/bulk
+// body: { level, selections: [{ facultyId, programId, durationYears }] }
+export const addCoursesBulk = async (req, res) => {
   try {
-    const { level, faculty, program, duration, description } = req.body;
-
+    const { level, selections } = req.body;
     if (!level) {
       return res.status(400).json({ message: "level is required." });
     }
+
     const needsFaculty = LEVELS_WITH_FACULTY.includes(level);
-    if (needsFaculty && (!faculty || !program)) {
-      return res
-        .status(400)
-        .json({ message: "faculty and program are required for this level." });
-    }
-    if (!description || !description.trim()) {
-      return res
-        .status(400)
-        .json({ message: "A short description of what you teach is required." });
+    if (needsFaculty && (!Array.isArray(selections) || selections.length === 0)) {
+      return res.status(400).json({ message: "Select at least one course." });
     }
 
     const institution = await getMyInstitution(req.user.id);
@@ -4022,30 +4885,38 @@ export const updateCourse = async (req, res) => {
       return res.status(404).json({ message: "Institution not found." });
     }
 
-    const course = await Courses.findOneAndUpdate(
-      { _id: req.params.courseId, institution: institution._id },
-      {
-        level,
-        faculty: needsFaculty ? faculty : undefined,
-        program: needsFaculty ? program : undefined,
-        duration,
-        description,
-      },
-      { new: true, runValidators: true },
-    );
+    const docs = needsFaculty
+      ? selections.map((s) => ({
+          institution: institution._id,
+          level,
+          faculty: s.facultyId,
+          program: s.programId,
+          durationYears: s.durationYears || undefined,
+          duration: s.durationYears ? `${s.durationYears} years` : undefined,
+          isActive: true,
+        }))
+      : [{ institution: institution._id, level, isActive: true }];
 
-    if (!course) {
-      return res.status(404).json({ message: "Course not found." });
-    }
-
-    res.json({ message: "Course updated.", course });
-  } catch (error) {
-    if (error.code === 11000) {
+    try {
+      const result = await Courses.insertMany(docs, { ordered: false });
       return res
-        .status(409)
-        .json({ message: "This institution already offers this course." });
+        .status(201)
+        .json({ message: "Courses added.", insertedCount: result.length });
+    } catch (bulkErr) {
+      const inserted =
+        bulkErr.insertedDocs?.length ?? bulkErr.result?.result?.nInserted ?? 0;
+      const dupCount = (bulkErr.writeErrors || []).filter(
+        (e) => e.code === 11000,
+      ).length;
+      return res.status(207).json({
+        message: `Added ${inserted} course(s). ${dupCount} were already on your list and skipped.`,
+        insertedCount: inserted,
+        skipped: dupCount,
+      });
     }
-    res.status(500).json({ error: error.message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -5087,187 +5958,140 @@ export const createScholarship = async (req, res) => {
 };
 
 // ─── GET /api/scholarship/all  (public) ──────────────────────────────────────
+ 
+ 
 export const getAllScholarships = async (req, res) => {
   try {
     const {
-      // Location cascade
-      provinceId,
-      districtId,
-      municipalityId,
-      // Coverage
-      scholarshipType,
-      scholarshipType2, // accepted as an alias for backwards compatibility
-      minAmount,
-      maxAmount,
-      // Eligibility — academic / demographic
+      search,
+      subject,
       targetLevel,
       targetFaculty,
       degreeProgram,
       university,
       collegeType,
-      subject,
+      scholarshipType,
       gender,
-      hasDisability,
-      // Eligibility — new fields
       ethnicCategory,
-      minGPA, // student's own GPA; matches scholarships whose requirement is <= this
-      minPercentage, // same idea, percentage scale
-      studentAge, // matches scholarships whose [minAge, maxAge] window contains this
-      isFirstGenerationLearner,
-      // Status / lifecycle
-      status = "active",
-      search,
+      hasDisability,
+      province,
+      district,
+      municipality,
+      minAmount,
+      maxAmount,
+      includeExpired,
+      sort = "deadline",
       page = 1,
-      limit = 10,
+      limit = 12,
     } = req.query;
-
-    const filter = {
-      isDeleted: { $ne: true },
-      "verification.status": "approved", // Only show approved scholarships to students
+ 
+    const query = {
+      isDeleted: false,
+      isActive: true,
+      "verification.status": "approved",
     };
-
-    // ── Status (active / expired / all) ─────────────────────────────────────
-    const now = new Date();
-    if (status === "active") {
-      filter.isActive = { $ne: false };
-      filter.applicationDeadline = { $gte: now };
-    } else if (status === "expired") {
-      filter.applicationDeadline = { $lt: now };
-    } // status === "all" → no extra constraint
-
-    // ── Location cascade ─────────────────────────────────────────────────────
-    if (municipalityId)
-      filter["locationFilter.municipality.municipalityId"] = municipalityId;
-    else if (districtId)
-      filter["locationFilter.district.districtId"] = districtId;
-    else if (provinceId)
-      filter["locationFilter.province.provinceId"] = provinceId;
-
-    // ── Coverage ──────────────────────────────────────────────────────────────
-    const type = scholarshipType || scholarshipType2;
-    if (type) filter["coverage.scholarshipType2"] = type;
-
-    if (minAmount || maxAmount) {
-      filter["coverage.amountNpr"] = {};
-      if (minAmount) filter["coverage.amountNpr"].$gte = Number(minAmount);
-      if (maxAmount) filter["coverage.amountNpr"].$lte = Number(maxAmount);
+ 
+    if (includeExpired !== "true") {
+      query.applicationDeadline = { $gte: new Date() };
     }
-
-    // ── Eligibility ───────────────────────────────────────────────────────────
-    if (targetLevel) filter["eligibilityCriteria.targetLevel"] = targetLevel;
-    if (targetFaculty)
-      filter["eligibilityCriteria.targetFaculty"] = {
+ 
+    if (search) {
+      query.$text = { $search: search };
+    }
+ 
+    if (subject) {
+      query["eligibilityCriteria.subject"] = { $regex: subject, $options: "i" };
+    }
+    if (targetLevel) {
+      query["eligibilityCriteria.targetLevel"] = targetLevel;
+    }
+    if (targetFaculty) {
+      query["eligibilityCriteria.targetFaculty"] = {
         $regex: targetFaculty,
         $options: "i",
       };
-    if (degreeProgram)
-      filter["eligibilityCriteria.degreeProgram"] = {
+    }
+    if (degreeProgram) {
+      query["eligibilityCriteria.degreeProgram"] = {
         $regex: degreeProgram,
         $options: "i",
       };
-    if (university)
-      filter["eligibilityCriteria.university"] = {
+    }
+    if (university) {
+      query["eligibilityCriteria.university"] = {
         $regex: university,
         $options: "i",
       };
-    if (collegeType) filter["eligibilityCriteria.collegeType"] = collegeType;
-    if (subject)
-      filter["eligibilityCriteria.subject"] = {
-        $regex: subject,
-        $options: "i",
-      };
-    if (gender && gender !== "any")
-      filter["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
-    if (hasDisability === "true")
-      filter["eligibilityCriteria.hasDisability"] = true;
-
-    // Category: student picks their own category, we match scholarships
-    // targeting that category OR open to everyone ("any"/unset).
-    if (ethnicCategory && ethnicCategory !== "any")
-      filter["eligibilityCriteria.ethnicCategory"] = {
-        $in: [ethnicCategory, "any", null],
-      };
-
-    // GPA/percentage: student enters their own score; only show scholarships
-    // whose minimum requirement they clear (or scholarships with no requirement).
-    if (minGPA != null && minGPA !== "")
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minGPA": { $exists: false } },
-            { "eligibilityCriteria.minGPA": { $lte: Number(minGPA) } },
-          ],
-        },
-      ]);
-    if (minPercentage != null && minPercentage !== "")
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minPercentage": { $exists: false } },
-            {
-              "eligibilityCriteria.minPercentage": {
-                $lte: Number(minPercentage),
-              },
-            },
-          ],
-        },
-      ]);
-
-    // Age: student enters their age; only show scholarships whose [min,max]
-    // window contains it (unset bounds are treated as open).
-    if (studentAge != null && studentAge !== "") {
-      const age = Number(studentAge);
-      filter.$and = (filter.$and || []).concat([
-        {
-          $or: [
-            { "eligibilityCriteria.minAge": { $exists: false } },
-            { "eligibilityCriteria.minAge": { $lte: age } },
-          ],
-        },
-        {
-          $or: [
-            { "eligibilityCriteria.maxAge": { $exists: false } },
-            { "eligibilityCriteria.maxAge": { $gte: age } },
-          ],
-        },
-      ]);
     }
-
-    if (isFirstGenerationLearner === "true")
-      filter["eligibilityCriteria.isFirstGenerationLearner"] = true;
-
-    // ── Free-text search ─────────────────────────────────────────────────────
-    // Now covers title/institution/description AND degree/faculty/level/
-    // university/subject, so typing "BE Computer", "Master's", or
-    // "Bachelors" finds scholarships by what a student is studying, not
-    // just by scholarship name.
-    if (search?.trim()) {
-      filter.$and = (filter.$and || []).concat(buildSearchClauses(search));
+    if (collegeType) {
+      query["eligibilityCriteria.collegeType"] = collegeType;
     }
-
-    const skip = (Number(page) - 1) * Number(limit);
-
+    if (scholarshipType) {
+      query["coverage.scholarshipType2"] = scholarshipType;
+    }
+    if (gender && gender !== "any") {
+      // A scholarship open to "any" gender should still show up when a
+      // student filters by their own gender, so match either.
+      query["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
+    }
+    if (ethnicCategory && ethnicCategory !== "any") {
+      query["eligibilityCriteria.ethnicCategory"] = {
+        $in: [ethnicCategory, "any"],
+      };
+    }
+    if (hasDisability === "true") {
+      query["eligibilityCriteria.hasDisability"] = true;
+    }
+ 
+    if (province) {
+      query["locationFilter.province.provinceName"] = province;
+    }
+    if (district) {
+      query["locationFilter.district.districtName"] = district;
+    }
+    if (municipality) {
+      query["locationFilter.municipality.municipalityName"] = municipality;
+    }
+ 
+    if (minAmount || maxAmount) {
+      query["coverage.amountNpr"] = {};
+      if (minAmount) query["coverage.amountNpr"].$gte = Number(minAmount);
+      if (maxAmount) query["coverage.amountNpr"].$lte = Number(maxAmount);
+    }
+ 
+    const sortMap = {
+      deadline: { applicationDeadline: 1 },
+      newest: { createdAt: -1 },
+      amount: { "coverage.amountNpr": -1 },
+    };
+    const sortSpec = sortMap[sort] || sortMap.deadline;
+ 
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, Number(limit) || 12));
+ 
     const [scholarships, total] = await Promise.all([
-      Scholarship.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
+      Scholarship.find(query)
+        .sort(sortSpec)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
         .lean(),
-      Scholarship.countDocuments(filter),
+      Scholarship.countDocuments(query),
     ]);
-
-    res.json({
-      total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)) || 1,
+ 
+    return res.status(200).json({
       scholarships,
+      total,
+      page: pageNum,
+      pages: Math.max(1, Math.ceil(total / limitNum)),
     });
   } catch (error) {
     console.error("getAllScholarships error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
-
 // ─── GET /api/scholarship/my  (institution only) ──────────────────────────────
 // Now supports the same free-text `search` param as getAllScholarships, so
 // an institution managing many scholarships can type e.g. "Bachelor" or
@@ -6569,6 +7393,42 @@ const upload = multer({
 
     // Optional safety limit (helps prevent abuse)
     files: 1,
+  },
+});
+
+export default upload;
+```
+
+#### `backend/middleware/uploadMemory.js`
+```js
+import multer from "multer";
+
+// NOTE: this is a SEPARATE multer instance from your existing
+// middleware/upload.js (which uses diskStorage for avatars etc.).
+// This one uses memoryStorage so req.file.buffer can be streamed
+// straight into GridFS — nothing touches local disk here.
+const storage = multer.memoryStorage();
+
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB — adjust as needed
+
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE_BYTES },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(
+        new Error("Only JPG, PNG, WEBP, or PDF files are allowed."),
+        false
+      );
+    }
+    cb(null, true);
   },
 });
 
@@ -10416,6 +11276,8 @@ export default function InstitutionalDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("scholarships");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedApp, setSelectedApp] = useState(null);
 
   const [showScholarshipForm, setShowScholarshipForm] = useState(false);
   const [editingId, setEditingId] = useState(null); // null = create mode, string = edit mode
@@ -10775,7 +11637,7 @@ export default function InstitutionalDashboard() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
-      {/* ── DASHBOARD SUB-NAV (identity + tabs) ─────────────────────────────── */}
+      {/* ── DASHBOARD SUB-NAV (identity only — tabs now live in the right sidebar) ── */}
       <nav className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Left – institution identity */}
@@ -10797,8 +11659,8 @@ export default function InstitutionalDashboard() {
             </div>
           </div>
 
-          {/* Center – tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+          {/* Compact tab strip — mobile/tablet only; desktop uses the right sidebar */}
+          <div className="flex lg:hidden gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
             {["scholarships", "courses", "applications"].map((t) => (
               <button
                 key={t}
@@ -10818,16 +11680,13 @@ export default function InstitutionalDashboard() {
               </button>
             ))}
           </div>
-
-          {/* Spacer — profile access & logout now live in the shared Header dropdown above */}
-          <div className="w-0 sm:w-24 shrink-0" />
         </div>
       </nav>
 
       {/* ── BODY ─────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 space-y-6">
+        <main className="flex-1 min-w-0 space-y-6 order-2 lg:order-1">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -11414,61 +12273,62 @@ export default function InstitutionalDashboard() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              {app.applicationStatus === "pending" && (
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "approved")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "under_review")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium"
-                                  >
-                                    Review
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "rejected")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              )}
-                              {app.applicationStatus === "under_review" && (
-                                <div className="flex gap-1.5">
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "approved")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium"
-                                  >
-                                    Approve
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleReview(app._id, "rejected")
-                                    }
-                                    className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              )}
-                              {["approved", "rejected", "withdrawn"].includes(
-                                app.applicationStatus,
-                              ) && (
-                                <span className="text-[10px] text-gray-400">
-                                  No actions
-                                </span>
-                              )}
+                              <div className="flex flex-col gap-2">
+                                <button
+                                  onClick={() => setSelectedApp(app)}
+                                  className="text-[10px] px-2 py-1.5 bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 font-medium w-max border border-indigo-100 transition-colors shadow-sm"
+                                >
+                                  View Details
+                                </button>
+                                {app.applicationStatus === "pending" && (
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "approved")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium border border-green-100"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "under_review")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-medium border border-blue-100"
+                                    >
+                                      Review
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "rejected")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium border border-red-100"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                                {app.applicationStatus === "under_review" && (
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "approved")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-green-50 text-green-700 rounded-md hover:bg-green-100 font-medium border border-green-100"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleReview(app._id, "rejected")
+                                      }
+                                      className="text-[10px] px-2 py-1 bg-red-50 text-red-700 rounded-md hover:bg-red-100 font-medium border border-red-100"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -11503,10 +12363,327 @@ export default function InstitutionalDashboard() {
             </div>
           )}
         </main>
+
+        {/* ── SECTION NAV (desktop) — vertical, bigger buttons, right side ──── */}
+        <aside className="hidden lg:flex flex-col gap-2 w-60 shrink-0 order-1 lg:order-2">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-1">
+            Manage
+          </p>
+          {[
+            { key: "scholarships", label: "Scholarships", icon: "🎓", desc: "Post & edit listings" },
+            { key: "courses", label: "Courses", icon: "📚", desc: "Programs you offer" },
+            { key: "applications", label: "Applications", icon: "📝", desc: "Review submissions" },
+          ].map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setTab(s.key)}
+              className={`flex items-center gap-3 w-full text-left px-4 py-3.5 rounded-2xl border transition-colors ${
+                tab === s.key
+                  ? "bg-gray-900 border-gray-900 text-white shadow-sm"
+                  : "bg-white border-gray-100 text-gray-700 hover:border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <span
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                  tab === s.key ? "bg-white/10" : "bg-red-50"
+                }`}
+              >
+                {s.icon}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm">{s.label}</span>
+                  {s.key === "applications" && pendingCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                      {pendingCount}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`block text-xs mt-0.5 truncate ${
+                    tab === s.key ? "text-gray-300" : "text-gray-400"
+                  }`}
+                >
+                  {s.desc}
+                </span>
+              </span>
+            </button>
+          ))}
+        </aside>
       </div>
 
       <Footer />
     </div>
+  );
+}
+```
+
+#### `frontend/src/pages/Dashboard/InstitutionDetail.jsx`
+```jsx
+// InstitutionDetail.jsx — /institutions/:id
+//
+// Public institution profile page. Mirrors the structure of a typical
+// college-finder profile: dark hero banner + name/type/location, a programs
+// section grouped by level, description, and a sticky contact/info sidebar.
+//
+// GET /api/instituionall/:id → load (public, verified institutions only)
+
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const TYPE_COLORS = {
+  School: "bg-blue-50 text-blue-700",
+  College: "bg-green-50 text-green-700",
+  University: "bg-purple-50 text-purple-700",
+};
+
+const LEVEL_ORDER = ["Postgraduate", "Graduate", "Undergraduate", "Diploma", "Certificate"];
+
+function InfoRow({ icon, label, children }) {
+  if (!children) return null;
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
+      <span className="text-gray-400 text-sm shrink-0 w-5 text-center">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+          {label}
+        </p>
+        <div className="text-sm text-gray-800 break-words">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function InstitutionDetail() {
+  const { id } = useParams();
+  const [institution, setInstitution] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    fetch(`${API}/api/instituionall/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(res.status === 404 ? "Institution not found." : "Failed to load institution.");
+        return res.json();
+      })
+      .then((data) => setInstitution(data.institution))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const coursesByLevel = (institution?.courses || []).reduce((acc, c) => {
+    const level = c.courseLevel || "Other";
+    (acc[level] = acc[level] || []).push(c);
+    return acc;
+  }, {});
+
+  const orderedLevels = [
+    ...LEVEL_ORDER.filter((l) => coursesByLevel[l]),
+    ...Object.keys(coursesByLevel).filter((l) => !LEVEL_ORDER.includes(l)),
+  ];
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-10 pb-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 animate-pulse">
+          <div className="h-40 bg-gray-100 rounded-2xl mb-6" />
+          <div className="h-64 bg-gray-100 rounded-2xl" />
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !institution) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-16 pb-20">
+        <div className="max-w-lg mx-auto px-4 text-center">
+          <div className="text-5xl mb-4">🏫</div>
+          <p className="font-semibold text-gray-800 mb-1">{error || "Institution not found."}</p>
+          <p className="text-sm text-gray-400 mb-6">
+            It may have been removed, or the link may be incorrect.
+          </p>
+          <Link
+            to="/institutions"
+            className="inline-block bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            ← Back to Institutions
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const {
+    institutionName,
+    institutionType,
+    establishedYear,
+    location,
+    website,
+    description,
+    contactPerson,
+    verification,
+  } = institution;
+
+  return (
+    <main className="min-h-screen bg-gray-50 pb-20">
+      {/* ── Hero ── */}
+      <div className="bg-gradient-to-br from-gray-900 to-gray-700 relative overflow-hidden">
+        <div className="absolute -right-16 -top-16 w-72 h-72 bg-red-500/20 rounded-full blur-3xl" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-10 relative">
+          <Link
+            to="/institutions"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white transition-colors mb-6"
+          >
+            ← All Institutions
+          </Link>
+
+          <div className="flex flex-wrap items-start gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-red-500 flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10">
+              {(institutionName || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    TYPE_COLORS[institutionType] || "bg-white/10 text-white"
+                  }`}
+                >
+                  {institutionType}
+                </span>
+                {verification?.status === "verified" && (
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white border border-white/20">
+                    ✓ Verified
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                {institutionName}
+              </h1>
+              {(location?.district || location?.province) && (
+                <p className="text-gray-300 text-sm mt-1">
+                  📍 {[location?.municipality, location?.district, location?.province]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 relative grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main column */}
+        <div className="lg:col-span-2 space-y-6">
+          {description && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-3">
+                About
+              </p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                {description}
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                Offered Programs
+              </p>
+              <span className="text-xs text-gray-400">
+                {(institution.courses || []).length} total
+              </span>
+            </div>
+
+            {(!institution.courses || institution.courses.length === 0) && (
+              <p className="text-sm text-gray-400">No programs listed yet.</p>
+            )}
+
+            <div className="space-y-6">
+              {orderedLevels.map((level) => (
+                <div key={level}>
+                  <p className="text-xs font-semibold text-gray-500 mb-2.5">{level}</p>
+                  <div className="space-y-2.5">
+                    {coursesByLevel[level].map((c, idx) => (
+                      <div
+                        key={idx}
+                        className="border border-gray-100 rounded-xl px-4 py-3 hover:border-red-100 transition-colors"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-gray-900 text-sm">{c.courseName}</p>
+                          {c.duration && (
+                            <span className="text-xs text-gray-400 shrink-0">{c.duration}</span>
+                          )}
+                        </div>
+                        {c.description && (
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            {c.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-6">
+            <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">
+              Institution Info
+            </p>
+
+            <InfoRow icon="🏷️" label="Type">{institutionType}</InfoRow>
+            <InfoRow icon="📅" label="Established">{establishedYear}</InfoRow>
+            <InfoRow icon="📍" label="Address">
+              {[location?.street, location?.municipality, location?.district, location?.province]
+                .filter(Boolean)
+                .join(", ") || null}
+            </InfoRow>
+            <InfoRow icon="🌐" label="Website">
+              {website && (
+                <a
+                  href={website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-500 hover:underline break-all"
+                >
+                  {website}
+                </a>
+              )}
+            </InfoRow>
+
+            {(contactPerson?.name || contactPerson?.phone || contactPerson?.email) && (
+              <>
+                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-5 mb-1">
+                  Contact Person
+                </p>
+                <InfoRow icon="👤" label="Name">
+                  {contactPerson?.name}
+                  {contactPerson?.designation ? ` — ${contactPerson.designation}` : ""}
+                </InfoRow>
+                <InfoRow icon="📞" label="Phone">{contactPerson?.phone}</InfoRow>
+                <InfoRow icon="✉️" label="Email">
+                  {contactPerson?.email && (
+                    <a href={`mailto:${contactPerson.email}`} className="text-red-500 hover:underline">
+                      {contactPerson.email}
+                    </a>
+                  )}
+                </InfoRow>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
 ```
@@ -11523,6 +12700,8 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 export default function ProvinceAdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("institutions");
+  const [selectedInstitution, setSelectedInstitution] = useState(null);
+  const [selectedScholarship, setSelectedScholarship] = useState(null);
   
   const [institutions, setInstitutions] = useState([]);
   const [scholarships, setScholarships] = useState([]);
@@ -11723,6 +12902,7 @@ export default function ProvinceAdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right space-x-2">
+                            <button onClick={() => setSelectedInstitution(inst)} className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-medium transition-colors">View Details</button>
                             {inst.verification?.status === "pending" && (
                               <>
                                 <button onClick={() => verifyInstitution(inst._id, 'verified')} className="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-medium transition-colors">Approve</button>
@@ -11771,6 +12951,7 @@ export default function ProvinceAdminDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right space-x-2">
+                            <button onClick={() => setSelectedScholarship(schol)} className="text-sm bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md font-medium transition-colors">View Details</button>
                             {schol.verification?.status === "pending" && (
                               <>
                                 <button onClick={() => verifyScholarship(schol._id, 'approved')} className="text-sm bg-green-50 text-green-600 hover:bg-green-100 px-3 py-1.5 rounded-md font-medium transition-colors">Approve</button>
@@ -11791,6 +12972,140 @@ export default function ProvinceAdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Institution Modal */}
+      {selectedInstitution && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Institution Details</h3>
+              <button onClick={() => setSelectedInstitution(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.institutionName}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Type</p>
+                  <p className="text-sm font-semibold text-gray-900 capitalize">{selectedInstitution.institutionType}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Account Email</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.user?.email}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Established Year</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInstitution.establishedYear || "N/A"}</p>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">Location & Contact</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Address</p>
+                    <p className="text-sm text-gray-800">{[selectedInstitution.location?.street, selectedInstitution.location?.municipality, selectedInstitution.location?.district, selectedInstitution.location?.province].filter(Boolean).join(", ")}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Website</p>
+                    <p className="text-sm text-blue-600">{selectedInstitution.website || "N/A"}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Contact Person</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.name || "N/A"}</p>
+                    <p className="text-xs text-gray-500">{selectedInstitution.contactPerson?.designation || ""}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Contact Details</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.email || "N/A"}</p>
+                    <p className="text-sm text-gray-800">{selectedInstitution.contactPerson?.phone || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedInstitution.description && (
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">About</p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{selectedInstitution.description}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setSelectedInstitution(null)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scholarship Modal */}
+      {selectedScholarship && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Scholarship Details</h3>
+              <button onClick={() => setSelectedScholarship(null)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Title</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedScholarship.scholarshipTitle}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Institution</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedScholarship.institutionName}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Deadline</p>
+                  <p className="text-sm font-semibold text-gray-900">{new Date(selectedScholarship.applicationDeadline).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-100 pt-4 grid grid-cols-2 gap-4">
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Coverage Type</p>
+                  <p className="text-sm font-semibold text-gray-800 capitalize">{selectedScholarship.coverage?.scholarshipType2?.replace("_", " ")}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Seats</p>
+                  <p className="text-sm font-semibold text-gray-800">{selectedScholarship.totalSeats} Total / {selectedScholarship.remainingSeats} Remaining</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Target Level</p>
+                  <p className="text-sm font-semibold text-gray-800 capitalize">{selectedScholarship.eligibilityCriteria?.targetLevel?.replace("_", " ") || "N/A"}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Target Faculty / Subject</p>
+                  <p className="text-sm font-semibold text-gray-800">{selectedScholarship.eligibilityCriteria?.targetFaculty || "N/A"} - {selectedScholarship.eligibilityCriteria?.subject || "N/A"}</p>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">Eligibility Criteria</h4>
+                <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+                  {selectedScholarship.eligibilityCriteria?.minGPA != null && <li>Min GPA: {selectedScholarship.eligibilityCriteria.minGPA}</li>}
+                  {selectedScholarship.eligibilityCriteria?.minPercentage != null && <li>Min Percentage: {selectedScholarship.eligibilityCriteria.minPercentage}%</li>}
+                  {selectedScholarship.eligibilityCriteria?.entranceExamName && <li>Entrance Exam: {selectedScholarship.eligibilityCriteria.entranceExamName} {selectedScholarship.eligibilityCriteria.minEntranceScore ? `(Min Score: ${selectedScholarship.eligibilityCriteria.minEntranceScore})` : ''}</li>}
+                  <li>Gender: {selectedScholarship.eligibilityCriteria?.gender || "Any"}</li>
+                  {selectedScholarship.eligibilityCriteria?.ethnicCategory && <li>Ethnic Category: <span className="capitalize">{selectedScholarship.eligibilityCriteria.ethnicCategory.replace("_", " ")}</span></li>}
+                </ul>
+              </div>
+              
+              {selectedScholarship.description && (
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{selectedScholarship.description}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button onClick={() => setSelectedScholarship(null)} className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -11804,7 +13119,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
-import NotificationToast from "../../Components/NotificationToast";
+import NotificationToast from "../../Components/NotificationToast.jsx";
+import DocumentManager from "../../Components/DocumentManager.jsx";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -12047,6 +13363,10 @@ export default function StudentDashboard() {
           {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-6">
             {/* Stats bar */}
+             
+
+  {/* SCHOLARSHIPS SECTION */}
+  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"></div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 {
@@ -12160,7 +13480,7 @@ export default function StudentDashboard() {
                   </p>
                   {filter === "all" && (
                     <a
-                      href="/institutions"
+                      href="/scholarships"
                       className="inline-flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
                     >
                       Browse Scholarships
@@ -12642,6 +13962,7 @@ export default function Home() {
 
   return (
     <>
+
       {/* Hero */}
       <section className="bg-gradient-to-br from-red-50 to-white py-24">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
@@ -13223,6 +14544,7 @@ export default PostScholarshipPage;
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import DocumentManager from "../components/DocumentManager";
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const SCHOOL_TYPES = ["Government", "Community", "Private", "Other"];
@@ -13872,6 +15194,10 @@ export default function ProfileView() {
                 </div>
               )}
             </div>
+
+              <div className="mt-5">
+                 <DocumentManager/>
+              </div>
           </>
         )}
       </div>
@@ -14279,7 +15605,7 @@ function ScholarshipDetailPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        
         <main className="min-h-screen pt-20 pb-16 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-pulse">
             <div className="h-6 w-24 bg-gray-100 rounded-full mb-6" />
@@ -14293,7 +15619,6 @@ function ScholarshipDetailPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </>
     );
   }
@@ -14304,7 +15629,7 @@ function ScholarshipDetailPage() {
   if (error || !scholarship) {
     return (
       <>
-        <Header />
+
         <main className="min-h-screen pt-20 pb-16 bg-gray-50 flex items-center justify-center">
           <div className="text-center px-4">
             <p className="text-5xl mb-4">🎓</p>
@@ -14315,7 +15640,7 @@ function ScholarshipDetailPage() {
             </Link>
           </div>
         </main>
-        <Footer />
+
       </>
     );
   }
@@ -14327,7 +15652,7 @@ function ScholarshipDetailPage() {
 
   return (
     <>
-      <Header />
+
       <main className="min-h-screen pt-20 pb-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
@@ -14537,7 +15862,7 @@ function ScholarshipDetailPage() {
           </div>
         </div>
       </main>
-      <Footer />
+
     </>
   );
 }
@@ -14699,7 +16024,7 @@ function ScholarshipListPage() {
   // ─────────────────────────────────────────
   return (
     <>
-      <Header />
+    
       <main className="min-h-screen pt-20 pb-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
@@ -14918,12 +16243,469 @@ function ScholarshipListPage() {
 
         </div>
       </main>
-      <Footer />
     </>
   );
 }
 
 export default ScholarshipListPage;
+```
+
+#### `frontend/src/pages/scholarships/scholarship.jsx`
+```jsx
+
+```
+
+#### `frontend/src/pages/scholarships/scholarshipbrowse.jsx`
+```jsx
+// pages/Student/ScholarshipBrowse.jsx
+//
+// Student-facing scholarship search. Replaces "/institutions" as the
+// destination for "Browse Scholarships" links — that page filters
+// institutions, not scholarships, so it can't answer "which scholarships
+// need Computer Science students in Bagmati" style questions.
+//
+// Suggested route: <Route path="/scholarships" element={<ScholarshipBrowse />} />
+
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import Header from "../../Components/header";
+import Footer from "../../Components/footer";
+import LocationCascade from "../../Components/LocationCascade";
+import {
+  STUDY_LEVELS,
+  getFacultiesForLevel,
+  UNIVERSITIES,
+} from "../../constants/educationTaxonomy"// adjust path to wherever this file lives
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const SCHOLARSHIP_TYPES = [
+  { value: "full_tuition", label: "Full Tuition" },
+  { value: "partial_tuition", label: "Partial Tuition" },
+  { value: "merit_based", label: "Merit Based" },
+  { value: "need_based", label: "Need Based" },
+  { value: "disability", label: "Disability" },
+  { value: "gender", label: "Gender" },
+  { value: "ethnic", label: "Ethnic" },
+];
+
+const TYPE_COLORS = {
+  full_tuition: "bg-teal-50 text-teal-700",
+  partial_tuition: "bg-cyan-50 text-cyan-700",
+  merit_based: "bg-blue-50 text-blue-700",
+  need_based: "bg-orange-50 text-orange-700",
+  disability: "bg-purple-50 text-purple-700",
+  gender: "bg-pink-50 text-pink-700",
+  ethnic: "bg-yellow-50 text-yellow-700",
+};
+
+const EMPTY_FILTERS = {
+  search: "",
+  subject: "",
+  targetLevel: "",
+  targetFaculty: "",
+  university: "",
+  scholarshipType: "",
+  gender: "",
+  province: "",
+  district: "",
+  municipality: "",
+};
+
+function FilterSection({ title, children }) {
+  return (
+    <div className="py-5 border-b border-gray-100 last:border-0">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function SeatsBar({ remaining, total }) {
+  if (!total) return <span className="text-xs text-gray-400">—</span>;
+  const pct = Math.round(((remaining ?? total) / total) * 100);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-gray-500">
+        {remaining ?? total}/{total}
+      </span>
+    </div>
+  );
+}
+
+export default function ScholarshipBrowse() {
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [scholarships, setScholarships] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const selectCls =
+    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400";
+  const inputCls =
+    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent";
+
+  const facultyOptions = useMemo(
+    () => (filters.targetLevel ? getFacultiesForLevel(filters.targetLevel) : []),
+    [filters.targetLevel],
+  );
+
+  const fetchScholarships = async (f = filters, p = 1) => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = Object.fromEntries(
+        Object.entries(f).filter(([, v]) => v !== ""),
+      );
+      params.page = p;
+      params.limit = 12;
+
+      const res = await axios.get(`${API}/api/scholarship/all`, { params });
+      setScholarships(res.data.scholarships || []);
+      setTotal(res.data.total || 0);
+      setPage(res.data.page || 1);
+      setPages(res.data.pages || 1);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Failed to load scholarships.",
+      );
+      setScholarships([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Debounced re-fetch on filter change, reset to page 1
+  useEffect(() => {
+    const t = setTimeout(() => fetchScholarships(filters, 1), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  const setField = (field) => (e) =>
+    setFilters((f) => ({ ...f, [field]: e.target.value }));
+
+  // Changing level should reset faculty, since faculty options depend on it
+  const setLevel = (e) =>
+    setFilters((f) => ({ ...f, targetLevel: e.target.value, targetFaculty: "" }));
+
+  const clearAll = () => setFilters(EMPTY_FILTERS);
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  const FilterPanel = (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5">
+      <div className="flex items-center justify-between py-4 border-b border-gray-100">
+        <p className="font-bold text-gray-900 text-sm">Filters</p>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearAll}
+            className="text-xs font-medium text-red-500 hover:text-red-600"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      <FilterSection title="Subject">
+        <input
+          type="text"
+          placeholder="e.g. Computer Science, Nursing…"
+          value={filters.subject}
+          onChange={setField("subject")}
+          className={inputCls}
+        />
+      </FilterSection>
+
+      <FilterSection title="Study Level">
+        <select value={filters.targetLevel} onChange={setLevel} className={selectCls}>
+          <option value="">Any Level</option>
+          {STUDY_LEVELS.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </FilterSection>
+
+      {facultyOptions.length > 0 && (
+        <FilterSection title="Faculty">
+          <select
+            value={filters.targetFaculty}
+            onChange={setField("targetFaculty")}
+            className={selectCls}
+          >
+            <option value="">Any Faculty</option>
+            {facultyOptions.map((f) => (
+              <option key={f.id} value={f.name}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </FilterSection>
+      )}
+
+      <FilterSection title="University">
+        <select
+          value={filters.university}
+          onChange={setField("university")}
+          className={selectCls}
+        >
+          <option value="">Any University</option>
+          {UNIVERSITIES.map((u) => (
+            <option key={u.id} value={u.name}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      </FilterSection>
+
+      <FilterSection title="Scholarship Type">
+        <select
+          value={filters.scholarshipType}
+          onChange={setField("scholarshipType")}
+          className={selectCls}
+        >
+          <option value="">Any Type</option>
+          {SCHOLARSHIP_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </FilterSection>
+
+      <FilterSection title="Gender Eligibility">
+        <select value={filters.gender} onChange={setField("gender")} className={selectCls}>
+          <option value="">Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </FilterSection>
+
+      <FilterSection title="Location">
+        <LocationCascade
+          idMode="name"
+          province={filters.province}
+          district={filters.district}
+          municipality={filters.municipality}
+          onChange={({ province, district, municipality }) =>
+            setFilters((f) => ({ ...f, province, district, municipality }))
+          }
+          gridClassName="grid grid-cols-1 gap-3"
+        />
+      </FilterSection>
+    </div>
+  );
+
+  return (
+    <>
+      <Header />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Browse Scholarships
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Search open scholarships by subject, level, and location.
+          </p>
+        </div>
+
+        <div className="flex gap-3 mb-6">
+          <input
+            type="text"
+            placeholder="Search scholarship title or description…"
+            value={filters.search}
+            onChange={setField("search")}
+            className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+          />
+          <button
+            onClick={() => setMobileFiltersOpen(true)}
+            className="lg:hidden shrink-0 flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-600"
+          >
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="flex gap-8 items-start">
+          <aside className="hidden lg:block w-72 shrink-0 sticky top-24">
+            {FilterPanel}
+          </aside>
+
+          {mobileFiltersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => setMobileFiltersOpen(false)}
+              />
+              <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-gray-50 overflow-y-auto p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-bold text-gray-900">Filters</p>
+                  <button
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 text-xl leading-none px-2"
+                  >
+                    ×
+                  </button>
+                </div>
+                {FilterPanel}
+                <button
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  Show {total} results
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            {loading && (
+              <div className="flex justify-center py-20">
+                <div className="animate-spin w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full" />
+              </div>
+            )}
+
+            {error && !loading && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg mb-4">
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && (
+              <p className="text-sm text-gray-400 mb-4">
+                Showing {scholarships.length} of {total} scholarships
+              </p>
+            )}
+
+            {!loading && !error && scholarships.length === 0 && (
+              <div className="text-center py-20 text-gray-400">
+                <div className="text-5xl mb-4">🎓</div>
+                <p className="font-medium">No scholarships match these filters</p>
+                <button
+                  onClick={clearAll}
+                  className="mt-3 text-sm text-red-500 hover:underline"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {scholarships.map((s) => (
+                <Link
+                  key={s._id}
+                  to={`/scholarships/${s._id}`}
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md hover:border-red-100 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className="font-semibold text-gray-900 text-sm leading-tight flex-1 group-hover:text-red-600 transition-colors">
+                      {s.scholarshipTitle}
+                    </h4>
+                    {s.coverage?.scholarshipType2 && (
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                          TYPE_COLORS[s.coverage.scholarshipType2] ||
+                          "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {s.coverage.scholarshipType2.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mb-3">
+                    {s.institutionName || "Institution"}
+                  </p>
+                  {s.description && (
+                    <p className="text-gray-500 text-xs mb-3 line-clamp-2 leading-relaxed">
+                      {s.description}
+                    </p>
+                  )}
+                  <div className="space-y-1.5 mb-2">
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <span>📅</span>
+                      Deadline:{" "}
+                      {new Date(s.applicationDeadline).toLocaleDateString("en-NP", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                    {s.coverage?.amountNpr > 0 && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                        <span>💰</span> NPR {s.coverage.amountNpr.toLocaleString()}
+                      </p>
+                    )}
+                    {s.coverage?.percentage > 0 && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                        <span>📊</span> {s.coverage.percentage}% coverage
+                      </p>
+                    )}
+                    {s.eligibilityCriteria?.subject && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                        <span>📚</span> {s.eligibilityCriteria.subject}
+                      </p>
+                    )}
+                    {s.eligibilityCriteria?.targetLevel && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5 capitalize">
+                        <span>🎓</span>{" "}
+                        {s.eligibilityCriteria.targetLevel.replace("_", " ")}
+                      </p>
+                    )}
+                    {s.totalSeats > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500">🪑</span>
+                        <SeatsBar remaining={s.remainingSeats} total={s.totalSeats} />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {pages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-8">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => fetchScholarships(filters, page - 1)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-gray-400">
+                  Page {page} of {pages}
+                </span>
+                <button
+                  disabled={page >= pages}
+                  onClick={() => fetchScholarships(filters, page + 1)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
 ```
 
 #### `frontend/src/pages/scholarships/scholarshipDetail.jsx`
@@ -15547,24 +17329,24 @@ export default function ScholarshipDetail() {
   if (loading)
     return (
       <>
-        <Header />
+
         <div className="flex justify-center items-center min-h-[60vh]">
           <div className="animate-spin w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full" />
         </div>
-        <Footer />
+
       </>
     );
 
   if (error)
     return (
       <>
-        <Header />
+
         <div className="max-w-xl mx-auto px-6 py-16 text-center">
           <div className="text-5xl mb-4">❌</div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">{error}</h2>
           <Link to="/scholarships" className="text-red-500 hover:underline text-sm">← Back to scholarships</Link>
         </div>
-        <Footer />
+
       </>
     );
 
@@ -15577,7 +17359,7 @@ export default function ScholarshipDetail() {
 
   return (
     <>
-      <Header />
+
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <Link to="/scholarships" className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1 mb-6">
           ← Back to scholarships
@@ -16254,7 +18036,6 @@ export default function ScholarshipDetail() {
           </div>
         )}
       </main>
-      <Footer />
     </>
   );
 }
@@ -16289,8 +18070,9 @@ const SCHOLARSHIP_TYPES = [
   { value: "ethnic", label: "Ethnic" },
 ];
 
-// Use the shared taxonomy so this always matches the backend enum
-const TARGET_LEVELS = STUDY_LEVELS;
+// STUDY_LEVELS (v2) items look like { id, name, hasFaculty, ... } — normalize
+// to the { value, label } shape the filter selects expect.
+const TARGET_LEVELS = STUDY_LEVELS.map((l) => ({ value: l.id, label: l.name }));
 
 const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
@@ -16329,13 +18111,34 @@ const TYPE_LABEL = {
   ethnic: "Ethnic",
 };
 
-const LEVEL_LABEL = Object.fromEntries(
-  STUDY_LEVELS.map((l) => [l.value, l.label]),
-);
+// id -> display name, e.g. LEVEL_LABEL["bachelor"] === "Bachelor's"
+const LEVEL_LABEL = Object.fromEntries(STUDY_LEVELS.map((l) => [l.id, l.name]));
 
 const COLLEGE_TYPE_LABEL = Object.fromEntries(
   COLLEGE_TYPES.map((c) => [c.value, c.label]),
 );
+
+// UNIVERSITIES (v2) is a flat array of { id, name, shortName, group,
+// hasOwnPlusTwo } — `group` is "nepal" | "foreign_affiliation". Bucket it
+// into the { group, options: [{value,label}] } shape FilterGroupedSelect
+// renders as <optgroup>s.
+const UNIVERSITY_GROUP_LABELS = {
+  nepal: "Nepal",
+  foreign_affiliation: "Foreign Affiliation",
+};
+
+const UNIVERSITY_GROUPS = Object.entries(
+  UNIVERSITIES.reduce((acc, u) => {
+    (acc[u.group] ||= []).push({ value: u.id, label: u.name });
+    return acc;
+  }, {}),
+).map(([group, options]) => ({
+  group: UNIVERSITY_GROUP_LABELS[group] || group,
+  options,
+}));
+
+// id -> display name, e.g. UNIVERSITY_LABEL["ku"] === "Kathmandu University"
+const UNIVERSITY_LABEL = Object.fromEntries(UNIVERSITIES.map((u) => [u.id, u.name]));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16385,7 +18188,7 @@ function FilterSelect({
         }`}
       >
         <option value="">{placeholder}</option>
-        {options.map((o) => (
+        {(options || []).map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
@@ -16415,8 +18218,9 @@ function FilterInput({ label, value, onChange, placeholder }) {
   );
 }
 
-// Select with <optgroup> support — still used for University, which is
-// grouped by region rather than a flat list.
+// Select with <optgroup> support — used for University, which is grouped
+// (Nepal / Foreign Affiliation) rather than a flat list. `groups` is
+// [{ group: string, options: [{ value, label }] }].
 function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "All" }) {
   return (
     <div className="flex flex-col gap-1">
@@ -16429,11 +18233,11 @@ function FilterGroupedSelect({ label, value, onChange, groups, placeholder = "Al
         className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent text-gray-700"
       >
         <option value="">{placeholder}</option>
-        {groups.map((g) => (
+        {(groups || []).map((g) => (
           <optgroup key={g.group} label={g.group}>
-            {g.options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+            {(g.options || []).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </optgroup>
@@ -16578,21 +18382,7 @@ function ScholarshipCard({ s }) {
             🎓 Program fee: {formatNPR(s.coverage.totalProgramFeeNpr)}
           </p>
         )}
-        {s.remainingSeats != null && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-red-400 h-full rounded-full"
-                style={{
-                  width: `${Math.round(((s.totalSeats - s.remainingSeats) / s.totalSeats) * 100)}%`,
-                }}
-              />
-            </div>
-            <span className="shrink-0">
-              {s.remainingSeats} / {s.totalSeats} seats left
-            </span>
-          </div>
-        )}
+        
         {s.locationFilter?.province?.provinceName && (
           <p className="text-xs text-gray-400">
             📍 {s.locationFilter.province.provinceName}
@@ -16740,7 +18530,6 @@ const FILTER_LABELS = {
   minGPA: "Your GPA",
   minPercentage: "Your Percentage",
   studentAge: "Your Age",
- 
 };
 
 const DEFAULT_FILTERS = {
@@ -16770,7 +18559,6 @@ const DEFAULT_FILTERS = {
   minGPA: "",
   minPercentage: "",
   studentAge: "",
-  
 };
 
 export default function ScholarshipList() {
@@ -16823,17 +18611,20 @@ export default function ScholarshipList() {
   // Level + Faculty. Mirrors the Level → Faculty → Program hierarchy in
   // educationTaxonomy.js, same pattern as the province/district/municipality
   // cascade used below for location.
+  //
+  // NOTE: getFacultiesForLevel / getProgramsForFaculty return full objects
+  // ({ id, name, ... }), not plain strings — map id -> value, name -> label.
   const levelHasFaculty = LEVELS_WITH_FACULTY.includes(filters.targetLevel);
   const facultyOptions = levelHasFaculty
     ? getFacultiesForLevel(filters.targetLevel).map((f) => ({
-        value: f,
-        label: f,
+        value: f.id,
+        label: f.name,
       }))
     : [];
   const programOptions =
     levelHasFaculty && filters.targetFaculty
       ? getProgramsForFaculty(filters.targetLevel, filters.targetFaculty).map(
-          (p) => ({ value: p, label: p }),
+          (p) => ({ value: p.id, label: p.name }),
         )
       : [];
 
@@ -16874,7 +18665,6 @@ export default function ScholarshipList() {
         minGPA: "minGPA",
         minPercentage: "minPercentage",
         studentAge: "studentAge",
-       
       };
 
       for (const [fk, pk] of Object.entries(MAP)) {
@@ -16978,7 +18768,6 @@ export default function ScholarshipList() {
             faculty, level, and university too, not just title/institution.
             e.g. "BE Computer", "Master's", "Bachelors" all work. */}
         <div className="relative flex-1">
-          
           <input
             type="text"
             placeholder="Search by title, institution, degree, or level"
@@ -17112,7 +18901,7 @@ export default function ScholarshipList() {
               label="University / Affiliation"
               value={filters.university}
               onChange={(v) => setFilter("university", v)}
-              groups={UNIVERSITIES}
+              groups={UNIVERSITY_GROUPS}
               placeholder="All Universities"
             />
 
@@ -17124,7 +18913,6 @@ export default function ScholarshipList() {
               placeholder="All College Types"
             />
 
-            
             <FilterSelect
               label="Gender"
               value={filters.gender}
@@ -17262,7 +19050,6 @@ export default function ScholarshipList() {
                   className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
               </div>
-
             </div>
           </div>
 
@@ -18514,12 +20301,15 @@ const clearOnly = args.includes('--clear');
 // MongoDB connection
 
 import mongoose from "mongoose";
+import { initGridFS } from "./gridfs.js";
 
 
 const connectionDM = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
+    initGridFS();
     console.log("MongoDB connected");
+    
   } catch (error) {
     console.error("MongoDB connection error:", error.message);
     process.exit(1);
@@ -18530,79 +20320,179 @@ export default connectionDM
 
 ```
 
+#### `backend/config/gridfs.js`
+```js
+import mongoose from "mongoose";
+import { GridFSBucket } from "mongodb";
+
+let bucket;
+
+/**
+ * Call this ONCE, right after mongoose.connect() resolves (in server.js).
+ * GridFS stores files as chunks in two collections:
+ *   studentDocuments.files  (metadata)
+ *   studentDocuments.chunks (binary data, 255KB chunks)
+ * This avoids the 16MB BSON document-size limit you'd hit embedding
+ * raw file buffers directly inside StudentProfile.documents.
+ */
+export function initGridFS() {
+  const db = mongoose.connection.db;
+  bucket = new GridFSBucket(db, { bucketName: "studentDocuments" });
+  console.log("GridFS bucket 'studentDocuments' ready");
+  return bucket;
+}
+
+export function getBucket() {
+  if (!bucket) {
+    throw new Error(
+      "GridFS bucket not initialized. Call initGridFS() after mongoose connects."
+    );
+  }
+  return bucket;
+}
+```
+
 #### `backend/constants/educationTaxonomy.js`
 ```js
+// educationTaxonomy.js
+//
+// Normalized, ID-based source of truth for Nepal's education system.
+// Keep this file identical on frontend and backend — course validation on
+// the server must agree with what the EducationCascade dropdown showed.
+//
+// WHY THIS SHAPE (v2):
+//   - Every faculty and program has a stable `id`. Display names (`name`)
+//     can be edited freely without breaking stored student/scholarship
+//     records, which reference the id, not the string.
+//   - Faculties are a shared catalog. "Engineering" at Bachelor's and
+//     Master's is the SAME faculty (id: "engineering"), so a scholarship
+//     rule like "all Engineering students" only has to list one facultyId
+//     to match both levels. +2 "Science" and Bachelor's "Science" are NOT
+//     merged — a +2 stream and a university faculty are structurally
+//     different things — so they get distinct ids (plus_two_science vs
+//     science).
+//   - Programs carry `levelId` + `facultyId` (not duplicated per
+//     university). Anything that varies by university — duration nuance,
+//     which universities actually offer it, degree-award wording — lives
+//     in PROGRAM_OFFERINGS, a join table, not on the program object.
+//     Otherwise a curriculum tweak at one university would force editing
+//     an object shared by every other university offering the program.
+//   - Universities are their own catalog, referenced by id everywhere
+//     (matches UNIVERSITIES_FLAT strings from the old file 1:1, so
+//     existing free-text data can be migrated by exact-name lookup).
+//   - Campus/College is deliberately NOT modeled here as static data.
+//     TU alone has 400+ affiliated colleges; that's operational data that
+//     changes constantly and belongs in a real DB table managed through
+//     admin CRUD (see models/College.js), not a JS array requiring a
+//     code deploy every time a college's affiliation changes.
+//
+// Course lists cross-checked against collegesnepal.com's live program
+// listings for TU, KU, Pokhara University, and Purbanchal University
+// (Aug 2026). Foreign-affiliated programs are out of scope for the
+// LEVEL_TAXONOMY cascade; UNIVERSITIES still lists foreign affiliations
+// (for the University dropdown) since students report affiliation even
+// when the degree-granting body is abroad.
+//
+// `typicalDurationYears` on a program is a DISPLAY DEFAULT ONLY — the
+// authoritative duration for a specific program-at-a-specific-university
+// belongs in PROGRAM_OFFERINGS (or the DB equivalent), since duration can
+// legitimately differ by curriculum revision between universities.
 
+// ─── Governing bodies ────────────────────────────────────────────────────────
+export const GOVERNING_BODIES = {
+  NEB: "neb",
+  CTEVT: "ctevt",
+  ICAN: "ican",
+  UNIVERSITY: "university",
+  SCHOOL_CURRICULUM: "school_curriculum",
+  TRAINING_PROVIDER: "training_provider",
+};
+
+export const GOVERNING_BODY_LABELS = {
+  neb: "National Examinations Board (NEB)",
+  ctevt: "CTEVT",
+  ican: "Institute of Chartered Accountants of Nepal (ICAN)",
+  university: "University",
+  school_curriculum: "Ministry of Education (school curriculum)",
+  training_provider: "Training provider",
+};
+
+// ─── Study Levels ────────────────────────────────────────────────────────────
+// hasFaculty: whether this level has a Faculty/Program cascade step at all.
+// universityAffiliated: whether the University/Affiliation dropdown should
+// show for this level. NOTE these two flags diverge at plus_two and
+// diploma_pcl (faculty step exists, but neither is a university degree).
 export const STUDY_LEVELS = [
-  { value: "short_term_training", label: "Short-Term Training" },
-  { value: "primary", label: "Primary" },
-  { value: "lower_secondary", label: "Lower Secondary" },
-  { value: "secondary", label: "Secondary" },
-  { value: "see", label: "SEE" },
-  { value: "plus_two", label: "Plus Two (+2)" },
-  { value: "diploma_pcl", label: "Diploma / PCL" },
-  { value: "pre_diploma", label: "Pre-Diploma" },
-  { value: "bachelor", label: "Bachelor's" },
-  { value: "ca", label: "Chartered Accountancy (CA)" },
-  { value: "postgraduate_diploma", label: "Postgraduate Diploma" },
-  { value: "master", label: "Master's" },
-  { value: "mphil", label: "MPhil (Master of Philosophy)" },
-  { value: "phd", label: "Doctorate (PhD)" },
+  { id: "short_term_training", name: "Short-Term Training", hasFaculty: false, governingBody: GOVERNING_BODIES.TRAINING_PROVIDER, universityAffiliated: false },
+  { id: "primary", name: "Primary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "lower_secondary", name: "Lower Secondary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "secondary", name: "Secondary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "see", name: "SEE", hasFaculty: false, governingBody: GOVERNING_BODIES.NEB, universityAffiliated: false },
+  { id: "plus_two", name: "Plus Two (+2)", hasFaculty: true, governingBody: GOVERNING_BODIES.NEB, universityAffiliated: false },
+  { id: "diploma_pcl", name: "Diploma / PCL", hasFaculty: true, governingBody: GOVERNING_BODIES.CTEVT, universityAffiliated: false },
+  { id: "pre_diploma", name: "Pre-Diploma", hasFaculty: false, governingBody: GOVERNING_BODIES.CTEVT, universityAffiliated: false },
+  { id: "bachelor", name: "Bachelor's", hasFaculty: true, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "ca", name: "Chartered Accountancy (CA)", hasFaculty: false, governingBody: GOVERNING_BODIES.ICAN, universityAffiliated: false },
+  { id: "postgraduate_diploma", name: "Postgraduate Diploma", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "master", name: "Master's", hasFaculty: true, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "mphil", name: "MPhil (Master of Philosophy)", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "phd", name: "Doctorate (PhD)", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
 ];
 
-export const LEVELS_WITH_FACULTY = [
-  "plus_two",
-  "diploma_pcl",
-  "bachelor",
-  "master",
-];
+export const STUDY_LEVELS_BY_ID = Object.fromEntries(STUDY_LEVELS.map((l) => [l.id, l]));
 
-// ─── University / Affiliation (unchanged — independent of level) ───────────
+// Derived — kept for convenience / backward compatibility with old call sites.
+export const LEVELS_WITH_FACULTY = STUDY_LEVELS.filter((l) => l.hasFaculty).map((l) => l.id);
+export const LEVELS_AFFILIATED_WITH_UNIVERSITY = STUDY_LEVELS.filter((l) => l.universityAffiliated).map((l) => l.id);
+
+// ─── Universities ────────────────────────────────────────────────────────────
+// group: "nepal" | "foreign_affiliation"
+// hasOwnPlusTwo: university runs its own +2 wing directly (KU High School,
+// Nepal Sanskrit University's +2 classes) rather than through NEB-affiliated
+// colleges. Still an NEB-governed qualification nationally — this is just a
+// UI hint ("this university also offers +2"), not an affiliation fact.
 export const UNIVERSITIES = [
-  {
-    group: "Nepal Universities",
-    options: [
-      "Tribhuvan University (TU)",
-      "Kathmandu University (KU)",
-      "Pokhara University (PU)",
-      "Purbanchal University",
-      "Mid-West University",
-      "Far Western University",
-      "Agriculture and Forestry University (AFU)",
-      "Nepal Sanskrit University",
-      "Lumbini Buddhist University",
-      "Nepal Open University",
-      "Rajarshi Janak University",
-      "Bagmati University",
-      "Gandaki University",
-      "Madan Bhandari University of Science and Technology (MBUST)",
-      "Patan Academy of Health Sciences (PAHS)",
-      "BP Koirala Institute of Health Sciences (BPKIHS)",
-      "Karnali Academy of Health Sciences (KAHS)",
-      "National Academy of Medical Sciences (NAMS)",
-      "CTEVT",
-    ],
-  },
-  {
-    group: "Foreign Affiliations",
-    options: [
-      "University of London",
-      "Coventry University",
-      "University of the West of England",
-      "Leeds Beckett University",
-      "Asia Pacific University",
-      "HELP University",
-      "University of Wolverhampton",
-      "Westcliff University",
-      "University of Northampton",
-      "Lincoln University College",
-      "University of Sunderland",
-    ],
-  },
-];
-export const UNIVERSITIES_FLAT = UNIVERSITIES.flatMap((g) => g.options);
+  { id: "tu", name: "Tribhuvan University", shortName: "TU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "ku", name: "Kathmandu University", shortName: "KU", group: "nepal", hasOwnPlusTwo: true },
+  { id: "pu", name: "Pokhara University", shortName: "PU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "purbanchal", name: "Purbanchal University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mid_west", name: "Mid-West University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "far_western", name: "Far Western University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "afu", name: "Agriculture and Forestry University", shortName: "AFU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "sanskrit", name: "Nepal Sanskrit University", shortName: null, group: "nepal", hasOwnPlusTwo: true },
+  { id: "lumbini_buddhist", name: "Lumbini Buddhist University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "open_university", name: "Nepal Open University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "rajarshi_janak", name: "Rajarshi Janak University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "bagmati", name: "Bagmati University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "gandaki", name: "Gandaki University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mbust", name: "Madan Bhandari University of Science and Technology", shortName: "MBUST", group: "nepal", hasOwnPlusTwo: false },
+  { id: "manmohan_technical", name: "Manmohan Technical University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "pahs", name: "Patan Academy of Health Sciences", shortName: "PAHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "bpkihs", name: "BP Koirala Institute of Health Sciences", shortName: "BPKIHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "kahs", name: "Karnali Academy of Health Sciences", shortName: "KAHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "nams", name: "National Academy of Medical Sciences", shortName: "NAMS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "mbahs", name: "Madan Bhandari Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mihs", name: "Madhesh Institute of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "rahs", name: "Rapti Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "pokhara_ahs", name: "Pokhara Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "ctevt", name: "CTEVT", shortName: null, group: "nepal", hasOwnPlusTwo: false },
 
-// ─── College Type (unchanged) ───────────────────────────────────────────────
+  { id: "univ_london", name: "University of London", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "coventry", name: "Coventry University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "uwe", name: "University of the West of England", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "leeds_beckett", name: "Leeds Beckett University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "apu", name: "Asia Pacific University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "help_university", name: "HELP University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "wolverhampton", name: "University of Wolverhampton", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "westcliff", name: "Westcliff University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "northampton", name: "University of Northampton", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "lincoln_college", name: "Lincoln University College", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "sunderland", name: "University of Sunderland", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+];
+
+export const UNIVERSITIES_BY_ID = Object.fromEntries(UNIVERSITIES.map((u) => [u.id, u]));
+
+// ─── College Types (unchanged) ──────────────────────────────────────────────
 export const COLLEGE_TYPES = [
   { value: "public", label: "Public" },
   { value: "private", label: "Private" },
@@ -18611,215 +20501,439 @@ export const COLLEGE_TYPES = [
   { value: "affiliated_college", label: "Affiliated College" },
 ];
 
-// ─── THE CASCADE: Level → Faculty → Program ─────────────────────────────────
-// Each key is a STUDY_LEVELS value. `faculties` is the ordered list of streams
-// available at that level. `programs[faculty]` gives the programs under that
-// faculty, at that level only. This is what makes "+2" only ever offer +2
-// streams, and "Bachelor's" only ever offer bachelor's-level programs.
-export const LEVEL_TAXONOMY = {
+// ─── Faculties ───────────────────────────────────────────────────────────────
+// appliesToLevels: which STUDY_LEVELS ids this faculty is valid under.
+// Shared where the domain is genuinely the same thing (Bachelor's/Master's
+// Engineering). +2 and Diploma/PCL get their own namespaced ids
+// (plus_two_*, diploma_*) since a NEB stream and a CTEVT technical stream
+// are not the same entity as a university faculty, even when named alike.
+export const FACULTIES = [
+  // +2 (NEB streams)
+  { id: "plus_two_science", name: "Science", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_management", name: "Management", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_humanities", name: "Humanities", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_education", name: "Education", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_law", name: "Law", appliesToLevels: ["plus_two"] },
+
+  // Diploma / PCL (CTEVT streams)
+  { id: "diploma_engineering", name: "Engineering", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_cs_electronics", name: "Computer Science & Electronics", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_health_sciences", name: "Health Sciences", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_agriculture", name: "Agriculture", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_forestry", name: "Forestry", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_hospitality", name: "Hospitality & Hotel Management", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_management", name: "Management", appliesToLevels: ["diploma_pcl"] },
+
+  // Bachelor's + Master's shared faculties
+  { id: "management", name: "Management", appliesToLevels: ["bachelor", "master"] },
+  { id: "computer_it", name: "Computer & IT", appliesToLevels: ["bachelor", "master"] },
+  { id: "engineering", name: "Engineering", appliesToLevels: ["bachelor", "master"] },
+  { id: "medical_health", name: "Medical & Health Sciences", appliesToLevels: ["bachelor", "master"] },
+  { id: "agriculture_veterinary", name: "Agriculture & Veterinary Science", appliesToLevels: ["bachelor", "master"] },
+  { id: "humanities_social_sciences", name: "Humanities & Social Sciences", appliesToLevels: ["bachelor", "master"] },
+  { id: "education", name: "Education", appliesToLevels: ["bachelor", "master"] },
+  { id: "law", name: "Law", appliesToLevels: ["bachelor", "master"] },
+  { id: "science", name: "Science", appliesToLevels: ["bachelor", "master"] },
+
+  // Bachelor-only / Master-only faculties
+  { id: "arts_design_media", name: "Arts, Design & Media", appliesToLevels: ["bachelor"] },
+  { id: "hospitality_travel_aviation", name: "Hospitality, Travel & Aviation", appliesToLevels: ["bachelor"] },
+  { id: "hospitality_development", name: "Hospitality & Development", appliesToLevels: ["master"] },
+];
+
+export const FACULTIES_BY_ID = Object.fromEntries(FACULTIES.map((f) => [f.id, f]));
+
+// ─── Programs ────────────────────────────────────────────────────────────────
+// Small builder to keep the raw lists readable. `aliases` are alternate
+// spellings/short-forms worth matching on search (extend freely — this is
+// not exhaustive). `typicalDurationYears`, if omitted, is filled in by
+// DEFAULT_DURATION_BY_LEVEL below at flatten time.
+function prog(id, name, opts = {}) {
+  return {
+    id,
+    name,
+    aliases: opts.aliases || [],
+    typicalDurationYears: opts.typicalDurationYears ?? null,
+  };
+}
+
+// Fallback duration (years) by level, used only when a program doesn't
+// specify its own typicalDurationYears override above.
+const DEFAULT_DURATION_BY_LEVEL = {
+  plus_two: 2,
+  diploma_pcl: 3,
+  bachelor: 4,
+  master: 2,
+};
+
+// Raw cascade, grouped the same way the original file was (level -> faculty
+// -> programs), so this stays easy to diff against the old source when
+// updating course lists. PROGRAMS (flattened, below) is what code should
+// actually import and query.
+const RAW_LEVEL_FACULTY_PROGRAMS = {
   plus_two: {
-    faculties: ["Science", "Management", "Humanities", "Education", "Law"],
-    programs: {
-      Science: ["Physical Science (Physics, Chemistry, Math)", "Biology"],
-      Management: ["Management"],
-      Humanities: ["Humanities and Social Sciences"],
-      Education: ["Education"],
-      Law: ["Law"],
-    },
+    plus_two_science: [
+      prog("plus_two_physical_science", "Physical Science (Physics, Chemistry, Math)"),
+      prog("plus_two_biology", "Biology"),
+    ],
+    plus_two_management: [prog("plus_two_management_stream", "Management")],
+    plus_two_humanities: [prog("plus_two_humanities_social_sciences", "Humanities and Social Sciences")],
+    plus_two_education: [prog("plus_two_education_stream", "Education")],
+    plus_two_law: [prog("plus_two_law_stream", "Law")],
   },
 
   diploma_pcl: {
-    // Matches CTEVT's actual program coverage: Engineering, Health, Agriculture,
-    // Hospitality, Forestry, plus Computer Science, Electronics, and Geomatics
-    // offered as distinct diploma tracks (not folded into general Engineering).
-    faculties: [
-      "Engineering",
-      "Computer Science & Electronics",
-      "Health Sciences",
-      "Agriculture",
-      "Forestry",
-      "Hospitality & Hotel Management",
-      "Management",
+    diploma_engineering: [
+      prog("dip_civil", "Diploma in Civil Engineering"),
+      prog("dip_electrical", "Diploma in Electrical Engineering"),
+      prog("dip_architecture", "Diploma in Architecture"),
+      prog("dip_automobile", "Diploma in Automobile Engineering"),
+      prog("dip_mechanical", "Diploma in Mechanical Engineering"),
+      prog("dip_geomatics", "Diploma in Geomatics (Survey) Engineering"),
     ],
-    programs: {
-      Engineering: [
-        "Diploma in Civil Engineering",
-        "Diploma in Electrical Engineering",
-        "Diploma in Architecture",
-        "Diploma in Automobile Engineering",
-        "Diploma in Mechanical Engineering",
-        "Diploma in Geomatics (Survey) Engineering",
-      ],
-      "Computer Science & Electronics": [
-        "Diploma in Computer Engineering",
-        "Diploma in Electronics & Communication Engineering",
-      ],
-      "Health Sciences": [
-        "Diploma in Pharmacy",
-        "PCL / Diploma in Nursing (Staff Nurse)",
-        "Diploma in Medical Lab Technology (DMLT)",
-        "Diploma in Radiography",
-        "Diploma in Ayurveda (CTAMS)",
-        "Diploma in Health Assistant (HA)",
-      ],
-      Agriculture: ["Diploma in Agriculture", "Diploma in Animal Science"],
-      Forestry: ["Diploma in Forestry"],
-      "Hospitality & Hotel Management": ["Diploma in Hotel Management"],
-      Management: ["PCL Management"],
-    },
+    diploma_cs_electronics: [
+      prog("dip_computer_engineering", "Diploma in Computer Engineering"),
+      prog("dip_electronics_comm", "Diploma in Electronics & Communication Engineering"),
+    ],
+    diploma_health_sciences: [
+      prog("dip_pharmacy", "Diploma in Pharmacy"),
+      prog("pcl_nursing", "PCL / Diploma in Nursing (Staff Nurse)", { typicalDurationYears: 2 }),
+      prog("dmlt", "Diploma in Medical Lab Technology (DMLT)"),
+      prog("dip_radiography", "Diploma in Radiography"),
+      prog("dip_ayurveda_ctams", "Diploma in Ayurveda (CTAMS)"),
+      prog("dip_health_assistant", "Diploma in Health Assistant (HA)"),
+    ],
+    diploma_agriculture: [
+      prog("dip_agriculture", "Diploma in Agriculture"),
+      prog("dip_animal_science", "Diploma in Animal Science"),
+    ],
+    diploma_forestry: [prog("dip_forestry", "Diploma in Forestry")],
+    diploma_hospitality: [prog("dip_hotel_management", "Diploma in Hotel Management")],
+    diploma_management: [prog("pcl_management", "PCL Management", { typicalDurationYears: 2 })],
   },
 
   bachelor: {
-    faculties: [
-      "Management",
-      "Computer & IT",
-      "Engineering",
-      "Medical & Health Sciences",
-      "Agriculture & Veterinary Science",
-      "Humanities & Social Sciences",
-      "Education",
-      "Law",
-      "Science",
+    management: [
+      prog("bba", "BBA", { aliases: ["Bachelor of Business Administration"] }),
+      prog("bbm", "BBM", { aliases: ["Bachelor of Business Management"] }),
+      prog("bbs", "BBS", { aliases: ["Bachelor of Business Studies"] }),
+      prog("bpa_mgmt", "BPA", { aliases: ["Bachelor of Public Administration"] }),
+      prog("beco", "Bachelor of Economics (BEco)"),
+      prog("bib", "Bachelor in International Business (BIB)"),
+      prog("bcs_commerce", "Bachelor of Commerce Studies (BCS)"),
+      prog("bba_finance", "BBA in Finance"),
+      prog("bba_bi", "BBA in Banking & Insurance (BBA-BI)"),
+      prog("bbis", "Bachelor of Business Information System (BBIS)"),
+      prog("bdf", "Bachelor in Development Finance (BDF)"),
     ],
-    programs: {
-      Management: [
-        "BBA",
-        "BBM",
-        "BBS",
-        "BPA",
-        "Bachelor of Economics (BEco)",
-        "Bachelor in International Business (BIB)",
-        "Bachelor in Travel & Tourism Management (BTTM)",
-      ],
-      "Computer & IT": [
-        "BCA",
-        "BIM",
-        "BIT",
-        "BSc CSIT",
-        "BE Computer",
-        "BE Software",
-        "BSc IT",
-      ],
-      Engineering: [
-        "BE Civil",
-        "BE Mechanical",
-        "BE Electrical",
-        "BE Electronics & Communication",
-        "B.Arch (Architecture)",
-        "BE Aerospace",
-        "BE Industrial",
-        "BE Automobile",
-        "BE Agricultural",
-        "BE Geomatics / Geo-informatics",
-        "BE Chemical",
-        "BE Mining",
-      ],
-      "Medical & Health Sciences": [
-        "MBBS",
-        "BDS",
-        "BSc Nursing",
-        "BN (Bachelor of Nursing)",
-        "BPH (Public Health)",
-        "BMLT (Medical Lab Technology)",
-        "B Pharmacy",
-        "BPT (Physiotherapy)",
-        "BOT (Occupational Therapy)",
-        "BASLP (Audiology & Speech Language Pathology)",
-        "BRIT (Radiologic Imaging Technology)",
-      ],
-      "Agriculture & Veterinary Science": [
-        "BSc Agriculture",
-        "BSc Forestry",
-        "BVSc & AH (Veterinary)",
-        "BSc Fisheries",
-        "BSc Food Technology",
-      ],
-      "Humanities & Social Sciences": [
-        "BA",
-        "BSW (Social Work)",
-        "BA in Journalism & Mass Communication (BAJMC)",
-        "BA Sociology",
-        "BA Economics",
-        "BA Development Studies",
-      ],
-      Education: [
-        "BEd",
-        "BEd in Science Education",
-        "BEd in English Education",
-        "BEd in Health Education",
-      ],
-      Law: ["LLB", "BALLB", "BBM-LLB", "BEC-LLB"],
-      Science: [
-        "BSc (General)",
-        "BSc Physics",
-        "BSc Chemistry",
-        "BSc Botany",
-        "BSc Zoology",
-        "BSc Microbiology",
-        "BSc Environmental Science",
-        "BSc Biotechnology",
-        "BSc Statistics",
-      ],
-    },
+    computer_it: [
+      prog("bca", "BCA", { aliases: ["Bachelor of Computer Application"] }),
+      prog("bim", "BIM", { aliases: ["Bachelor of Information Management"] }),
+      prog("bit", "BIT", { aliases: ["Bachelor of Information Technology"] }),
+      prog("bsc_csit", "BSc CSIT", { aliases: ["CSIT", "B.Sc CSIT", "BSc. CSIT"] }),
+      prog("be_computer", "BE Computer"),
+      prog("be_software", "BE Software"),
+      prog("bsc_it", "BSc IT"),
+      prog("bcis", "Bachelor of Computer Information System (BCIS)"),
+      prog("bcsit_alt", "Bachelor of Computer Systems & IT (BCSIT)"),
+      prog("b_data_science", "Bachelor in Data Science"),
+      prog("btech_cybersecurity", "Bachelor of Technology (B.Tech) in Cybersecurity"),
+    ],
+    engineering: [
+      prog("be_civil", "BE Civil"),
+      prog("be_mechanical", "BE Mechanical"),
+      prog("be_electrical", "BE Electrical"),
+      prog("be_electrical_electronics", "BE Electrical & Electronics"),
+      prog("be_electronics_comm", "BE Electronics & Communication"),
+      prog("b_arch", "B.Arch (Architecture)", { aliases: ["Bachelor of Architecture"], typicalDurationYears: 5 }),
+      prog("be_aerospace", "BE Aerospace"),
+      prog("be_industrial", "BE Industrial"),
+      prog("be_automobile", "BE Automobile"),
+      prog("be_agricultural", "BE Agricultural"),
+      prog("be_geomatics", "BE Geomatics / Geo-informatics"),
+      prog("be_chemical", "BE Chemical"),
+      prog("be_mining", "BE Mining"),
+      prog("be_biomedical", "BE Biomedical Engineering"),
+      prog("btech_environmental", "BTech Environmental Engineering"),
+    ],
+    medical_health: [
+      prog("mbbs", "MBBS", { typicalDurationYears: 5.5 }),
+      prog("bds", "BDS", { aliases: ["Bachelor of Dental Surgery"], typicalDurationYears: 5 }),
+      prog("bsc_nursing", "BSc Nursing"),
+      prog("bn_nursing", "BN (Bachelor of Nursing)"),
+      prog("pbn", "Post Basic Bachelor of Nursing (PBN)"),
+      prog("bph", "Bachelor of Public Health (BPH)"),
+      prog("bmlt", "BMLT (Medical Lab Technology)"),
+      prog("b_pharmacy", "B Pharmacy"),
+      prog("bpt", "BPT (Physiotherapy)"),
+      prog("bot", "BOT (Occupational Therapy)"),
+      prog("baslp", "BASLP (Audiology & Speech Language Pathology)"),
+      prog("brit", "BRIT (Radiologic Imaging Technology)"),
+      prog("bams", "Bachelor of Ayurvedic Medicine & Surgery (BAMS)", { typicalDurationYears: 5.5 }),
+      prog("bhms", "Bachelor of Homeopathic Medicine & Surgery (BHMS)", { typicalDurationYears: 5.5 }),
+      prog("b_optometry", "Bachelor of Optometry"),
+      prog("b_perfusion", "Bachelor in Perfusion Technology"),
+      prog("bsc_medical_imaging", "BSc Medical Imaging / Radiographic Technology"),
+      prog("bhcm", "Bachelor of Health Care Management (BHCM)"),
+      prog("bsc_human_biology", "BSc Human Biology"),
+      prog("bsc_medical_biochemistry", "BSc Medical Biochemistry"),
+    ],
+    agriculture_veterinary: [
+      prog("bsc_agriculture", "BSc Agriculture"),
+      prog("bsc_forestry", "BSc Forestry"),
+      prog("bvsc_ah", "BVSc & AH (Veterinary)", { typicalDurationYears: 5 }),
+      prog("bsc_fisheries", "BSc Fisheries"),
+      prog("bsc_food_technology", "BSc Food Technology"),
+      prog("b_dairy_technology", "Bachelor of Dairy Technology"),
+      prog("bsc_horticulture_floriculture", "BSc Horticulture & Floriculture Management"),
+      prog("bsc_tea_technology", "BSc Tea Technology & Management"),
+    ],
+    humanities_social_sciences: [
+      prog("ba_general", "BA"),
+      prog("bsw", "BSW (Social Work)"),
+      prog("bajmc", "BA in Journalism & Mass Communication (BAJMC)"),
+      prog("ba_sociology", "BA Sociology"),
+      prog("ba_economics", "BA Economics"),
+      prog("ba_psychology", "BA Psychology"),
+      prog("ba_rural_development", "BA Rural Development"),
+      prog("bdevs", "Bachelor of Development Studies (BDEVS)"),
+      prog("bss", "Bachelor of Social Sciences (BSS)"),
+      prog("ba_buddhist_studies", "Bachelor (BA) in Buddhist Studies"),
+      prog("b_english_comm_studies", "Bachelor of English & Communication Studies"),
+      prog("bpa_humanities", "Bachelor of Public Administration (BPA)"),
+    ],
+    education: [
+      prog("bed", "BEd"),
+      prog("bed_science", "BEd in Science Education"),
+      prog("bed_english", "BEd in English Education"),
+      prog("bed_health", "BEd in Health Education"),
+      prog("bed_ict", "BEd in Information Communication Technology (BEd ICT)"),
+    ],
+    law: [
+      prog("llb", "LLB", { typicalDurationYears: 3 }),
+      prog("ballb", "BALLB", { typicalDurationYears: 5 }),
+      prog("bbm_llb", "BBM-LLB", { typicalDurationYears: 5 }),
+      prog("bec_llb", "BEC-LLB", { typicalDurationYears: 5 }),
+    ],
+    science: [
+      prog("bsc_general", "BSc (General)"),
+      prog("bsc_physics", "BSc Physics"),
+      prog("bsc_applied_physics", "BSc Applied Physics"),
+      prog("bsc_chemistry", "BSc Chemistry"),
+      prog("bsc_botany", "BSc Botany"),
+      prog("bsc_zoology", "BSc Zoology"),
+      prog("bsc_microbiology", "BSc Microbiology"),
+      prog("bsc_environmental_science", "BSc Environmental Science"),
+      prog("bsc_biotechnology", "BSc Biotechnology"),
+      prog("bsc_statistics", "BSc Statistics"),
+      prog("bsc_mathematics", "BSc Mathematics"),
+      prog("bsc_geology", "BSc Geology"),
+      prog("bsc_meteorology", "BSc Meteorology"),
+      prog("bsc_biochemistry", "BSc Biochemistry"),
+    ],
+    arts_design_media: [
+      prog("bfa", "Bachelor of Fine Arts (BFA)"),
+      prog("bfa_classical_dance", "BFA in Classical Dance"),
+      prog("bfa_classical_music", "BFA in Classical Music"),
+      prog("bfa_graphic_comm", "BFA in Graphic Communication"),
+      prog("bfa_sculpture", "BFA in Sculpture"),
+      prog("bfd", "Bachelor of Fashion Design (BFD)"),
+      prog("bid", "Bachelor of Interior Design (BID)"),
+      prog("bms_media", "Bachelor of Media Studies (BMS)"),
+      prog("bmt_media_tech", "Bachelor in Media Technology (BMT)"),
+      prog("bfilm_acting", "Bachelor in Film Studies (Acting)"),
+      prog("bfilm_cinematography", "Bachelor in Film Studies (Cinematography)"),
+      prog("bfilm_editing", "Bachelor in Film Studies (Editing)"),
+      prog("bfilm_audiography", "Bachelor in Film Studies (Audiography)"),
+      prog("bfilm_screenplay", "Bachelor of Film Studies (Screenplay Writing & Direction)"),
+      prog("b_mountaineering_studies", "Bachelor of Mountaineering Studies"),
+    ],
+    hospitality_travel_aviation: [
+      prog("bhm", "Bachelor of Hotel Management (BHM)"),
+      prog("bttm", "Bachelor of Travel & Tourism Management (BTTM)"),
+      prog("bba_tt", "BBA in Travel & Tourism (BBA-TT)"),
+      prog("b_hospitality_tourism_mgmt", "Bachelor of Hospitality & Tourism Management"),
+      prog("b_professional_hospitality", "Bachelor of Professional Hospitality"),
+      prog("b_aviation_management", "Bachelor of Aviation Management"),
+    ],
   },
 
   master: {
-    faculties: [
-      "Management",
-      "Computer & IT",
-      "Engineering",
-      "Medical & Health Sciences",
-      "Agriculture & Veterinary Science",
-      "Humanities & Social Sciences",
-      "Education",
-      "Law",
-      "Science",
+    management: [
+      prog("mba", "MBA"),
+      prog("mba_executive", "MBA Executive (EMBA)"),
+      prog("mba_finance", "MBA Finance"),
+      prog("mba_global_leadership", "MBA Global Business / Leadership"),
+      prog("mbs", "MBS"),
+      prog("mbm_master", "MBM"),
+      prog("mbe", "Master in Business Economics (MBE)"),
     ],
-    programs: {
-      Management: ["MBA", "EMBA", "MBS", "MBM"],
-      "Computer & IT": ["MIT", "MSc CSIT"],
-      Engineering: [
-        "ME Civil",
-        "ME Structural",
-        "ME Electrical",
-        "ME Computer",
-        "M.Arch",
-      ],
-      "Medical & Health Sciences": ["MD", "MS", "MPH", "MSc Nursing"],
-      "Agriculture & Veterinary Science": [
-        "MSc Agriculture",
-        "MSc Forestry",
-        "MVSc",
-      ],
-      "Humanities & Social Sciences": [
-        "MA English",
-        "MA Sociology",
-        "MA Economics",
-        "MA Development Studies",
-      ],
-      Education: ["MEd"],
-      Law: ["LLM"],
-      Science: ["MSc"],
-    },
+    computer_it: [
+      prog("mit", "MIT"),
+      prog("msc_csit", "MSc CSIT"),
+      prog("mca", "Master of Computer Application (MCA)"),
+      prog("mcis", "Master of Computer Information System (MCIS)"),
+      prog("m_computer_science", "Master of Computer Science"),
+      prog("mtech_it", "Master of Technology (MTech) in IT"),
+    ],
+    engineering: [
+      prog("me_civil", "ME Civil"),
+      prog("me_structural", "ME Structural"),
+      prog("me_electrical_power", "ME Electrical / Power"),
+      prog("me_computer", "ME Computer"),
+      prog("me_communication", "ME Communication"),
+      prog("me_mechanical", "ME Mechanical"),
+      prog("me_geoinformatics", "ME Geoinformatics"),
+      prog("me_earthquake", "ME Earthquake Engineering"),
+      prog("m_arch", "M.Arch"),
+      prog("msc_construction_mgmt", "MSc Construction Management"),
+      prog("msc_transportation_eng", "MSc Transportation Engineering & Management"),
+    ],
+    medical_health: [
+      prog("md", "MD", { typicalDurationYears: 3 }),
+      prog("ms_surgery", "MS", { typicalDurationYears: 3 }),
+      prog("mph", "MPH (Master of Public Health)"),
+      prog("msc_nursing", "MSc Nursing"),
+      prog("mn_nursing", "Master of Nursing (MN)"),
+      prog("m_pharmacy", "Master in Pharmacy / MSc Pharmacy"),
+      prog("mds", "Master of Dental Surgery (MDS)", { typicalDurationYears: 3 }),
+      prog("mhcm", "Master of Health Care Management (MHCM)"),
+    ],
+    agriculture_veterinary: [
+      prog("msc_agriculture", "MSc Agriculture"),
+      prog("msc_forestry", "MSc Forestry"),
+      prog("mvsc", "MVSc"),
+      prog("msc_dairy_technology", "MSc Dairy Technology"),
+      prog("msc_meat_technology", "MSc Meat Technology"),
+    ],
+    humanities_social_sciences: [
+      prog("ma_english", "MA English"),
+      prog("ma_sociology_anthropology", "MA Sociology / Anthropology"),
+      prog("ma_economics", "MA Economics"),
+      prog("ma_development_studies", "MA Development Studies"),
+      prog("ma_jmc", "MA in Journalism & Mass Communication"),
+      prog("ma_population_gender_dev", "MA in Population, Gender & Development"),
+      prog("ma_buddhist_studies", "MA in Buddhist Studies"),
+      prog("m_regional_dev_planning", "Master in Regional Development Planning & Management"),
+      prog("m_human_rights", "Master's in Human Rights"),
+      prog("msw", "Master of Social Work (MSW)"),
+      prog("mpa", "Master of Public Administration (MPA)"),
+    ],
+    education: [
+      prog("med", "MEd"),
+      prog("med_leadership_mgmt", "MEd in Leadership & Management"),
+      prog("med_math", "MEd Math"),
+    ],
+    law: [
+      prog("llm", "LLM"),
+      prog("m_conflict_ihl", "Master's Degree in Conflict & International Humanitarian Law"),
+    ],
+    science: [
+      prog("msc_general", "MSc"),
+      prog("msc_environmental_mgmt", "MSc Environmental Science / Management"),
+      prog("msc_biotechnology", "MSc Biotechnology"),
+      prog("msc_life_science", "MSc Life Science"),
+      prog("msc_nrm", "MSc Natural Resources Management"),
+      prog("msc_water_resource_mgmt", "MSc Interdisciplinary Water Resource Management"),
+    ],
+    hospitality_development: [
+      prog("mttm", "Master of Tourism Studies (MTTM)"),
+      prog("mhhm", "Master of Hotel & Hospitality Management (MHHM)"),
+      prog("m_sustainable_dev", "Master in Sustainable Development"),
+    ],
   },
 };
 
-// Flat list of every program across all levels — handy for search/autocomplete
-export const ALL_PROGRAMS_FLAT = Object.values(LEVEL_TAXONOMY).flatMap((lvl) =>
-  Object.values(lvl.programs).flat(),
+// Flattened, ID-addressable program catalog — the array code should
+// actually import. Every entry carries levelId + facultyId, and
+// typicalDurationYears is guaranteed non-null (defaulted per level if the
+// program didn't specify its own).
+export const PROGRAMS = Object.entries(RAW_LEVEL_FACULTY_PROGRAMS).flatMap(([levelId, faculties]) =>
+  Object.entries(faculties).flatMap(([facultyId, programs]) =>
+    programs.map((program) => ({
+      ...program,
+      levelId,
+      facultyId,
+      typicalDurationYears: program.typicalDurationYears ?? DEFAULT_DURATION_BY_LEVEL[levelId] ?? null,
+    })),
+  ),
 );
 
-// ── Helper accessors ─────────────────────────────────────────────────────────
+export const PROGRAMS_BY_ID = Object.fromEntries(PROGRAMS.map((p) => [p.id, p]));
+
+// ─── Program Offerings (Program × University join) ──────────────────────────
+// This is where university-specific facts belong: does this university
+// actually offer this program, what duration/degree title do THEY use, is
+// it currently accepting admissions. Seed data below is illustrative for a
+// handful of well-known combinations — treat this as a starting fixture,
+// not a complete dataset. In production this table is what an admin CRUD
+// (see models/ProgramOffering.js) manages, keyed by (programId, universityId).
+export const PROGRAM_OFFERINGS = [
+  { programId: "be_civil", universityId: "tu", durationYears: 4 },
+  { programId: "be_civil", universityId: "purbanchal", durationYears: 4 },
+  { programId: "be_civil", universityId: "pu", durationYears: 4 },
+  { programId: "bsc_csit", universityId: "tu", durationYears: 4 },
+  { programId: "bsc_csit", universityId: "pu", durationYears: 4 },
+  { programId: "mbbs", universityId: "tu", durationYears: 5.5 },
+  { programId: "mbbs", universityId: "ku", durationYears: 5.5 },
+  { programId: "bba", universityId: "tu", durationYears: 4 },
+  { programId: "bba", universityId: "pu", durationYears: 4 },
+  { programId: "bba", universityId: "ku", durationYears: 4 },
+  // Extend via admin CRUD / seed script rather than hand-editing this file.
+];
+
+// ─── Helper accessors ────────────────────────────────────────────────────────
 
 // Faculties available for a given level. Returns [] if the level has no
-// faculty step (e.g. "see", "primary") — form should hide the field then.
-export function getFacultiesForLevel(level) {
-  return LEVEL_TAXONOMY[level]?.faculties || [];
+// faculty step (e.g. "see", "primary").
+export function getFacultiesForLevel(levelId) {
+  return FACULTIES.filter((f) => f.appliesToLevels.includes(levelId));
 }
 
 // Programs available for a given level + faculty combo.
-export function getProgramsForFaculty(level, faculty) {
-  return LEVEL_TAXONOMY[level]?.programs?.[faculty] || [];
+export function getProgramsForFaculty(levelId, facultyId) {
+  return PROGRAMS.filter((p) => p.levelId === levelId && p.facultyId === facultyId);
+}
+
+// Whether the University/Affiliation field should be shown for a level.
+export function isUniversityAffiliatedLevel(levelId) {
+  return STUDY_LEVELS_BY_ID[levelId]?.universityAffiliated ?? false;
+}
+
+// Human label for the governing-body caption under the level dropdown.
+export function getGoverningBodyLabel(levelId) {
+  const body = STUDY_LEVELS_BY_ID[levelId]?.governingBody;
+  return GOVERNING_BODY_LABELS[body] || null;
+}
+
+export function findProgramById(programId) {
+  return PROGRAMS_BY_ID[programId] || null;
+}
+
+export function findUniversityById(universityId) {
+  return UNIVERSITIES_BY_ID[universityId] || null;
+}
+
+export function findFacultyById(facultyId) {
+  return FACULTIES_BY_ID[facultyId] || null;
+}
+
+// Universities that actually offer a given program, per PROGRAM_OFFERINGS.
+export function getUniversitiesOfferingProgram(programId) {
+  return PROGRAM_OFFERINGS.filter((o) => o.programId === programId).map((o) => ({
+    ...findUniversityById(o.universityId),
+    durationYears: o.durationYears,
+  }));
+}
+
+// Simple case-insensitive search across program name + aliases — handy for
+// autocomplete/search boxes. Returns matching program objects.
+export function searchPrograms(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return PROGRAMS.filter(
+    (p) => p.name.toLowerCase().includes(q) || p.aliases.some((a) => a.toLowerCase().includes(q)),
+  );
 }
 ```
 
@@ -18861,93 +20975,143 @@ export default defineConfig([
 ```js
 // educationTaxonomy.js
 //
-// Single source of truth for education dropdowns — structured as a real
-// cascade: Target Level → Faculty/Stream → Program/Major, mirroring how
-// Nepal's education system is actually organized:
-//   +2          → governed by NEB (streams: Science, Management, ...)
-//   Diploma/PCL → governed by CTEVT (Engineering, Health Sciences, ...)
-//   Bachelor's / Master's → governed by universities (faculties → programs)
+// Normalized, ID-based source of truth for Nepal's education system.
+// Keep this file identical on frontend and backend — course validation on
+// the server must agree with what the EducationCascade dropdown showed.
 //
-// This replaces the old flat, independent STUDY_LEVELS / FACULTIES /
-// DEGREE_PROGRAMS lists with a nested structure so a scholarship's
-// Faculty options depend on its Level, and Program options depend on
-// its Faculty — exactly like the LocationCascade component.
+// WHY THIS SHAPE (v2):
+//   - Every faculty and program has a stable `id`. Display names (`name`)
+//     can be edited freely without breaking stored student/scholarship
+//     records, which reference the id, not the string.
+//   - Faculties are a shared catalog. "Engineering" at Bachelor's and
+//     Master's is the SAME faculty (id: "engineering"), so a scholarship
+//     rule like "all Engineering students" only has to list one facultyId
+//     to match both levels. +2 "Science" and Bachelor's "Science" are NOT
+//     merged — a +2 stream and a university faculty are structurally
+//     different things — so they get distinct ids (plus_two_science vs
+//     science).
+//   - Programs carry `levelId` + `facultyId` (not duplicated per
+//     university). Anything that varies by university — duration nuance,
+//     which universities actually offer it, degree-award wording — lives
+//     in PROGRAM_OFFERINGS, a join table, not on the program object.
+//     Otherwise a curriculum tweak at one university would force editing
+//     an object shared by every other university offering the program.
+//   - Universities are their own catalog, referenced by id everywhere
+//     (matches UNIVERSITIES_FLAT strings from the old file 1:1, so
+//     existing free-text data can be migrated by exact-name lookup).
+//   - Campus/College is deliberately NOT modeled here as static data.
+//     TU alone has 400+ affiliated colleges; that's operational data that
+//     changes constantly and belongs in a real DB table managed through
+//     admin CRUD (see models/College.js), not a JS array requiring a
+//     code deploy every time a college's affiliation changes.
+//
+// Course lists cross-checked against collegesnepal.com's live program
+// listings for TU, KU, Pokhara University, and Purbanchal University
+// (Aug 2026). Foreign-affiliated programs are out of scope for the
+// LEVEL_TAXONOMY cascade; UNIVERSITIES still lists foreign affiliations
+// (for the University dropdown) since students report affiliation even
+// when the degree-granting body is abroad.
+//
+// `typicalDurationYears` on a program is a DISPLAY DEFAULT ONLY — the
+// authoritative duration for a specific program-at-a-specific-university
+// belongs in PROGRAM_OFFERINGS (or the DB equivalent), since duration can
+// legitimately differ by curriculum revision between universities.
+
+// ─── Governing bodies ────────────────────────────────────────────────────────
+export const GOVERNING_BODIES = {
+  NEB: "neb",
+  CTEVT: "ctevt",
+  ICAN: "ican",
+  UNIVERSITY: "university",
+  SCHOOL_CURRICULUM: "school_curriculum",
+  TRAINING_PROVIDER: "training_provider",
+};
+
+export const GOVERNING_BODY_LABELS = {
+  neb: "National Examinations Board (NEB)",
+  ctevt: "CTEVT",
+  ican: "Institute of Chartered Accountants of Nepal (ICAN)",
+  university: "University",
+  school_curriculum: "Ministry of Education (school curriculum)",
+  training_provider: "Training provider",
+};
 
 // ─── Study Levels ────────────────────────────────────────────────────────────
+// hasFaculty: whether this level has a Faculty/Program cascade step at all.
+// universityAffiliated: whether the University/Affiliation dropdown should
+// show for this level. NOTE these two flags diverge at plus_two and
+// diploma_pcl (faculty step exists, but neither is a university degree).
 export const STUDY_LEVELS = [
-  { value: "short_term_training", label: "Short-Term Training" },
-  { value: "primary", label: "Primary" },
-  { value: "lower_secondary", label: "Lower Secondary" },
-  { value: "secondary", label: "Secondary" },
-  { value: "see", label: "SEE" },
-  { value: "plus_two", label: "Plus Two (+2)" },
-  { value: "diploma_pcl", label: "Diploma / PCL" },
-  { value: "pre_diploma", label: "Pre-Diploma" },
-  { value: "bachelor", label: "Bachelor's" },
-  { value: "ca", label: "Chartered Accountancy (CA)" },
-  { value: "postgraduate_diploma", label: "Postgraduate Diploma" },
-  { value: "master", label: "Master's" },
-  { value: "mphil", label: "MPhil (Master of Philosophy)" },
-  { value: "phd", label: "Doctorate (PhD)" },
+  { id: "short_term_training", name: "Short-Term Training", hasFaculty: false, governingBody: GOVERNING_BODIES.TRAINING_PROVIDER, universityAffiliated: false },
+  { id: "primary", name: "Primary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "lower_secondary", name: "Lower Secondary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "secondary", name: "Secondary", hasFaculty: false, governingBody: GOVERNING_BODIES.SCHOOL_CURRICULUM, universityAffiliated: false },
+  { id: "see", name: "SEE", hasFaculty: false, governingBody: GOVERNING_BODIES.NEB, universityAffiliated: false },
+  { id: "plus_two", name: "Plus Two (+2)", hasFaculty: true, governingBody: GOVERNING_BODIES.NEB, universityAffiliated: false },
+  { id: "diploma_pcl", name: "Diploma / PCL", hasFaculty: true, governingBody: GOVERNING_BODIES.CTEVT, universityAffiliated: false },
+  { id: "pre_diploma", name: "Pre-Diploma", hasFaculty: false, governingBody: GOVERNING_BODIES.CTEVT, universityAffiliated: false },
+  { id: "bachelor", name: "Bachelor's", hasFaculty: true, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "ca", name: "Chartered Accountancy (CA)", hasFaculty: false, governingBody: GOVERNING_BODIES.ICAN, universityAffiliated: false },
+  { id: "postgraduate_diploma", name: "Postgraduate Diploma", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "master", name: "Master's", hasFaculty: true, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "mphil", name: "MPhil (Master of Philosophy)", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
+  { id: "phd", name: "Doctorate (PhD)", hasFaculty: false, governingBody: GOVERNING_BODIES.UNIVERSITY, universityAffiliated: true },
 ];
 
-// Levels where Faculty/Program selection is meaningful.
-// Everything else (primary, lower_secondary, secondary, see, short_term_training,
-// ca, pre_diploma, postgraduate_diploma, mphil, phd) has no faculty/program step —
-// the form should hide those fields for these levels.
-export const LEVELS_WITH_FACULTY = [
-  "plus_two",
-  "diploma_pcl",
-  "bachelor",
-  "master",
-];
+export const STUDY_LEVELS_BY_ID = Object.fromEntries(STUDY_LEVELS.map((l) => [l.id, l]));
 
-// ─── University / Affiliation (unchanged — independent of level) ───────────
+// Derived — kept for convenience / backward compatibility with old call sites.
+export const LEVELS_WITH_FACULTY = STUDY_LEVELS.filter((l) => l.hasFaculty).map((l) => l.id);
+export const LEVELS_AFFILIATED_WITH_UNIVERSITY = STUDY_LEVELS.filter((l) => l.universityAffiliated).map((l) => l.id);
+
+// ─── Universities ────────────────────────────────────────────────────────────
+// group: "nepal" | "foreign_affiliation"
+// hasOwnPlusTwo: university runs its own +2 wing directly (KU High School,
+// Nepal Sanskrit University's +2 classes) rather than through NEB-affiliated
+// colleges. Still an NEB-governed qualification nationally — this is just a
+// UI hint ("this university also offers +2"), not an affiliation fact.
 export const UNIVERSITIES = [
-  {
-    group: "Nepal Universities",
-    options: [
-      "Tribhuvan University (TU)",
-      "Kathmandu University (KU)",
-      "Pokhara University (PU)",
-      "Purbanchal University",
-      "Mid-West University",
-      "Far Western University",
-      "Agriculture and Forestry University (AFU)",
-      "Nepal Sanskrit University",
-      "Lumbini Buddhist University",
-      "Nepal Open University",
-      "Rajarshi Janak University",
-      "Bagmati University",
-      "Gandaki University",
-      "Madan Bhandari University of Science and Technology (MBUST)",
-      "Patan Academy of Health Sciences (PAHS)",
-      "BP Koirala Institute of Health Sciences (BPKIHS)",
-      "Karnali Academy of Health Sciences (KAHS)",
-      "National Academy of Medical Sciences (NAMS)",
-      "CTEVT",
-    ],
-  },
-  {
-    group: "Foreign Affiliations",
-    options: [
-      "University of London",
-      "Coventry University",
-      "University of the West of England",
-      "Leeds Beckett University",
-      "Asia Pacific University",
-      "HELP University",
-      "University of Wolverhampton",
-      "Westcliff University",
-      "University of Northampton",
-      "Lincoln University College",
-      "University of Sunderland",
-    ],
-  },
-];
-export const UNIVERSITIES_FLAT = UNIVERSITIES.flatMap((g) => g.options);
+  { id: "tu", name: "Tribhuvan University", shortName: "TU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "ku", name: "Kathmandu University", shortName: "KU", group: "nepal", hasOwnPlusTwo: true },
+  { id: "pu", name: "Pokhara University", shortName: "PU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "purbanchal", name: "Purbanchal University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mid_west", name: "Mid-West University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "far_western", name: "Far Western University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "afu", name: "Agriculture and Forestry University", shortName: "AFU", group: "nepal", hasOwnPlusTwo: false },
+  { id: "sanskrit", name: "Nepal Sanskrit University", shortName: null, group: "nepal", hasOwnPlusTwo: true },
+  { id: "lumbini_buddhist", name: "Lumbini Buddhist University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "open_university", name: "Nepal Open University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "rajarshi_janak", name: "Rajarshi Janak University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "bagmati", name: "Bagmati University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "gandaki", name: "Gandaki University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mbust", name: "Madan Bhandari University of Science and Technology", shortName: "MBUST", group: "nepal", hasOwnPlusTwo: false },
+  { id: "manmohan_technical", name: "Manmohan Technical University", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "pahs", name: "Patan Academy of Health Sciences", shortName: "PAHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "bpkihs", name: "BP Koirala Institute of Health Sciences", shortName: "BPKIHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "kahs", name: "Karnali Academy of Health Sciences", shortName: "KAHS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "nams", name: "National Academy of Medical Sciences", shortName: "NAMS", group: "nepal", hasOwnPlusTwo: false },
+  { id: "mbahs", name: "Madan Bhandari Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "mihs", name: "Madhesh Institute of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "rahs", name: "Rapti Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "pokhara_ahs", name: "Pokhara Academy of Health Sciences", shortName: null, group: "nepal", hasOwnPlusTwo: false },
+  { id: "ctevt", name: "CTEVT", shortName: null, group: "nepal", hasOwnPlusTwo: false },
 
-// ─── College Type (unchanged) ───────────────────────────────────────────────
+  { id: "univ_london", name: "University of London", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "coventry", name: "Coventry University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "uwe", name: "University of the West of England", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "leeds_beckett", name: "Leeds Beckett University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "apu", name: "Asia Pacific University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "help_university", name: "HELP University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "wolverhampton", name: "University of Wolverhampton", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "westcliff", name: "Westcliff University", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "northampton", name: "University of Northampton", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "lincoln_college", name: "Lincoln University College", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+  { id: "sunderland", name: "University of Sunderland", shortName: null, group: "foreign_affiliation", hasOwnPlusTwo: false },
+];
+
+export const UNIVERSITIES_BY_ID = Object.fromEntries(UNIVERSITIES.map((u) => [u.id, u]));
+
+// ─── College Types (unchanged) ──────────────────────────────────────────────
 export const COLLEGE_TYPES = [
   { value: "public", label: "Public" },
   { value: "private", label: "Private" },
@@ -18956,215 +21120,439 @@ export const COLLEGE_TYPES = [
   { value: "affiliated_college", label: "Affiliated College" },
 ];
 
-// ─── THE CASCADE: Level → Faculty → Program ─────────────────────────────────
-// Each key is a STUDY_LEVELS value. `faculties` is the ordered list of streams
-// available at that level. `programs[faculty]` gives the programs under that
-// faculty, at that level only. This is what makes "+2" only ever offer +2
-// streams, and "Bachelor's" only ever offer bachelor's-level programs.
-export const LEVEL_TAXONOMY = {
+// ─── Faculties ───────────────────────────────────────────────────────────────
+// appliesToLevels: which STUDY_LEVELS ids this faculty is valid under.
+// Shared where the domain is genuinely the same thing (Bachelor's/Master's
+// Engineering). +2 and Diploma/PCL get their own namespaced ids
+// (plus_two_*, diploma_*) since a NEB stream and a CTEVT technical stream
+// are not the same entity as a university faculty, even when named alike.
+export const FACULTIES = [
+  // +2 (NEB streams)
+  { id: "plus_two_science", name: "Science", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_management", name: "Management", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_humanities", name: "Humanities", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_education", name: "Education", appliesToLevels: ["plus_two"] },
+  { id: "plus_two_law", name: "Law", appliesToLevels: ["plus_two"] },
+
+  // Diploma / PCL (CTEVT streams)
+  { id: "diploma_engineering", name: "Engineering", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_cs_electronics", name: "Computer Science & Electronics", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_health_sciences", name: "Health Sciences", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_agriculture", name: "Agriculture", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_forestry", name: "Forestry", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_hospitality", name: "Hospitality & Hotel Management", appliesToLevels: ["diploma_pcl"] },
+  { id: "diploma_management", name: "Management", appliesToLevels: ["diploma_pcl"] },
+
+  // Bachelor's + Master's shared faculties
+  { id: "management", name: "Management", appliesToLevels: ["bachelor", "master"] },
+  { id: "computer_it", name: "Computer & IT", appliesToLevels: ["bachelor", "master"] },
+  { id: "engineering", name: "Engineering", appliesToLevels: ["bachelor", "master"] },
+  { id: "medical_health", name: "Medical & Health Sciences", appliesToLevels: ["bachelor", "master"] },
+  { id: "agriculture_veterinary", name: "Agriculture & Veterinary Science", appliesToLevels: ["bachelor", "master"] },
+  { id: "humanities_social_sciences", name: "Humanities & Social Sciences", appliesToLevels: ["bachelor", "master"] },
+  { id: "education", name: "Education", appliesToLevels: ["bachelor", "master"] },
+  { id: "law", name: "Law", appliesToLevels: ["bachelor", "master"] },
+  { id: "science", name: "Science", appliesToLevels: ["bachelor", "master"] },
+
+  // Bachelor-only / Master-only faculties
+  { id: "arts_design_media", name: "Arts, Design & Media", appliesToLevels: ["bachelor"] },
+  { id: "hospitality_travel_aviation", name: "Hospitality, Travel & Aviation", appliesToLevels: ["bachelor"] },
+  { id: "hospitality_development", name: "Hospitality & Development", appliesToLevels: ["master"] },
+];
+
+export const FACULTIES_BY_ID = Object.fromEntries(FACULTIES.map((f) => [f.id, f]));
+
+// ─── Programs ────────────────────────────────────────────────────────────────
+// Small builder to keep the raw lists readable. `aliases` are alternate
+// spellings/short-forms worth matching on search (extend freely — this is
+// not exhaustive). `typicalDurationYears`, if omitted, is filled in by
+// DEFAULT_DURATION_BY_LEVEL below at flatten time.
+function prog(id, name, opts = {}) {
+  return {
+    id,
+    name,
+    aliases: opts.aliases || [],
+    typicalDurationYears: opts.typicalDurationYears ?? null,
+  };
+}
+
+// Fallback duration (years) by level, used only when a program doesn't
+// specify its own typicalDurationYears override above.
+const DEFAULT_DURATION_BY_LEVEL = {
+  plus_two: 2,
+  diploma_pcl: 3,
+  bachelor: 4,
+  master: 2,
+};
+
+// Raw cascade, grouped the same way the original file was (level -> faculty
+// -> programs), so this stays easy to diff against the old source when
+// updating course lists. PROGRAMS (flattened, below) is what code should
+// actually import and query.
+const RAW_LEVEL_FACULTY_PROGRAMS = {
   plus_two: {
-    faculties: ["Science", "Management", "Humanities", "Education", "Law"],
-    programs: {
-      Science: ["Physical Science (Physics, Chemistry, Math)", "Biology"],
-      Management: ["Management"],
-      Humanities: ["Humanities and Social Sciences"],
-      Education: ["Education"],
-      Law: ["Law"],
-    },
+    plus_two_science: [
+      prog("plus_two_physical_science", "Physical Science (Physics, Chemistry, Math)"),
+      prog("plus_two_biology", "Biology"),
+    ],
+    plus_two_management: [prog("plus_two_management_stream", "Management")],
+    plus_two_humanities: [prog("plus_two_humanities_social_sciences", "Humanities and Social Sciences")],
+    plus_two_education: [prog("plus_two_education_stream", "Education")],
+    plus_two_law: [prog("plus_two_law_stream", "Law")],
   },
 
   diploma_pcl: {
-    // Matches CTEVT's actual program coverage: Engineering, Health, Agriculture,
-    // Hospitality, Forestry, plus Computer Science, Electronics, and Geomatics
-    // offered as distinct diploma tracks (not folded into general Engineering).
-    faculties: [
-      "Engineering",
-      "Computer Science & Electronics",
-      "Health Sciences",
-      "Agriculture",
-      "Forestry",
-      "Hospitality & Hotel Management",
-      "Management",
+    diploma_engineering: [
+      prog("dip_civil", "Diploma in Civil Engineering"),
+      prog("dip_electrical", "Diploma in Electrical Engineering"),
+      prog("dip_architecture", "Diploma in Architecture"),
+      prog("dip_automobile", "Diploma in Automobile Engineering"),
+      prog("dip_mechanical", "Diploma in Mechanical Engineering"),
+      prog("dip_geomatics", "Diploma in Geomatics (Survey) Engineering"),
     ],
-    programs: {
-      Engineering: [
-        "Diploma in Civil Engineering",
-        "Diploma in Electrical Engineering",
-        "Diploma in Architecture",
-        "Diploma in Automobile Engineering",
-        "Diploma in Mechanical Engineering",
-        "Diploma in Geomatics (Survey) Engineering",
-      ],
-      "Computer Science & Electronics": [
-        "Diploma in Computer Engineering",
-        "Diploma in Electronics & Communication Engineering",
-      ],
-      "Health Sciences": [
-        "Diploma in Pharmacy",
-        "PCL / Diploma in Nursing (Staff Nurse)",
-        "Diploma in Medical Lab Technology (DMLT)",
-        "Diploma in Radiography",
-        "Diploma in Ayurveda (CTAMS)",
-        "Diploma in Health Assistant (HA)",
-      ],
-      Agriculture: ["Diploma in Agriculture", "Diploma in Animal Science"],
-      Forestry: ["Diploma in Forestry"],
-      "Hospitality & Hotel Management": ["Diploma in Hotel Management"],
-      Management: ["PCL Management"],
-    },
+    diploma_cs_electronics: [
+      prog("dip_computer_engineering", "Diploma in Computer Engineering"),
+      prog("dip_electronics_comm", "Diploma in Electronics & Communication Engineering"),
+    ],
+    diploma_health_sciences: [
+      prog("dip_pharmacy", "Diploma in Pharmacy"),
+      prog("pcl_nursing", "PCL / Diploma in Nursing (Staff Nurse)", { typicalDurationYears: 2 }),
+      prog("dmlt", "Diploma in Medical Lab Technology (DMLT)"),
+      prog("dip_radiography", "Diploma in Radiography"),
+      prog("dip_ayurveda_ctams", "Diploma in Ayurveda (CTAMS)"),
+      prog("dip_health_assistant", "Diploma in Health Assistant (HA)"),
+    ],
+    diploma_agriculture: [
+      prog("dip_agriculture", "Diploma in Agriculture"),
+      prog("dip_animal_science", "Diploma in Animal Science"),
+    ],
+    diploma_forestry: [prog("dip_forestry", "Diploma in Forestry")],
+    diploma_hospitality: [prog("dip_hotel_management", "Diploma in Hotel Management")],
+    diploma_management: [prog("pcl_management", "PCL Management", { typicalDurationYears: 2 })],
   },
 
   bachelor: {
-    faculties: [
-      "Management",
-      "Computer & IT",
-      "Engineering",
-      "Medical & Health Sciences",
-      "Agriculture & Veterinary Science",
-      "Humanities & Social Sciences",
-      "Education",
-      "Law",
-      "Science",
+    management: [
+      prog("bba", "BBA", { aliases: ["Bachelor of Business Administration"] }),
+      prog("bbm", "BBM", { aliases: ["Bachelor of Business Management"] }),
+      prog("bbs", "BBS", { aliases: ["Bachelor of Business Studies"] }),
+      prog("bpa_mgmt", "BPA", { aliases: ["Bachelor of Public Administration"] }),
+      prog("beco", "Bachelor of Economics (BEco)"),
+      prog("bib", "Bachelor in International Business (BIB)"),
+      prog("bcs_commerce", "Bachelor of Commerce Studies (BCS)"),
+      prog("bba_finance", "BBA in Finance"),
+      prog("bba_bi", "BBA in Banking & Insurance (BBA-BI)"),
+      prog("bbis", "Bachelor of Business Information System (BBIS)"),
+      prog("bdf", "Bachelor in Development Finance (BDF)"),
     ],
-    programs: {
-      Management: [
-        "BBA",
-        "BBM",
-        "BBS",
-        "BPA",
-        "Bachelor of Economics (BEco)",
-        "Bachelor in International Business (BIB)",
-        "Bachelor in Travel & Tourism Management (BTTM)",
-      ],
-      "Computer & IT": [
-        "BCA",
-        "BIM",
-        "BIT",
-        "BSc CSIT",
-        "BE Computer",
-        "BE Software",
-        "BSc IT",
-      ],
-      Engineering: [
-        "BE Civil",
-        "BE Mechanical",
-        "BE Electrical",
-        "BE Electronics & Communication",
-        "B.Arch (Architecture)",
-        "BE Aerospace",
-        "BE Industrial",
-        "BE Automobile",
-        "BE Agricultural",
-        "BE Geomatics / Geo-informatics",
-        "BE Chemical",
-        "BE Mining",
-      ],
-      "Medical & Health Sciences": [
-        "MBBS",
-        "BDS",
-        "BSc Nursing",
-        "BN (Bachelor of Nursing)",
-        "BPH (Public Health)",
-        "BMLT (Medical Lab Technology)",
-        "B Pharmacy",
-        "BPT (Physiotherapy)",
-        "BOT (Occupational Therapy)",
-        "BASLP (Audiology & Speech Language Pathology)",
-        "BRIT (Radiologic Imaging Technology)",
-      ],
-      "Agriculture & Veterinary Science": [
-        "BSc Agriculture",
-        "BSc Forestry",
-        "BVSc & AH (Veterinary)",
-        "BSc Fisheries",
-        "BSc Food Technology",
-      ],
-      "Humanities & Social Sciences": [
-        "BA",
-        "BSW (Social Work)",
-        "BA in Journalism & Mass Communication (BAJMC)",
-        "BA Sociology",
-        "BA Economics",
-        "BA Development Studies",
-      ],
-      Education: [
-        "BEd",
-        "BEd in Science Education",
-        "BEd in English Education",
-        "BEd in Health Education",
-      ],
-      Law: ["LLB", "BALLB", "BBM-LLB", "BEC-LLB"],
-      Science: [
-        "BSc (General)",
-        "BSc Physics",
-        "BSc Chemistry",
-        "BSc Botany",
-        "BSc Zoology",
-        "BSc Microbiology",
-        "BSc Environmental Science",
-        "BSc Biotechnology",
-        "BSc Statistics",
-      ],
-    },
+    computer_it: [
+      prog("bca", "BCA", { aliases: ["Bachelor of Computer Application"] }),
+      prog("bim", "BIM", { aliases: ["Bachelor of Information Management"] }),
+      prog("bit", "BIT", { aliases: ["Bachelor of Information Technology"] }),
+      prog("bsc_csit", "BSc CSIT", { aliases: ["CSIT", "B.Sc CSIT", "BSc. CSIT"] }),
+      prog("be_computer", "BE Computer"),
+      prog("be_software", "BE Software"),
+      prog("bsc_it", "BSc IT"),
+      prog("bcis", "Bachelor of Computer Information System (BCIS)"),
+      prog("bcsit_alt", "Bachelor of Computer Systems & IT (BCSIT)"),
+      prog("b_data_science", "Bachelor in Data Science"),
+      prog("btech_cybersecurity", "Bachelor of Technology (B.Tech) in Cybersecurity"),
+    ],
+    engineering: [
+      prog("be_civil", "BE Civil"),
+      prog("be_mechanical", "BE Mechanical"),
+      prog("be_electrical", "BE Electrical"),
+      prog("be_electrical_electronics", "BE Electrical & Electronics"),
+      prog("be_electronics_comm", "BE Electronics & Communication"),
+      prog("b_arch", "B.Arch (Architecture)", { aliases: ["Bachelor of Architecture"], typicalDurationYears: 5 }),
+      prog("be_aerospace", "BE Aerospace"),
+      prog("be_industrial", "BE Industrial"),
+      prog("be_automobile", "BE Automobile"),
+      prog("be_agricultural", "BE Agricultural"),
+      prog("be_geomatics", "BE Geomatics / Geo-informatics"),
+      prog("be_chemical", "BE Chemical"),
+      prog("be_mining", "BE Mining"),
+      prog("be_biomedical", "BE Biomedical Engineering"),
+      prog("btech_environmental", "BTech Environmental Engineering"),
+    ],
+    medical_health: [
+      prog("mbbs", "MBBS", { typicalDurationYears: 5.5 }),
+      prog("bds", "BDS", { aliases: ["Bachelor of Dental Surgery"], typicalDurationYears: 5 }),
+      prog("bsc_nursing", "BSc Nursing"),
+      prog("bn_nursing", "BN (Bachelor of Nursing)"),
+      prog("pbn", "Post Basic Bachelor of Nursing (PBN)"),
+      prog("bph", "Bachelor of Public Health (BPH)"),
+      prog("bmlt", "BMLT (Medical Lab Technology)"),
+      prog("b_pharmacy", "B Pharmacy"),
+      prog("bpt", "BPT (Physiotherapy)"),
+      prog("bot", "BOT (Occupational Therapy)"),
+      prog("baslp", "BASLP (Audiology & Speech Language Pathology)"),
+      prog("brit", "BRIT (Radiologic Imaging Technology)"),
+      prog("bams", "Bachelor of Ayurvedic Medicine & Surgery (BAMS)", { typicalDurationYears: 5.5 }),
+      prog("bhms", "Bachelor of Homeopathic Medicine & Surgery (BHMS)", { typicalDurationYears: 5.5 }),
+      prog("b_optometry", "Bachelor of Optometry"),
+      prog("b_perfusion", "Bachelor in Perfusion Technology"),
+      prog("bsc_medical_imaging", "BSc Medical Imaging / Radiographic Technology"),
+      prog("bhcm", "Bachelor of Health Care Management (BHCM)"),
+      prog("bsc_human_biology", "BSc Human Biology"),
+      prog("bsc_medical_biochemistry", "BSc Medical Biochemistry"),
+    ],
+    agriculture_veterinary: [
+      prog("bsc_agriculture", "BSc Agriculture"),
+      prog("bsc_forestry", "BSc Forestry"),
+      prog("bvsc_ah", "BVSc & AH (Veterinary)", { typicalDurationYears: 5 }),
+      prog("bsc_fisheries", "BSc Fisheries"),
+      prog("bsc_food_technology", "BSc Food Technology"),
+      prog("b_dairy_technology", "Bachelor of Dairy Technology"),
+      prog("bsc_horticulture_floriculture", "BSc Horticulture & Floriculture Management"),
+      prog("bsc_tea_technology", "BSc Tea Technology & Management"),
+    ],
+    humanities_social_sciences: [
+      prog("ba_general", "BA"),
+      prog("bsw", "BSW (Social Work)"),
+      prog("bajmc", "BA in Journalism & Mass Communication (BAJMC)"),
+      prog("ba_sociology", "BA Sociology"),
+      prog("ba_economics", "BA Economics"),
+      prog("ba_psychology", "BA Psychology"),
+      prog("ba_rural_development", "BA Rural Development"),
+      prog("bdevs", "Bachelor of Development Studies (BDEVS)"),
+      prog("bss", "Bachelor of Social Sciences (BSS)"),
+      prog("ba_buddhist_studies", "Bachelor (BA) in Buddhist Studies"),
+      prog("b_english_comm_studies", "Bachelor of English & Communication Studies"),
+      prog("bpa_humanities", "Bachelor of Public Administration (BPA)"),
+    ],
+    education: [
+      prog("bed", "BEd"),
+      prog("bed_science", "BEd in Science Education"),
+      prog("bed_english", "BEd in English Education"),
+      prog("bed_health", "BEd in Health Education"),
+      prog("bed_ict", "BEd in Information Communication Technology (BEd ICT)"),
+    ],
+    law: [
+      prog("llb", "LLB", { typicalDurationYears: 3 }),
+      prog("ballb", "BALLB", { typicalDurationYears: 5 }),
+      prog("bbm_llb", "BBM-LLB", { typicalDurationYears: 5 }),
+      prog("bec_llb", "BEC-LLB", { typicalDurationYears: 5 }),
+    ],
+    science: [
+      prog("bsc_general", "BSc (General)"),
+      prog("bsc_physics", "BSc Physics"),
+      prog("bsc_applied_physics", "BSc Applied Physics"),
+      prog("bsc_chemistry", "BSc Chemistry"),
+      prog("bsc_botany", "BSc Botany"),
+      prog("bsc_zoology", "BSc Zoology"),
+      prog("bsc_microbiology", "BSc Microbiology"),
+      prog("bsc_environmental_science", "BSc Environmental Science"),
+      prog("bsc_biotechnology", "BSc Biotechnology"),
+      prog("bsc_statistics", "BSc Statistics"),
+      prog("bsc_mathematics", "BSc Mathematics"),
+      prog("bsc_geology", "BSc Geology"),
+      prog("bsc_meteorology", "BSc Meteorology"),
+      prog("bsc_biochemistry", "BSc Biochemistry"),
+    ],
+    arts_design_media: [
+      prog("bfa", "Bachelor of Fine Arts (BFA)"),
+      prog("bfa_classical_dance", "BFA in Classical Dance"),
+      prog("bfa_classical_music", "BFA in Classical Music"),
+      prog("bfa_graphic_comm", "BFA in Graphic Communication"),
+      prog("bfa_sculpture", "BFA in Sculpture"),
+      prog("bfd", "Bachelor of Fashion Design (BFD)"),
+      prog("bid", "Bachelor of Interior Design (BID)"),
+      prog("bms_media", "Bachelor of Media Studies (BMS)"),
+      prog("bmt_media_tech", "Bachelor in Media Technology (BMT)"),
+      prog("bfilm_acting", "Bachelor in Film Studies (Acting)"),
+      prog("bfilm_cinematography", "Bachelor in Film Studies (Cinematography)"),
+      prog("bfilm_editing", "Bachelor in Film Studies (Editing)"),
+      prog("bfilm_audiography", "Bachelor in Film Studies (Audiography)"),
+      prog("bfilm_screenplay", "Bachelor of Film Studies (Screenplay Writing & Direction)"),
+      prog("b_mountaineering_studies", "Bachelor of Mountaineering Studies"),
+    ],
+    hospitality_travel_aviation: [
+      prog("bhm", "Bachelor of Hotel Management (BHM)"),
+      prog("bttm", "Bachelor of Travel & Tourism Management (BTTM)"),
+      prog("bba_tt", "BBA in Travel & Tourism (BBA-TT)"),
+      prog("b_hospitality_tourism_mgmt", "Bachelor of Hospitality & Tourism Management"),
+      prog("b_professional_hospitality", "Bachelor of Professional Hospitality"),
+      prog("b_aviation_management", "Bachelor of Aviation Management"),
+    ],
   },
 
   master: {
-    faculties: [
-      "Management",
-      "Computer & IT",
-      "Engineering",
-      "Medical & Health Sciences",
-      "Agriculture & Veterinary Science",
-      "Humanities & Social Sciences",
-      "Education",
-      "Law",
-      "Science",
+    management: [
+      prog("mba", "MBA"),
+      prog("mba_executive", "MBA Executive (EMBA)"),
+      prog("mba_finance", "MBA Finance"),
+      prog("mba_global_leadership", "MBA Global Business / Leadership"),
+      prog("mbs", "MBS"),
+      prog("mbm_master", "MBM"),
+      prog("mbe", "Master in Business Economics (MBE)"),
     ],
-    programs: {
-      Management: ["MBA", "EMBA", "MBS", "MBM"],
-      "Computer & IT": ["MIT", "MSc CSIT"],
-      Engineering: [
-        "ME Civil",
-        "ME Structural",
-        "ME Electrical",
-        "ME Computer",
-        "M.Arch",
-      ],
-      "Medical & Health Sciences": ["MD", "MS", "MPH", "MSc Nursing"],
-      "Agriculture & Veterinary Science": [
-        "MSc Agriculture",
-        "MSc Forestry",
-        "MVSc",
-      ],
-      "Humanities & Social Sciences": [
-        "MA English",
-        "MA Sociology",
-        "MA Economics",
-        "MA Development Studies",
-      ],
-      Education: ["MEd"],
-      Law: ["LLM"],
-      Science: ["MSc"],
-    },
+    computer_it: [
+      prog("mit", "MIT"),
+      prog("msc_csit", "MSc CSIT"),
+      prog("mca", "Master of Computer Application (MCA)"),
+      prog("mcis", "Master of Computer Information System (MCIS)"),
+      prog("m_computer_science", "Master of Computer Science"),
+      prog("mtech_it", "Master of Technology (MTech) in IT"),
+    ],
+    engineering: [
+      prog("me_civil", "ME Civil"),
+      prog("me_structural", "ME Structural"),
+      prog("me_electrical_power", "ME Electrical / Power"),
+      prog("me_computer", "ME Computer"),
+      prog("me_communication", "ME Communication"),
+      prog("me_mechanical", "ME Mechanical"),
+      prog("me_geoinformatics", "ME Geoinformatics"),
+      prog("me_earthquake", "ME Earthquake Engineering"),
+      prog("m_arch", "M.Arch"),
+      prog("msc_construction_mgmt", "MSc Construction Management"),
+      prog("msc_transportation_eng", "MSc Transportation Engineering & Management"),
+    ],
+    medical_health: [
+      prog("md", "MD", { typicalDurationYears: 3 }),
+      prog("ms_surgery", "MS", { typicalDurationYears: 3 }),
+      prog("mph", "MPH (Master of Public Health)"),
+      prog("msc_nursing", "MSc Nursing"),
+      prog("mn_nursing", "Master of Nursing (MN)"),
+      prog("m_pharmacy", "Master in Pharmacy / MSc Pharmacy"),
+      prog("mds", "Master of Dental Surgery (MDS)", { typicalDurationYears: 3 }),
+      prog("mhcm", "Master of Health Care Management (MHCM)"),
+    ],
+    agriculture_veterinary: [
+      prog("msc_agriculture", "MSc Agriculture"),
+      prog("msc_forestry", "MSc Forestry"),
+      prog("mvsc", "MVSc"),
+      prog("msc_dairy_technology", "MSc Dairy Technology"),
+      prog("msc_meat_technology", "MSc Meat Technology"),
+    ],
+    humanities_social_sciences: [
+      prog("ma_english", "MA English"),
+      prog("ma_sociology_anthropology", "MA Sociology / Anthropology"),
+      prog("ma_economics", "MA Economics"),
+      prog("ma_development_studies", "MA Development Studies"),
+      prog("ma_jmc", "MA in Journalism & Mass Communication"),
+      prog("ma_population_gender_dev", "MA in Population, Gender & Development"),
+      prog("ma_buddhist_studies", "MA in Buddhist Studies"),
+      prog("m_regional_dev_planning", "Master in Regional Development Planning & Management"),
+      prog("m_human_rights", "Master's in Human Rights"),
+      prog("msw", "Master of Social Work (MSW)"),
+      prog("mpa", "Master of Public Administration (MPA)"),
+    ],
+    education: [
+      prog("med", "MEd"),
+      prog("med_leadership_mgmt", "MEd in Leadership & Management"),
+      prog("med_math", "MEd Math"),
+    ],
+    law: [
+      prog("llm", "LLM"),
+      prog("m_conflict_ihl", "Master's Degree in Conflict & International Humanitarian Law"),
+    ],
+    science: [
+      prog("msc_general", "MSc"),
+      prog("msc_environmental_mgmt", "MSc Environmental Science / Management"),
+      prog("msc_biotechnology", "MSc Biotechnology"),
+      prog("msc_life_science", "MSc Life Science"),
+      prog("msc_nrm", "MSc Natural Resources Management"),
+      prog("msc_water_resource_mgmt", "MSc Interdisciplinary Water Resource Management"),
+    ],
+    hospitality_development: [
+      prog("mttm", "Master of Tourism Studies (MTTM)"),
+      prog("mhhm", "Master of Hotel & Hospitality Management (MHHM)"),
+      prog("m_sustainable_dev", "Master in Sustainable Development"),
+    ],
   },
 };
 
-// Flat list of every program across all levels — handy for search/autocomplete
-export const ALL_PROGRAMS_FLAT = Object.values(LEVEL_TAXONOMY).flatMap((lvl) =>
-  Object.values(lvl.programs).flat(),
+// Flattened, ID-addressable program catalog — the array code should
+// actually import. Every entry carries levelId + facultyId, and
+// typicalDurationYears is guaranteed non-null (defaulted per level if the
+// program didn't specify its own).
+export const PROGRAMS = Object.entries(RAW_LEVEL_FACULTY_PROGRAMS).flatMap(([levelId, faculties]) =>
+  Object.entries(faculties).flatMap(([facultyId, programs]) =>
+    programs.map((program) => ({
+      ...program,
+      levelId,
+      facultyId,
+      typicalDurationYears: program.typicalDurationYears ?? DEFAULT_DURATION_BY_LEVEL[levelId] ?? null,
+    })),
+  ),
 );
 
-// ── Helper accessors ─────────────────────────────────────────────────────────
+export const PROGRAMS_BY_ID = Object.fromEntries(PROGRAMS.map((p) => [p.id, p]));
+
+// ─── Program Offerings (Program × University join) ──────────────────────────
+// This is where university-specific facts belong: does this university
+// actually offer this program, what duration/degree title do THEY use, is
+// it currently accepting admissions. Seed data below is illustrative for a
+// handful of well-known combinations — treat this as a starting fixture,
+// not a complete dataset. In production this table is what an admin CRUD
+// (see models/ProgramOffering.js) manages, keyed by (programId, universityId).
+export const PROGRAM_OFFERINGS = [
+  { programId: "be_civil", universityId: "tu", durationYears: 4 },
+  { programId: "be_civil", universityId: "purbanchal", durationYears: 4 },
+  { programId: "be_civil", universityId: "pu", durationYears: 4 },
+  { programId: "bsc_csit", universityId: "tu", durationYears: 4 },
+  { programId: "bsc_csit", universityId: "pu", durationYears: 4 },
+  { programId: "mbbs", universityId: "tu", durationYears: 5.5 },
+  { programId: "mbbs", universityId: "ku", durationYears: 5.5 },
+  { programId: "bba", universityId: "tu", durationYears: 4 },
+  { programId: "bba", universityId: "pu", durationYears: 4 },
+  { programId: "bba", universityId: "ku", durationYears: 4 },
+  // Extend via admin CRUD / seed script rather than hand-editing this file.
+];
+
+// ─── Helper accessors ────────────────────────────────────────────────────────
 
 // Faculties available for a given level. Returns [] if the level has no
-// faculty step (e.g. "see", "primary") — form should hide the field then.
-export function getFacultiesForLevel(level) {
-  return LEVEL_TAXONOMY[level]?.faculties || [];
+// faculty step (e.g. "see", "primary").
+export function getFacultiesForLevel(levelId) {
+  return FACULTIES.filter((f) => f.appliesToLevels.includes(levelId));
 }
 
 // Programs available for a given level + faculty combo.
-export function getProgramsForFaculty(level, faculty) {
-  return LEVEL_TAXONOMY[level]?.programs?.[faculty] || [];
+export function getProgramsForFaculty(levelId, facultyId) {
+  return PROGRAMS.filter((p) => p.levelId === levelId && p.facultyId === facultyId);
+}
+
+// Whether the University/Affiliation field should be shown for a level.
+export function isUniversityAffiliatedLevel(levelId) {
+  return STUDY_LEVELS_BY_ID[levelId]?.universityAffiliated ?? false;
+}
+
+// Human label for the governing-body caption under the level dropdown.
+export function getGoverningBodyLabel(levelId) {
+  const body = STUDY_LEVELS_BY_ID[levelId]?.governingBody;
+  return GOVERNING_BODY_LABELS[body] || null;
+}
+
+export function findProgramById(programId) {
+  return PROGRAMS_BY_ID[programId] || null;
+}
+
+export function findUniversityById(universityId) {
+  return UNIVERSITIES_BY_ID[universityId] || null;
+}
+
+export function findFacultyById(facultyId) {
+  return FACULTIES_BY_ID[facultyId] || null;
+}
+
+// Universities that actually offer a given program, per PROGRAM_OFFERINGS.
+export function getUniversitiesOfferingProgram(programId) {
+  return PROGRAM_OFFERINGS.filter((o) => o.programId === programId).map((o) => ({
+    ...findUniversityById(o.universityId),
+    durationYears: o.durationYears,
+  }));
+}
+
+// Simple case-insensitive search across program name + aliases — handy for
+// autocomplete/search boxes. Returns matching program objects.
+export function searchPrograms(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return PROGRAMS.filter(
+    (p) => p.name.toLowerCase().includes(q) || p.aliases.some((a) => a.toLowerCase().includes(q)),
+  );
 }
 ```
 
@@ -19394,7 +21782,9 @@ import bookmarkroutes from "./routes/bookmarkRoutes.js";
 import notificationroutes from "./routes/notificationRoutes.js";
 import courseroutes from "./routes/courseRoutes.js";
 import userroutes from "./routes/userRoutes.js"; // avatar endpoints
-
+import programOfferingRoutes from "./routes/programOfferingRoutes.js"; // adjust path
+import documentTypeRoutes from "./routes/documentTypes.js";
+import studentDocumentRoutes from "./routes/studentDocuments.js";
 dotenv.config();
 
 const app = express();
@@ -19440,8 +21830,14 @@ app.use("/api/super-admin", superadminroutes);
 app.use("/api/province-admin", provinceadminroutes);
 app.use("/api/bookmarks", bookmarkroutes);
 app.use("/api/notifications", notificationroutes);
+
 app.use("/api/institution", courseroutes);
 app.use("/api/user", userroutes); // avatar endpoints
+app.use("/api/document-types", documentTypeRoutes);
+app.use("/api/student/documents", studentDocumentRoutes);
+
+
+app.use("/api/admin", programOfferingRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");
@@ -25167,6 +27563,31 @@ app.use(express.json());
 
 ```
 
+#### `backend/scripts/seedProgramOfferings.js`
+```js
+// scripts/seedProgramOfferings.js
+import "dotenv/config";
+import mongoose from "mongoose";
+import ProgramOffering from "../models/ProgramOffering.js";
+import { PROGRAM_OFFERINGS } from "../constants/educationTaxonomy.js";
+
+async function run() {
+  await mongoose.connect(process.env.MONGO_URI);
+  let n = 0;
+  for (const o of PROGRAM_OFFERINGS) {
+    await ProgramOffering.updateOne(
+      { programId: o.programId, universityId: o.universityId },
+      { $setOnInsert: { durationYears: o.durationYears } },
+      { upsert: true },
+    );
+    n++;
+  }
+  console.log(`Seeded ${n} offerings.`);
+  await mongoose.disconnect();
+}
+run();
+```
+
 #### `backend/scripts/seedSuperAdmin.js`
 ```js
 import mongoose from "mongoose";
@@ -25276,6 +27697,158 @@ const createAdmins = async () => {
 };
 
 createAdmins();
+```
+
+#### `backend/seeder/seedDocumentTypes.js`
+```js
+/**
+ * Run with:  node seed/seedDocumentTypes.js
+ * Safe to re-run — uses upsert, so it updates existing rows instead of duplicating.
+ */
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import DocumentType from "../models/DocumentType.js";
+import ScholarshipCategory from "../models/ScholarshipCategory.js";
+
+dotenv.config();
+
+// ─── Scholarship categories (special/reservation types a student can opt into) ───
+const categories = [
+  { key: "merit_based", label: "Merit-Based", sortOrder: 1 },
+  { key: "need_based", label: "Need-Based", sortOrder: 2 },
+  { key: "disability", label: "Disability", sortOrder: 3 },
+  {
+    key: "dalit_janajati_madhesi_muslim",
+    label: "Dalit / Janajati / Madhesi / Muslim",
+    sortOrder: 4,
+  },
+  { key: "remote_area", label: "Remote Area", sortOrder: 5 },
+  {
+    key: "government_school",
+    label: "Government / Community School",
+    sortOrder: 6,
+  },
+  {
+    key: "municipality_province",
+    label: "Municipality / Province Scholarship",
+    sortOrder: 7,
+  },
+  { key: "foreign_scholarship", label: "Foreign Scholarship", sortOrder: 8 },
+];
+
+// ─── Document types ───────────────────────────────────────────────────────
+const documentTypes = [
+  // — Common (every level, every application) —
+  { key: "passport_photo", label: "Passport-size Photo", group: "common", sortOrder: 1 },
+  { key: "citizenship_certificate", label: "Citizenship Certificate", group: "common", sortOrder: 2 },
+  { key: "birth_certificate", label: "Birth Certificate", group: "common", sortOrder: 3 },
+  { key: "character_certificate", label: "Character Certificate (Current Level)", group: "common", sortOrder: 4 },
+
+  // — Level: +2 —
+  { key: "see_marksheet", label: "SEE Marksheet", group: "level", applicableLevels: ["+2"], sortOrder: 10 },
+  { key: "see_transcript", label: "SEE Transcript", group: "level", applicableLevels: ["+2", "Bachelor", "Master", "PhD"], sortOrder: 11 },
+  { key: "see_character_certificate", label: "SEE Character Certificate", group: "level", applicableLevels: ["+2", "Bachelor"], sortOrder: 12 },
+  { key: "see_admit_card", label: "SEE Admit Card", group: "level", applicableLevels: ["+2"], isRequired: false, sortOrder: 13 },
+
+  // — Level: Bachelor —
+  { key: "plus2_transcript", label: "+2 Transcript", group: "level", applicableLevels: ["Bachelor", "Master", "PhD"], sortOrder: 20 },
+  { key: "plus2_character_certificate", label: "+2 Character Certificate", group: "level", applicableLevels: ["Bachelor", "Master"], sortOrder: 21 },
+  { key: "plus2_provisional_certificate", label: "+2 Provisional Certificate", group: "level", applicableLevels: ["Bachelor"], sortOrder: 22 },
+  { key: "entrance_score_card", label: "Entrance Score Card", group: "level", applicableLevels: ["Bachelor"], isRequired: false, sortOrder: 23 },
+
+  // — Level: Master —
+  { key: "bachelor_transcript", label: "Bachelor's Transcript", group: "level", applicableLevels: ["Master", "PhD"], sortOrder: 30 },
+  { key: "bachelor_character_certificate", label: "Bachelor's Character Certificate", group: "level", applicableLevels: ["Master"], sortOrder: 31 },
+  { key: "bachelor_degree_certificate", label: "Bachelor's Degree / Provisional Certificate", group: "level", applicableLevels: ["Master", "PhD"], sortOrder: 32 },
+
+  // — Level: PhD —
+  { key: "master_transcript", label: "Master's Transcript", group: "level", applicableLevels: ["PhD"], sortOrder: 40 },
+  { key: "master_degree_certificate", label: "Master's Degree Certificate", group: "level", applicableLevels: ["PhD"], sortOrder: 41 },
+  { key: "research_proposal", label: "Research Proposal", group: "level", applicableLevels: ["PhD"], sortOrder: 42 },
+  { key: "supervisor_acceptance_letter", label: "Supervisor Acceptance Letter", group: "level", applicableLevels: ["PhD"], isRequired: false, sortOrder: 43 },
+  { key: "publications", label: "Publications", group: "level", applicableLevels: ["PhD"], isRequired: false, sortOrder: 44 },
+
+  // — Category: merit_based —
+  { key: "merit_list", label: "Merit List (if applicable)", group: "category", applicableCategories: ["merit_based"], isRequired: false, sortOrder: 50 },
+
+  // — Category: need_based —
+  { key: "income_certificate", label: "Income Certificate", group: "category", applicableCategories: ["need_based"], sortOrder: 51 },
+  { key: "guardian_income_proof", label: "Parent/Guardian Income Proof", group: "category", applicableCategories: ["need_based"], sortOrder: 52 },
+  { key: "tax_clearance", label: "Tax Clearance", group: "category", applicableCategories: ["need_based"], isRequired: false, sortOrder: 53 },
+  { key: "ward_recommendation", label: "Ward Recommendation", group: "category", applicableCategories: ["need_based", "remote_area"], sortOrder: 54 },
+  { key: "financial_hardship_letter", label: "Financial Hardship Letter", group: "category", applicableCategories: ["need_based"], sortOrder: 55 },
+
+  // — Category: disability —
+  { key: "disability_id_card", label: "Disability ID Card", group: "category", applicableCategories: ["disability"], sortOrder: 60 },
+  { key: "disability_certificate", label: "Disability Certificate", group: "category", applicableCategories: ["disability"], sortOrder: 61 },
+  { key: "medical_certificate", label: "Medical Certificate", group: "category", applicableCategories: ["disability", "foreign_scholarship"], sortOrder: 62 },
+
+  // — Category: dalit/janajati/madhesi/muslim —
+  { key: "caste_ethnicity_certificate", label: "Caste / Ethnicity Certificate", group: "category", applicableCategories: ["dalit_janajati_madhesi_muslim"], sortOrder: 70 },
+  { key: "dao_recommendation", label: "DAO / Competent Authority Recommendation", group: "category", applicableCategories: ["dalit_janajati_madhesi_muslim"], sortOrder: 71 },
+  { key: "inclusion_certificate", label: "Inclusion / Reservation Certificate", group: "category", applicableCategories: ["dalit_janajati_madhesi_muslim"], isRequired: false, sortOrder: 72 },
+
+  // — Category: remote_area —
+  { key: "permanent_citizenship", label: "Permanent Citizenship Certificate", group: "category", applicableCategories: ["remote_area"], sortOrder: 80 },
+  { key: "local_government_recommendation", label: "Local Government Recommendation", group: "category", applicableCategories: ["remote_area"], sortOrder: 81 },
+  { key: "residence_certificate", label: "Residence Certificate", group: "category", applicableCategories: ["remote_area"], sortOrder: 82 },
+
+  // — Category: government_school —
+  { key: "school_recommendation", label: "School Recommendation Letter", group: "category", applicableCategories: ["government_school"], sortOrder: 90 },
+  { key: "community_school_proof", label: "Proof of Studying in Community/Government School", group: "category", applicableCategories: ["government_school"], sortOrder: 91 },
+
+  // — Category: municipality_province —
+  { key: "permanent_residence_certificate", label: "Permanent Residence Certificate", group: "category", applicableCategories: ["municipality_province"], sortOrder: 100 },
+  { key: "recommendation_letter", label: "Recommendation Letter", group: "category", applicableCategories: ["municipality_province", "foreign_scholarship"], isRequired: false, sortOrder: 101 },
+
+  // — Category: foreign_scholarship —
+  { key: "passport", label: "Passport", group: "category", applicableCategories: ["foreign_scholarship"], sortOrder: 110 },
+  { key: "english_language_certificate", label: "English Language Test Certificate (IELTS/TOEFL)", group: "category", applicableCategories: ["foreign_scholarship"], isRequired: false, sortOrder: 111 },
+  { key: "statement_of_purpose", label: "Statement of Purpose", group: "category", applicableCategories: ["foreign_scholarship"], sortOrder: 112 },
+  { key: "cv_resume", label: "CV / Resume", group: "category", applicableCategories: ["foreign_scholarship"], sortOrder: 113 },
+
+  // — Optional / bonus (any level, any application — never counted in completion %) —
+  { key: "motivation_letter", label: "Motivation Letter", group: "optional", isRequired: false, sortOrder: 200 },
+  { key: "personal_statement", label: "Personal Statement", group: "optional", isRequired: false, sortOrder: 201 },
+  { key: "volunteer_certificate", label: "Volunteer Certificate", group: "optional", isRequired: false, sortOrder: 202 },
+  { key: "sports_certificate", label: "Sports Certificate", group: "optional", isRequired: false, sortOrder: 203 },
+  { key: "olympiad_certificate", label: "Olympiad Certificate", group: "optional", isRequired: false, sortOrder: 204 },
+  { key: "research_paper", label: "Research Paper", group: "optional", isRequired: false, sortOrder: 205 },
+  { key: "training_certificate", label: "Training Certificate", group: "optional", isRequired: false, sortOrder: 206 },
+  { key: "experience_certificate", label: "Experience Certificate", group: "optional", isRequired: false, sortOrder: 207 },
+  { key: "portfolio", label: "Portfolio (Arts/Architecture/Design)", group: "optional", isRequired: false, sortOrder: 208 },
+];
+
+async function seed() {
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log("Connected to MongoDB");
+
+  for (const cat of categories) {
+    await ScholarshipCategory.updateOne(
+      { key: cat.key },
+      { $set: cat },
+      { upsert: true }
+    );
+  }
+  console.log(`Seeded ${categories.length} scholarship categories`);
+
+  for (const dt of documentTypes) {
+    await DocumentType.updateOne(
+      { key: dt.key },
+      { $set: dt },
+      { upsert: true }
+    );
+  }
+  console.log(`Seeded ${documentTypes.length} document types`);
+
+  await mongoose.disconnect();
+  console.log("Done.");
+}
+
+seed().catch((err) => {
+  console.error("Seed failed:", err);
+  process.exit(1);
+});
 ```
 
 #### `backend/server.js`
@@ -30268,6 +32841,8 @@ import ProvinceAdminDashboard from "./pages/Dashboard/ProvinceAdminDashboard";
 import Layout from "./Components/Layout";
 import ProfileView from "./pages/ProfileView";
 import BookmarksPage from "./pages/BookmarksPage";
+import ScholarshipBrowse from "./pages/scholarships/scholarshipbrowse";
+
 
 function App() {
   return (
@@ -30289,6 +32864,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        <Route path="/scholarships" element={<ScholarshipBrowse />} />
 
         {/* Protected — students only */}
         <Route
@@ -30351,6 +32928,600 @@ function App() {
 }
 
 export default App;
+```
+
+#### `frontend/src/Components/CourseCatalogPicker.jsx`
+```jsx
+// Components/CourseCatalogPicker.jsx
+//
+// Replaces one-by-one course adding. Institution picks a level, sees the
+// full faculty/program tree, checks the programs it offers, edits years
+// inline, and submits everything in one request.
+
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const LEVEL_OPTIONS = [
+  { id: "plus_two", name: "Plus Two (+2)" },
+  { id: "diploma_pcl", name: "Diploma / PCL" },
+  { id: "bachelor", name: "Bachelor's" },
+  { id: "master", name: "Master's" },
+];
+
+export default function CourseCatalogPicker({ token, onAdded }) {
+  const [level, setLevel] = useState("");
+  const [catalog, setCatalog] = useState(null);
+  const [selections, setSelections] = useState({}); // key: `${facultyId}:${programId}` -> years
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (!level) {
+      setCatalog(null);
+      return;
+    }
+    setLoading(true);
+    setSelections({});
+    setMsg("");
+    axios
+      .get(`${API}/api/institution/courses/catalog`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { level },
+      })
+      .then((res) => setCatalog(res.data))
+      .catch(() => setMsg("Failed to load course catalog."))
+      .finally(() => setLoading(false));
+  }, [level, token]);
+
+  const toggle = (facultyId, program) => {
+    const key = `${facultyId}:${program.id}`;
+    setSelections((prev) => {
+      const next = { ...prev };
+      if (key in next) delete next[key];
+      else next[key] = program.defaultDurationYears || "";
+      return next;
+    });
+  };
+
+  const setYears = (facultyId, programId, val) =>
+    setSelections((prev) => ({ ...prev, [`${facultyId}:${programId}`]: val }));
+
+  const submit = async () => {
+    const payload = Object.entries(selections).map(([key, durationYears]) => {
+      const [facultyId, programId] = key.split(":");
+      return {
+        facultyId,
+        programId,
+        durationYears: durationYears ? Number(durationYears) : undefined,
+      };
+    });
+    if (payload.length === 0) return;
+
+    setSubmitting(true);
+    setMsg("");
+    try {
+      const res = await axios.post(
+        `${API}/api/institution/courses/bulk`,
+        { level, selections: payload },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setMsg(res.data.message);
+      setSelections({});
+      onAdded?.();
+      // Refresh catalog so "already added" states update
+      const refreshed = await axios.get(`${API}/api/institution/courses/catalog`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { level },
+      });
+      setCatalog(refreshed.data);
+    } catch (err) {
+      setMsg(err.response?.data?.message || "Failed to add courses.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const selectedCount = Object.keys(selections).length;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Level
+        </label>
+        <select
+          value={level}
+          onChange={(e) => setLevel(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-64"
+        >
+          <option value="">Select a level…</option>
+          {LEVEL_OPTIONS.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {catalog?.governingBodyLabel && (
+        <p className="text-xs text-gray-500">
+          Governed by: {catalog.governingBodyLabel}
+        </p>
+      )}
+
+      {loading && <p className="text-xs text-gray-400">Loading catalog…</p>}
+
+      {catalog?.faculties?.length > 0 &&
+        catalog.faculties.map((f) => (
+          <div key={f.id} className="border border-gray-100 rounded-lg p-3">
+            <p className="text-sm font-semibold text-gray-800 mb-2">{f.name}</p>
+            <div className="space-y-1.5">
+              {f.programs.map((p) => {
+                const key = `${f.id}:${p.id}`;
+                const checked = key in selections;
+                return (
+                  <div key={p.id} className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={p.alreadyAdded}
+                      onChange={() => toggle(f.id, p)}
+                    />
+                    <span className={p.alreadyAdded ? "text-gray-300" : "text-gray-700"}>
+                      {p.name}
+                      {p.alreadyAdded && " (already added)"}
+                    </span>
+                    {checked && (
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={selections[key]}
+                        onChange={(e) => setYears(f.id, p.id, e.target.value)}
+                        className="w-16 border border-gray-200 rounded px-1.5 py-0.5 text-xs ml-auto"
+                        placeholder="years"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+      {catalog && !catalog.needsFaculty && (
+        <p className="text-xs text-gray-500">
+          This level has no faculty/program step — click below to add it directly.
+        </p>
+      )}
+
+      {catalog && (
+        <button
+          onClick={submit}
+          disabled={(catalog.needsFaculty && selectedCount === 0) || submitting}
+          className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-40"
+        >
+          {submitting
+            ? "Adding…"
+            : catalog.needsFaculty
+              ? `Add ${selectedCount || ""} course${selectedCount === 1 ? "" : "s"}`
+              : "Add course"}
+        </button>
+      )}
+
+      {msg && <p className="text-xs text-gray-500">{msg}</p>}
+    </div>
+  );
+}
+```
+
+#### `frontend/src/Components/DocumentManager.jsx`
+```jsx
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const LEVELS = ["+2", "Bachelor", "Master", "PhD"];
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // keep in sync with backend/middleware/upload.js
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { Authorization: `Bearer ${token}` };
+}
+
+function GroupLabel({ children }) {
+  return (
+    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-2 mt-5 first:mt-0">
+      {children}
+    </p>
+  );
+}
+
+function DocumentRow({ doc, onUpload, onDelete, onView, uploadingKey }) {
+  const inputRef = useRef(null);
+  const isUploadingThis = uploadingKey === doc.key;
+
+  return (
+    <div className="flex items-center justify-between gap-3 py-3 border-b border-gray-50 last:border-0">
+      <div className="min-w-0 flex items-center gap-3">
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 ${
+            doc.uploaded
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-gray-100 text-gray-400"
+          }`}
+        >
+          {doc.uploaded ? "✓" : "•"}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-800 truncate">
+            {doc.label}
+            {doc.isRequired === false && (
+              <span className="ml-1.5 text-[10px] text-gray-400 font-normal">
+                (optional)
+              </span>
+            )}
+          </p>
+          <p className="text-[11px] text-gray-400 truncate">
+            {doc.uploaded ? doc.document.fileName : "Not uploaded"}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        {doc.uploaded && (
+          <button
+            onClick={() => onView(doc.document.fileId)}
+            className="text-[11px] font-semibold text-gray-500 hover:text-gray-700"
+          >
+            View
+          </button>
+        )}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png,.webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUpload(doc.key, file);
+            e.target.value = "";
+          }}
+        />
+
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploadingThis}
+          className="text-[11px] font-semibold bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+        >
+          {isUploadingThis ? "Uploading..." : doc.uploaded ? "Replace" : "Upload"}
+        </button>
+
+        {doc.uploaded && (
+          <button
+            onClick={() => onDelete(doc.document._id)}
+            className="text-[11px] font-semibold text-gray-400 hover:text-red-500"
+            title="Remove document"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function DocumentManager() {
+  const [level, setLevel] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [requirements, setRequirements] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [uploadingKey, setUploadingKey] = useState(null);
+  const [savingLevel, setSavingLevel] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadMasterLists = async () => {
+    try {
+      const res = await axios.get(`${API}/api/document-types`, {
+        headers: authHeaders(),
+      });
+      setAvailableCategories(res.data.categories || []);
+    } catch (err) {
+      // non-fatal — checklist will still work without category labels loaded
+    }
+  };
+
+  const loadRequirements = async () => {
+    try {
+      const res = await axios.get(
+        `${API}/api/student/documents/requirements`,
+        { headers: authHeaders() }
+      );
+      setRequirements(res.data);
+      if (res.data.level) setLevel(res.data.level);
+      if (res.data.categories) setCategories(res.data.categories);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Failed to load document requirements."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMasterLists();
+    loadRequirements();
+  }, []);
+
+  const saveLevel = async (newLevel) => {
+    setSavingLevel(true);
+    setError("");
+    try {
+      await axios.put(
+        `${API}/api/student/documents/level`,
+        { level: newLevel },
+        { headers: authHeaders() }
+      );
+      setLevel(newLevel);
+      await loadRequirements();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update level.");
+    } finally {
+      setSavingLevel(false);
+    }
+  };
+
+  const toggleCategory = async (key) => {
+    const next = categories.includes(key)
+      ? categories.filter((c) => c !== key)
+      : [...categories, key];
+    setCategories(next);
+    setError("");
+    try {
+      await axios.put(
+        `${API}/api/student/documents/categories`,
+        { categories: next },
+        { headers: authHeaders() }
+      );
+      await loadRequirements();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update categories.");
+    }
+  };
+
+  const handleUpload = async (documentTypeKey, file) => {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError("File is too large. Max size is 5MB.");
+      return;
+    }
+    setUploadingKey(documentTypeKey);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentTypeKey", documentTypeKey);
+      await axios.post(`${API}/api/student/documents/upload`, formData, {
+        headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
+      });
+      await loadRequirements();
+    } catch (err) {
+      setError(err.response?.data?.message || "Upload failed.");
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
+  const handleDelete = async (documentId) => {
+    setError("");
+    try {
+      await axios.delete(`${API}/api/student/documents/${documentId}`, {
+        headers: authHeaders(),
+      });
+      await loadRequirements();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete document.");
+    }
+  };
+
+  const handleView = async (fileId) => {
+    setError("");
+    try {
+      const res = await axios.get(
+        `${API}/api/student/documents/file/${fileId}`,
+        { headers: authHeaders(), responseType: "blob" }
+      );
+      const url = URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+    } catch (err) {
+      setError("Failed to open document.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-16">
+        <div className="animate-spin w-7 h-7 border-4 border-red-100 border-t-red-400 rounded-full" />
+      </div>
+    );
+  }
+
+  const required = requirements?.requiredDocuments || [];
+  const optional = requirements?.optionalDocuments || [];
+  const common = required.filter((d) => d.group === "common");
+  const levelDocs = required.filter((d) => d.group === "level");
+  const categoryDocs = required.filter((d) => d.group === "category");
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-50">
+        <h2 className="text-base font-bold text-gray-900">
+          Application Documents
+        </h2>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Upload the documents required for scholarships at your study level.
+        </p>
+      </div>
+
+      {error && (
+        <div className="mx-5 mt-4 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      <div className="px-5 py-4">
+        {/* ── Level selector ── */}
+        <div className="mb-5">
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+            Current Study Level
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {LEVELS.map((lvl) => (
+              <button
+                key={lvl}
+                disabled={savingLevel}
+                onClick={() => saveLevel(lvl)}
+                className={`text-xs font-semibold px-4 py-2 rounded-xl border transition-colors disabled:opacity-50 ${
+                  level === lvl
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {!level ? (
+          <p className="text-sm text-gray-400 py-6 text-center">
+            Select your current study level to see required documents.
+          </p>
+        ) : (
+          <>
+            {/* ── Completion progress ── */}
+            <div className="mb-5 bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-700">
+                  Profile Completion
+                </span>
+                <span className="text-xs font-bold text-red-500">
+                  {requirements?.completionPercent ?? 0}%
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-red-500 transition-all duration-300"
+                  style={{ width: `${requirements?.completionPercent ?? 0}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400 mt-2">
+                {requirements?.totalUploaded ?? 0} of{" "}
+                {requirements?.totalRequired ?? 0} required documents uploaded
+              </p>
+            </div>
+
+            {/* ── Special / reservation category selector ── */}
+            <div className="mb-5">
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">
+                Applying for special / reservation scholarships? (optional)
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {availableCategories.map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => toggleCategory(cat.key)}
+                    className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                      categories.includes(cat.key)
+                        ? "bg-red-500 text-white border-red-500"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Checklist ── */}
+            <div>
+              {common.length > 0 && (
+                <>
+                  <GroupLabel>Common Documents</GroupLabel>
+                  {common.map((doc) => (
+                    <DocumentRow
+                      key={doc.key}
+                      doc={doc}
+                      onUpload={handleUpload}
+                      onDelete={handleDelete}
+                      onView={handleView}
+                      uploadingKey={uploadingKey}
+                    />
+                  ))}
+                </>
+              )}
+
+              {levelDocs.length > 0 && (
+                <>
+                  <GroupLabel>{level} Level Documents</GroupLabel>
+                  {levelDocs.map((doc) => (
+                    <DocumentRow
+                      key={doc.key}
+                      doc={doc}
+                      onUpload={handleUpload}
+                      onDelete={handleDelete}
+                      onView={handleView}
+                      uploadingKey={uploadingKey}
+                    />
+                  ))}
+                </>
+              )}
+
+              {categoryDocs.length > 0 && (
+                <>
+                  <GroupLabel>
+                    Additional Documents for Selected Scholarships
+                  </GroupLabel>
+                  {categoryDocs.map((doc) => (
+                    <DocumentRow
+                      key={doc.key}
+                      doc={doc}
+                      onUpload={handleUpload}
+                      onDelete={handleDelete}
+                      onView={handleView}
+                      uploadingKey={uploadingKey}
+                    />
+                  ))}
+                </>
+              )}
+
+              {optional.length > 0 && (
+                <>
+                  <GroupLabel>Optional / Bonus Documents</GroupLabel>
+                  {optional.map((doc) => (
+                    <DocumentRow
+                      key={doc.key}
+                      doc={doc}
+                      onUpload={handleUpload}
+                      onDelete={handleDelete}
+                      onView={handleView}
+                      uploadingKey={uploadingKey}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 ```
 
 #### `frontend/src/Components/educationCascade.jsx`
@@ -30726,23 +33897,19 @@ export default function Header() {
 ```jsx
 import { useEffect, useState } from "react";
 import axios from "axios";
-import EducationCascade from "./EducationCascade";
-import { STUDY_LEVELS } from "../constants/educationTaxonomy";
+import CourseCatalogPicker from "./CourseCatalogPicker";
+import {
+  STUDY_LEVELS,
+  findFacultyById,
+  findProgramById,
+} from "../constants/educationTaxonomy";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const EMPTY_COURSE = {
-  level: "",
-  faculty: "",
-  program: "",
-  duration: "",
-  description: "",
-};
+// Fixed: taxonomy objects use `id`/`name`, not `value`/`label`.
+const levelLabel = (id) => STUDY_LEVELS.find((l) => l.id === id)?.name || id;
 
-const levelLabel = (value) =>
-  STUDY_LEVELS.find((l) => l.value === value)?.label || value;
-
-export default function InstitutionCourses({ inputCls, labelCls }) {
+export default function InstitutionCourses() {
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -30750,13 +33917,8 @@ export default function InstitutionCourses({ inputCls, labelCls }) {
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState("");
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_COURSE);
-  const [formError, setFormError] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
+  const fetchCourses = () => {
+    setLoading(true);
     axios
       .get(`${API}/api/institution/courses`, { headers })
       .then((res) => setCourses(res.data.courses || []))
@@ -30764,80 +33926,12 @@ export default function InstitutionCourses({ inputCls, labelCls }) {
         setListError(err.response?.data?.message || "Failed to load courses."),
       )
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const openCreateForm = () => {
-    setEditingId(null);
-    setForm(EMPTY_COURSE);
-    setFormError("");
-    setShowForm(true);
-  };
-
-  const openEditForm = (course) => {
-    setEditingId(course._id);
-    setForm({
-      level: course.level || "",
-      faculty: course.faculty || "",
-      program: course.program || "",
-      duration: course.duration || "",
-      description: course.description || "",
-    });
-    setFormError("");
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingId(null);
-    setForm(EMPTY_COURSE);
-    setFormError("");
-  };
-
-  const handleCascadeChange = ({ level, faculty, program }) => {
-    setForm((f) => ({ ...f, level, faculty, program }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!form.level) {
-      setFormError("Please select a level.");
-      return;
-    }
-    if (!form.description.trim()) {
-      setFormError("Please add a short description of what you teach.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      if (editingId) {
-        const res = await axios.put(
-          `${API}/api/institution/courses/${editingId}`,
-          form,
-          { headers },
-        );
-        setCourses((prev) =>
-          prev.map((c) => (c._id === editingId ? res.data.course : c)),
-        );
-      } else {
-        const res = await axios.post(`${API}/api/institution/courses`, form, {
-          headers,
-        });
-        setCourses((prev) => [res.data.course, ...prev]);
-      }
-      closeForm();
-    } catch (err) {
-      setFormError(
-        err.response?.data?.message ||
-          (editingId ? "Failed to update course." : "Failed to add course."),
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async (id) => {
     if (
@@ -30854,188 +33948,86 @@ export default function InstitutionCourses({ inputCls, labelCls }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-16">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-gray-900">
-            Courses & Programs
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Register what you teach — scholarships can only be posted for
-            courses listed here.
-          </p>
-        </div>
-        <button
-          onClick={openCreateForm}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm shrink-0"
-        >
-          <span className="text-lg leading-none">+</span>
-          Add Course
-        </button>
+      <div>
+        <h2 className="text-base font-bold text-gray-900">
+          Courses & Programs
+        </h2>
+        <p className="text-xs text-gray-400 mt-0.5">
+          Select what you teach — scholarships can only be posted for
+          courses listed here.
+        </p>
       </div>
 
+      {/* ── CATALOG PICKER (add courses) ────────────────────────────────── */}
+      <CourseCatalogPicker token={token} onAdded={fetchCourses} />
+
+      {/* ── COURSE LIST ─────────────────────────────────────────────────── */}
       {listError && (
         <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">
           {listError}
         </div>
       )}
 
-      {/* ── ADD / EDIT FORM ─────────────────────────────────────────────── */}
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-900">
-              {editingId ? "Edit Course" : "Add Course"}
-            </h3>
-            <button
-              type="button"
-              onClick={closeForm}
-              className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-            >
-              ×
-            </button>
-          </div>
-
-          <EducationCascade
-            level={form.level}
-            faculty={form.faculty}
-            program={form.program}
-            onChange={handleCascadeChange}
-            labels={{
-              level: "Level",
-              faculty: "Faculty",
-              program: "Degree / Program",
-            }}
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Duration</label>
-              <input
-                type="text"
-                placeholder="e.g. 4 years"
-                className={inputCls}
-                value={form.duration}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, duration: e.target.value }))
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={labelCls}>
-              Description <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              rows={3}
-              placeholder="What does this course cover? Any specializations, faculty highlights, or intake notes worth mentioning."
-              className={inputCls}
-              value={form.description}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, description: e.target.value }))
-              }
-            />
-          </div>
-
-          {formError && (
-            <div className="bg-red-50 text-red-600 text-xs px-3 py-2 rounded-lg">
-              {formError}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
-            >
-              {saving ? "Saving…" : editingId ? "Save Changes" : "Add Course"}
-            </button>
-            <button
-              type="button"
-              onClick={closeForm}
-              className="text-sm font-medium text-gray-500 px-5 py-2 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* ── COURSE LIST ─────────────────────────────────────────────────── */}
-      {courses.length === 0 && !showForm ? (
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full" />
+        </div>
+      ) : courses.length === 0 ? (
         <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
           <div className="text-5xl mb-3">🎓</div>
           <p className="font-medium">No courses registered yet</p>
           <p className="text-sm mt-1">
-            Add the programs you teach so you can post scholarships for them.
+            Use the picker above to add the programs you teach.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {courses.map((c) => (
-            <div
-              key={c._id}
-              className={`bg-white rounded-xl border shadow-sm p-5 hover:border-gray-200 transition-colors ${
-                editingId === c._id
-                  ? "border-amber-300 ring-1 ring-amber-200"
-                  : "border-gray-100"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-gray-900 text-sm leading-tight flex-1">
-                  {c.program || levelLabel(c.level)}
-                </h4>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
-                  {levelLabel(c.level)}
-                </span>
+          {courses.map((c) => {
+            const programName = c.program ? findProgramById(c.program)?.name || c.program : null;
+            const facultyName = c.faculty ? findFacultyById(c.faculty)?.name || c.faculty : null;
+            return (
+              <div
+                key={c._id}
+                className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:border-gray-200 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h4 className="font-semibold text-gray-900 text-sm leading-tight flex-1">
+                    {programName || levelLabel(c.level)}
+                  </h4>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 shrink-0">
+                    {levelLabel(c.level)}
+                  </span>
+                </div>
+
+                {facultyName && (
+                  <p className="text-xs text-gray-500 mb-2">{facultyName}</p>
+                )}
+
+                {c.description && (
+                  <p className="text-gray-400 text-xs mb-3 line-clamp-3 leading-relaxed">
+                    {c.description}
+                  </p>
+                )}
+
+                {(c.durationYears || c.duration) && (
+                  <p className="text-xs text-gray-500 flex items-center gap-1.5 mb-4">
+                    <span>⏱️</span> {c.durationYears ? `${c.durationYears} years` : c.duration}
+                  </p>
+                )}
+
+                <div className="pt-3 border-t border-gray-50">
+                  <button
+                    onClick={() => handleDelete(c._id)}
+                    className="w-full text-xs font-medium py-1.5 border border-red-100 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
-
-              {c.faculty && (
-                <p className="text-xs text-gray-500 mb-2">{c.faculty}</p>
-              )}
-
-              {c.description && (
-                <p className="text-gray-400 text-xs mb-3 line-clamp-3 leading-relaxed">
-                  {c.description}
-                </p>
-              )}
-
-              {c.duration && (
-                <p className="text-xs text-gray-500 flex items-center gap-1.5 mb-4">
-                  <span>⏱️</span> {c.duration}
-                </p>
-              )}
-
-              <div className="flex gap-2 pt-3 border-t border-gray-50">
-                <button
-                  onClick={() => openEditForm(c)}
-                  className="flex-1 text-xs font-medium py-1.5 border border-amber-100 rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(c._id)}
-                  className="flex-1 text-xs font-medium py-1.5 border border-red-100 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -31122,7 +34114,7 @@ export default function LocationCascade({
       .finally(() => setLoadingProvinces(false));
   }, []);
 
-  // ── Resolve the province's _id whether we're in id or name mode ────────
+  // ── Resolve the province's/district's _id whether we're in id or name mode ─
   const selectedProvinceId =
     idMode === "id"
       ? province
@@ -31132,6 +34124,14 @@ export default function LocationCascade({
     idMode === "id"
       ? district
       : districts.find((d) => d.districtName === district)?._id || "";
+
+  // Municipality select's `value` needs to match whatever the <option>
+  // values are for the CURRENT mode: in "id" mode options are m._id, in
+  // "name" mode options are m.municipalityName. Since the `municipality`
+  // prop is already stored in exactly that shape for each mode, no lookup
+  // is needed here (unlike province/district, whose <option> values are
+  // ALWAYS _id regardless of mode).
+  const selectedMunicipalityValue = municipality;
 
   // ── Load districts when province changes ────────────────────────────────
   useEffect(() => {
@@ -31189,14 +34189,15 @@ export default function LocationCascade({
     }
   };
 
+  // FIX: the <option value> for municipality is already m._id (idMode="id")
+  // or m.municipalityName (idMode="name") — see the render below. So
+  // e.target.value IS the value we want to emit directly; doing another
+  // `.find(m => m._id === val)` here (as before) broke name mode, since val
+  // was a name, not an _id, so the lookup always failed and silently reset
+  // the filter to "".
   const handleMunicipalityChange = (e) => {
     const val = e.target.value;
-    if (idMode === "id") {
-      emit({ province, district, municipality: val });
-    } else {
-      const muni = municipalities.find((m) => m._id === val);
-      emit({ province, district, municipality: muni?.municipalityName || "" });
-    }
+    emit({ province, district, municipality: val });
   };
 
   return (
@@ -31247,7 +34248,7 @@ export default function LocationCascade({
         <label className={labelCls}>{labels.municipality}</label>
         <select
           className={selectCls}
-          value={municipality}
+          value={selectedMunicipalityValue}
           onChange={handleMunicipalityChange}
           disabled={!selectedDistrictId || loadingMunicipalities}
         >
@@ -31268,7 +34269,6 @@ export default function LocationCascade({
     </div>
   );
 }
-
 ```
 
 #### `frontend/src/Components/NotificationBell.jsx`
@@ -33289,7 +36289,7 @@ export default App;
 
 ---
 ## 📊 Stats
-- Total source files scanned: **150**
+- Total source files scanned: **166**
 - Detected technologies: **0**
 - package.json files found: **3**
 

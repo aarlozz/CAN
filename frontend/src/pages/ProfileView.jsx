@@ -102,6 +102,11 @@ export default function ProfileView() {
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoError, setLogoError] = useState("");
 
+  // ── Document-completion percent, reported up by DocumentManager (student
+  // only). null = no study level selected yet, so it's excluded from the
+  // combined score rather than dragging it down to near-zero.
+  const [docCompletionPct, setDocCompletionPct] = useState(null);
+
   const studentTabs = [
     { key: "overview", label: "Overview" },
     { key: "personal", label: "Personal" },
@@ -388,6 +393,15 @@ export default function ProfileView() {
     return { pct: Math.round((filled / checks.length) * 100), missing };
   }, [role, profile, studentForm, institutionForm, avatarUrl, logoUrl]);
 
+  // Combined completeness — for students, merges their profile-field
+  // completeness with their application-document completeness into ONE bar
+  // instead of showing two separate ones. Falls back to just the field
+  // percent for institutions, or while no study level has been picked yet.
+  const combinedPct =
+    role === "student" && docCompletionPct !== null
+      ? Math.round((completeness.pct + docCompletionPct) / 2)
+      : completeness.pct;
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 pt-10 pb-16">
@@ -402,7 +416,7 @@ export default function ProfileView() {
 
   return (
     <main className="min-h-screen bg-gray-50 pt-10 pb-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className={`mx-auto px-4 sm:px-6 ${role === "student" ? "max-w-6xl" : "max-w-4xl"}`}>
         {/* ── Page header ── */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -465,19 +479,24 @@ export default function ProfileView() {
                 )}
               </div>
 
-              {/* Completeness bar */}
+              {/* Completeness bar — combines profile fields + application documents into one */}
               <div className="relative mt-6">
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-gray-300 font-medium">Profile completeness</span>
-                  <span className="font-bold">{completeness.pct}%</span>
+                  <span className="text-gray-300 font-medium">
+                    Profile completeness
+                    {role === "student" && docCompletionPct !== null && (
+                      <span className="text-gray-400"> (profile + documents)</span>
+                    )}
+                  </span>
+                  <span className="font-bold">{combinedPct}%</span>
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-red-500 to-orange-400 rounded-full transition-all duration-500"
-                    style={{ width: `${completeness.pct}%` }}
+                    style={{ width: `${combinedPct}%` }}
                   />
                 </div>
-                {completeness.pct < 100 && completeness.missing.length > 0 && (
+                {combinedPct < 100 && completeness.missing.length > 0 && (
                   <p className="text-[11px] text-gray-300 mt-2">
                     Missing: {completeness.missing.slice(0, 3).join(", ")}
                     {completeness.missing.length > 3 ? ` +${completeness.missing.length - 3} more` : ""}
@@ -486,6 +505,9 @@ export default function ProfileView() {
               </div>
             </div>
 
+            {(() => {
+              const profileInfoBlock = (
+                <>
             {/* ── Tabs ── */}
             <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1">
               {tabs.map((t) => (
@@ -632,7 +654,7 @@ export default function ProfileView() {
                     setForm={setStudentForm}
                     displayName={displayName}
                     displayEmail={displayEmail}
-                    completenessPct={completeness.pct}
+                    completenessPct={combinedPct}
                   />
                 ) : (
                   <InstitutionTabContent
@@ -642,7 +664,7 @@ export default function ProfileView() {
                     setForm={setInstitutionForm}
                     displayName={displayName}
                     displayEmail={displayEmail}
-                    completenessPct={completeness.pct}
+                    completenessPct={combinedPct}
                     isApproved={profile.isApproved}
                   />
                 )}
@@ -667,10 +689,23 @@ export default function ProfileView() {
                 </div>
               )}
             </div>
+                </>
+              );
 
-              <div className="mt-5">
-                 <DocumentManager/>
-              </div>
+              if (role !== "student") return profileInfoBlock;
+
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                  {/* Application Documents — main focus, wider left column */}
+                  <div className="lg:col-span-3">
+                    <DocumentManager onCompletionChange={setDocCompletionPct} />
+                  </div>
+
+                  {/* Profile info — narrower right column */}
+                  <div className="lg:col-span-2">{profileInfoBlock}</div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>

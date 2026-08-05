@@ -10,6 +10,25 @@ function authHeaders() {
   return { Authorization: `Bearer ${token}` };
 }
 
+const EXT_TO_MIME = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+// Server-declared content-type wins when it's specific. But if it's missing
+// or a generic fallback like "application/octet-stream" (which happens if
+// the upload path didn't capture the real mimetype), infer the real type
+// from the file's extension instead of giving up on preview entirely.
+function resolveContentType(headerType, fileName) {
+  const generic = !headerType || headerType === "application/octet-stream";
+  if (!generic) return headerType;
+  const ext = (fileName || "").split(".").pop()?.toLowerCase();
+  return EXT_TO_MIME[ext] || headerType || "application/octet-stream";
+}
+
 function GroupLabel({ children }) {
   return (
     <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-2 mt-5 first:mt-0">
@@ -52,7 +71,7 @@ function DocumentRow({ doc, onUpload, onDelete, onView, uploadingKey }) {
       <div className="flex items-center gap-2 shrink-0">
         {doc.uploaded && (
           <button
-            onClick={() => onView(doc.document.fileId)}
+            onClick={() => onView(doc.document.fileId, doc.document.fileName)}
             className="text-[11px] font-semibold text-gray-500 hover:text-gray-700"
           >
             View
@@ -93,7 +112,91 @@ function DocumentRow({ doc, onUpload, onDelete, onView, uploadingKey }) {
   );
 }
 
-export default function DocumentManager() {
+function FilePreviewModal({ file, loading, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const isImage = file?.contentType?.startsWith("image/");
+  const isPdf = file?.contentType?.includes("pdf");
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 shrink-0">
+          <p className="text-sm font-semibold text-gray-800 truncate">
+            {file?.fileName || "Document preview"}
+          </p>
+          <div className="flex items-center gap-3 shrink-0">
+            {file?.url && (
+              <a
+                href={file.url}
+                download={file.fileName}
+                className="text-xs font-semibold text-red-500 hover:text-red-600"
+              >
+                Download
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              aria-label="Close preview"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-auto bg-gray-50 flex items-center justify-center p-4">
+          {loading && (
+            <div className="animate-spin w-8 h-8 border-4 border-red-100 border-t-red-400 rounded-full" />
+          )}
+
+          {!loading && file && isImage && (
+            <img
+              src={file.url}
+              alt={file.fileName}
+              className="max-w-full max-h-[75vh] object-contain rounded-lg"
+            />
+          )}
+
+          {!loading && file && isPdf && (
+            <iframe
+              src={file.url}
+              title={file.fileName}
+              className="w-full h-[75vh] rounded-lg bg-white"
+            />
+          )}
+
+          {!loading && file && !isImage && !isPdf && (
+            <div className="text-center py-10">
+              <p className="text-sm text-gray-500 mb-3">
+                This file type can't be previewed here.
+              </p>
+              <a
+                href={file.url}
+                download={file.fileName}
+                className="inline-block text-sm font-semibold text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors"
+              >
+                Download to view
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function DocumentManager({ onCompletionChange }) {
   const [level, setLevel] = useState("");
   const [categories, setCategories] = useState([]);
   const [availableCategories, setAvailableCategories] = useState([]);
@@ -102,6 +205,10 @@ export default function DocumentManager() {
   const [uploadingKey, setUploadingKey] = useState(null);
   const [savingLevel, setSavingLevel] = useState(false);
   const [error, setError] = useState("");
+
+  // ── File preview modal state ──────────────────────────────────────────────
+  const [preview, setPreview] = useState(null); // { url, contentType, fileName }
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const loadMasterLists = async () => {
     try {
@@ -135,7 +242,25 @@ export default function DocumentManager() {
   useEffect(() => {
     loadMasterLists();
     loadRequirements();
+    return () => {
+      // If the component unmounts while a preview is open, release the blob URL
+      setPreview((p) => {
+        if (p?.url) URL.revokeObjectURL(p.url);
+        return p;
+      });
+    };
   }, []);
+
+  // Report our completion percent up to ProfileView so it can be merged into
+  // a single combined completeness bar instead of showing two separate ones.
+  useEffect(() => {
+    if (!onCompletionChange) return;
+    if (!level) {
+      onCompletionChange(null); // no level selected yet — don't drag the combined score down
+    } else {
+      onCompletionChange(requirements?.completionPercent ?? 0);
+    }
+  }, [level, requirements, onCompletionChange]);
 
   const saveLevel = async (newLevel) => {
     setSavingLevel(true);
@@ -207,18 +332,35 @@ export default function DocumentManager() {
     }
   };
 
-  const handleView = async (fileId) => {
+  const handleView = async (fileId, fileName) => {
     setError("");
+    setPreviewLoading(true);
+    setPreview({ url: null, contentType: null, fileName }); // open modal immediately with a spinner
     try {
       const res = await axios.get(
         `${API}/api/student/documents/file/${fileId}`,
         { headers: authHeaders(), responseType: "blob" }
       );
-      const url = URL.createObjectURL(res.data);
-      window.open(url, "_blank");
+      // Build the blob with an EXPLICIT type — this is what makes the browser
+      // render it inline (image/PDF) instead of forcing a download. If the
+      // server's declared type is missing/generic, fall back to the file
+      // extension so a mislabeled upload still previews correctly.
+      const headerType = res.headers["content-type"] || res.data.type;
+      const contentType = resolveContentType(headerType, fileName);
+      const typedBlob = new Blob([res.data], { type: contentType });
+      const url = URL.createObjectURL(typedBlob);
+      setPreview({ url, contentType, fileName });
     } catch (err) {
       setError("Failed to open document.");
+      setPreview(null);
+    } finally {
+      setPreviewLoading(false);
     }
+  };
+
+  const closePreview = () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+    setPreview(null);
   };
 
   if (loading) {
@@ -282,26 +424,15 @@ export default function DocumentManager() {
           </p>
         ) : (
           <>
-            {/* ── Completion progress ── */}
-            <div className="mb-5 bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-700">
-                  Profile Completion
-                </span>
-                <span className="text-xs font-bold text-red-500">
-                  {requirements?.completionPercent ?? 0}%
-                </span>
-              </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 transition-all duration-300"
-                  style={{ width: `${requirements?.completionPercent ?? 0}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-gray-400 mt-2">
-                {requirements?.totalUploaded ?? 0} of{" "}
-                {requirements?.totalRequired ?? 0} required documents uploaded
-              </p>
+            {/* Uploaded-count stat — the completion bar itself now lives in the
+                combined bar at the top of the Profile page, not duplicated here. */}
+            <div className="mb-5 bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-xs font-semibold text-gray-700">
+                Required documents uploaded
+              </span>
+              <span className="text-xs font-bold text-red-500">
+                {requirements?.totalUploaded ?? 0} / {requirements?.totalRequired ?? 0}
+              </span>
             </div>
 
             {/* ── Special / reservation category selector ── */}
@@ -397,6 +528,10 @@ export default function DocumentManager() {
           </>
         )}
       </div>
+
+      {preview && (
+        <FilePreviewModal file={preview} loading={previewLoading} onClose={closePreview} />
+      )}
     </div>
   );
 }

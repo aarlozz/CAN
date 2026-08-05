@@ -1,22 +1,9 @@
-// collegeController.js — College profile management
-//
-// Protected handlers (college role only):
-//   getMyProfile     GET  /api/college/profile
-//   updateMyProfile  PUT  /api/college/profile
-//   getVerification  GET  /api/college/verification
-//   addCourse        POST /api/college/courses
-//   removeCourse     DEL  /api/college/courses/:courseId
-//
-// Public handlers (no auth):
-//   listColleges     GET  /api/college/list
-//   getCollegeById   GET  /api/college/:id
 
 const asyncHandler = require('../utils/asyncHandler');
 const paginate     = require('../utils/paginate');
 const College      = require('../models/College');
 
-// Fields a college CANNOT update themselves —
-// only admins/system can touch these
+
 const BLOCKED_UPDATE_FIELDS = [
   'userId', 'verification', 'isDeleted', 'deletedAt', 'createdAt', 'updatedAt',
 ];

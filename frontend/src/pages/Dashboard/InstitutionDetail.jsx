@@ -120,19 +120,9 @@ export default function InstitutionDetail() {
           </Link>
 
           <div className="flex flex-wrap items-start gap-4">
-            {institution.logo ? (
-              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-lg ring-4 ring-white/10 p-1.5">
-                <img
-                  src={institution.logo}
-                  alt={institutionName}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
-              </div>
-            ) : (
-              <div className="w-16 h-16 rounded-2xl bg-red-500 flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10">
-                {(institutionName || "?").slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <div className="w-16 h-16 rounded-2xl bg-red-500 flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10">
+              {(institutionName || "?").slice(0, 1).toUpperCase()}
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1.5">
                 <span

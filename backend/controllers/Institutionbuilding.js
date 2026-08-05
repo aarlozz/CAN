@@ -9,7 +9,7 @@ export const getInstitutionData = async (req, res) => {
     })
       .populate("user", "name email")
       .select(
-        "institutionName institutionType location contactPerson website establishedYear description courses"
+        "institutionName institutionType location contactPerson website establishedYear description courses logo"
       )
       .sort({ institutionName: 1 })
       .lean();

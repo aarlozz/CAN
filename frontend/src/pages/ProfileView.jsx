@@ -17,7 +17,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+<<<<<<< HEAD
 import { UNIVERSITIES } from "../constants/educationTaxonomy"; // adjust path
+=======
+import DocumentManager from "../components/DocumentManager";
+>>>>>>> 7a3609643a1f25141222156cdf4659c6ea0d8b4d
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const SCHOOL_TYPES = ["Government", "Community", "Private", "Other"];
@@ -96,6 +100,16 @@ export default function ProfileView() {
   const fileInputRef = useRef(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState("");
+
+  // ── Institution logo state (institution role only) ──────────────────────
+  const logoInputRef = useRef(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoError, setLogoError] = useState("");
+
+  // ── Document-completion percent, reported up by DocumentManager (student
+  // only). null = no study level selected yet, so it's excluded from the
+  // combined score rather than dragging it down to near-zero.
+  const [docCompletionPct, setDocCompletionPct] = useState(null);
 
   const studentTabs = [
     { key: "overview", label: "Overview" },
@@ -294,9 +308,59 @@ export default function ProfileView() {
     }
   };
 
+  // ── Institution logo handlers (institution role only) ────────────────────
+  const handleLogoPick = () => {
+    setLogoError("");
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setLogoError("Please choose a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      setLogoError(`Image must be under ${MAX_AVATAR_MB}MB.`);
+      return;
+    }
+
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await api.post("/institution/logo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfile((prev) => prev && { ...prev, logo: res.data.logo });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to upload logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      await api.delete("/institution/logo");
+      setProfile((prev) => prev && { ...prev, logo: null });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to remove logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
   const displayName = profile?.user?.name || (role === "institution" ? profile?.institutionName : "") || "";
   const displayEmail = profile?.user?.email || "";
   const avatarUrl = profile?.user?.avatar || null;
+  const logoUrl = profile?.logo || null;
 
   // ── Profile completeness ────────────────────────────────────────────────
   const completeness = useMemo(() => {
@@ -330,11 +394,21 @@ export default function ProfileView() {
             ["Contact Phone", institutionForm.contactPhone],
             ["Contact Email", institutionForm.contactEmail],
             ["Profile Photo", avatarUrl],
+            ["Institution Logo", logoUrl],
           ];
     const filled = checks.filter(([, v]) => v && String(v).trim() !== "").length;
     const missing = checks.filter(([, v]) => !v || String(v).trim() === "").map(([l]) => l);
     return { pct: Math.round((filled / checks.length) * 100), missing };
-  }, [role, profile, studentForm, institutionForm, avatarUrl]);
+  }, [role, profile, studentForm, institutionForm, avatarUrl, logoUrl]);
+
+  // Combined completeness — for students, merges their profile-field
+  // completeness with their application-document completeness into ONE bar
+  // instead of showing two separate ones. Falls back to just the field
+  // percent for institutions, or while no study level has been picked yet.
+  const combinedPct =
+    role === "student" && docCompletionPct !== null
+      ? Math.round((completeness.pct + docCompletionPct) / 2)
+      : completeness.pct;
 
   if (loading) {
     return (
@@ -350,7 +424,7 @@ export default function ProfileView() {
 
   return (
     <main className="min-h-screen bg-gray-50 pt-10 pb-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className={`mx-auto px-4 sm:px-6 ${role === "student" ? "max-w-6xl" : "max-w-4xl"}`}>
         {/* ── Page header ── */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -413,19 +487,24 @@ export default function ProfileView() {
                 )}
               </div>
 
-              {/* Completeness bar */}
+              {/* Completeness bar — combines profile fields + application documents into one */}
               <div className="relative mt-6">
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-gray-300 font-medium">Profile completeness</span>
-                  <span className="font-bold">{completeness.pct}%</span>
+                  <span className="text-gray-300 font-medium">
+                    Profile completeness
+                    {role === "student" && docCompletionPct !== null && (
+                      <span className="text-gray-400"> (profile + documents)</span>
+                    )}
+                  </span>
+                  <span className="font-bold">{combinedPct}%</span>
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-red-500 to-orange-400 rounded-full transition-all duration-500"
-                    style={{ width: `${completeness.pct}%` }}
+                    style={{ width: `${combinedPct}%` }}
                   />
                 </div>
-                {completeness.pct < 100 && completeness.missing.length > 0 && (
+                {combinedPct < 100 && completeness.missing.length > 0 && (
                   <p className="text-[11px] text-gray-300 mt-2">
                     Missing: {completeness.missing.slice(0, 3).join(", ")}
                     {completeness.missing.length > 3 ? ` +${completeness.missing.length - 3} more` : ""}
@@ -434,6 +513,9 @@ export default function ProfileView() {
               </div>
             </div>
 
+            {(() => {
+              const profileInfoBlock = (
+                <>
             {/* ── Tabs ── */}
             <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1">
               {tabs.map((t) => (
@@ -508,6 +590,67 @@ export default function ProfileView() {
                         )}
                       </div>
                     </div>
+
+                    {/* ── Institution Logo section (institution accounts only) ── */}
+                    {role === "institution" && (
+                      <>
+                        <SectionTitle>Institution Logo</SectionTitle>
+                        <div className="flex items-center gap-5 mb-6 pb-6 border-b border-gray-50">
+                          <div className="w-20 h-20 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 p-2 overflow-hidden">
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt="Institution logo"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-gray-300 text-center">No logo</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2.5">
+                              <button
+                                onClick={handleLogoPick}
+                                disabled={logoBusy}
+                                className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {logoBusy ? "Uploading…" : logoUrl ? "Change Logo" : "Upload Logo"}
+                              </button>
+                              {logoUrl && (
+                                <button
+                                  onClick={handleLogoDelete}
+                                  disabled={logoBusy}
+                                  className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Remove
+                                </button>
+                              )}
+                              <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleLogoChange}
+                                className="hidden"
+                              />
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-2">
+                              Shown on your institution's public listing and profile page. JPG, PNG, or WEBP. Max {MAX_AVATAR_MB}MB.
+                            </p>
+                            {logoError && (
+                              <p className="text-xs text-red-600 mt-1.5">{logoError}</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -519,7 +662,7 @@ export default function ProfileView() {
                     setForm={setStudentForm}
                     displayName={displayName}
                     displayEmail={displayEmail}
-                    completenessPct={completeness.pct}
+                    completenessPct={combinedPct}
                   />
                 ) : (
                   <InstitutionTabContent
@@ -529,7 +672,7 @@ export default function ProfileView() {
                     setForm={setInstitutionForm}
                     displayName={displayName}
                     displayEmail={displayEmail}
-                    completenessPct={completeness.pct}
+                    completenessPct={combinedPct}
                     isApproved={profile.isApproved}
                   />
                 )}
@@ -554,6 +697,23 @@ export default function ProfileView() {
                 </div>
               )}
             </div>
+                </>
+              );
+
+              if (role !== "student") return profileInfoBlock;
+
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+                  {/* Application Documents — main focus, wider left column */}
+                  <div className="lg:col-span-3">
+                    <DocumentManager onCompletionChange={setDocCompletionPct} />
+                  </div>
+
+                  {/* Profile info — narrower right column */}
+                  <div className="lg:col-span-2">{profileInfoBlock}</div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>

@@ -3,9 +3,12 @@ import {
   getInstitutionDashboard,
   completeInstitutionProfile,
   updateInstitutionProfile,
+  uploadLogo,
+  deleteLogo,
   verifyInstitution,
 } from "../controllers/InstitutionProfileController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
+import logoUpload from "../middleware/logoUpload.js";
 
 const router = express.Router();
 
@@ -17,21 +20,23 @@ router.get(
   getInstitutionDashboard
 );
 
-// ── Complete profile (Step 3 of stepwise Google signup) ────────────────────────
-router.put(
-  "/complete-profile",
-  protect,
-  requireRole("institution"),
-  completeInstitutionProfile
-);
-
-// ── Profile (edit after signup) ─────────────────────────────────────────────────
+// ── Profile ──────────────────────────────────────────────────────────────────
 router.put(
   "/profile",
   protect,
   requireRole("institution"),
   updateInstitutionProfile
 );
+
+// ── Institution logo (separate from the user's personal avatar) ─────────────
+router.post(
+  "/logo",
+  protect,
+  requireRole("institution"),
+  logoUpload.single("logo"),
+  uploadLogo
+);
+router.delete("/logo", protect, requireRole("institution"), deleteLogo);
 
 // ── Verification (admin only) ─────────────────────────────────────────────────
 router.patch(

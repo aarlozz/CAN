@@ -101,15 +101,210 @@ export const getSystemStats = async (req, res) => {
     const totalInstitutions = await InstitutionProfile.countDocuments();
     const totalScholarships = await Scholarship.countDocuments({ isDeleted: false });
     const totalApplications = await ScholarshipApplication.countDocuments();
+    
+    const adminUser = await User.findById(req.user.id).select("-password");
 
     res.json({
       students: totalStudents,
       institutions: totalInstitutions,
       scholarships: totalScholarships,
       applications: totalApplications,
+      adminUser
     });
   } catch (error) {
     console.error("getSystemStats error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// GET /api/super-admin/institutions
+export const getAllInstitutions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    // Build filter query
+    const filter = {};
+    if (req.query.status && req.query.status !== "all") {
+      filter["verification.status"] = req.query.status;
+    }
+    if (req.query.provinceId && req.query.provinceId !== "all") {
+      filter["location.provinceRef.provinceId"] = req.query.provinceId;
+    }
+    if (req.query.search) {
+      filter.institutionName = { $regex: req.query.search, $options: "i" };
+    }
+
+    // Determine sort
+    let sort = { createdAt: -1 };
+    if (req.query.sortBy) {
+      const parts = req.query.sortBy.split(":");
+      sort = { [parts[0]]: parts[1] === "asc" ? 1 : -1 };
+    }
+
+    const total = await InstitutionProfile.countDocuments(filter);
+    const institutions = await InstitutionProfile.find(filter)
+      .populate("user", "email name isVerified")
+      .populate("location.provinceRef.provinceId", "provinceName")
+      .populate("verification.verifiedBy", "name email")
+      .sort(sort)
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: institutions,
+      meta: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("getAllInstitutions error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// GET /api/super-admin/scholarships
+export const getAllScholarships = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = { isDeleted: false };
+    if (req.query.search) {
+      filter.$text = { $search: req.query.search };
+    }
+    if (req.query.status && req.query.status !== "all") {
+      filter.isActive = req.query.status === "active";
+    }
+
+    const total = await Scholarship.countDocuments(filter);
+    const scholarships = await Scholarship.find(filter)
+      .populate("institutionId", "institutionName user")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: scholarships,
+      meta: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("getAllScholarships error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// GET /api/super-admin/applications
+export const getAllApplications = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.status && req.query.status !== "all") {
+      filter.applicationStatus = req.query.status;
+    }
+    if (req.query.search) {
+      filter["studentSnapshot.fullName"] = { $regex: req.query.search, $options: "i" };
+    }
+
+    const total = await ScholarshipApplication.countDocuments(filter);
+    const applications = await ScholarshipApplication.find(filter)
+      .populate("scholarshipId", "scholarshipTitle")
+      .populate("studentId", "user personal_info")
+      .sort({ appliedAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      data: applications,
+      meta: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("getAllApplications error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// GET /api/super-admin/reports/detailed
+export const getDetailedReports = async (req, res) => {
+  try {
+    // 1. Applications by Status
+    const applicationStats = await ScholarshipApplication.aggregate([
+      { $group: { _id: "$applicationStatus", count: { $sum: 1 } } }
+    ]);
+
+    // 2. Scholarships by Coverage Type
+    const scholarshipStats = await Scholarship.aggregate([
+      { $group: { _id: "$coverage.scholarshipType2", count: { $sum: 1 } } }
+    ]);
+
+    // 3. Institutions by Verification Status
+    const institutionStats = await InstitutionProfile.aggregate([
+      { $group: { _id: "$verification.status", count: { $sum: 1 } } }
+    ]);
+
+    // Format results to key-value maps
+    const formatStats = (agg) => {
+      return agg.reduce((acc, curr) => {
+        acc[curr._id || "unknown"] = curr.count;
+        return acc;
+      }, {});
+    };
+
+    res.json({
+      applications: formatStats(applicationStats),
+      scholarships: formatStats(scholarshipStats),
+      institutions: formatStats(institutionStats)
+    });
+  } catch (error) {
+    console.error("getDetailedReports error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// PATCH /api/super-admin/settings/password
+export const updateAdminPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Please provide both current and new password" });
+    }
+
+    // req.user contains the decoded token (id, role)
+    const user = await User.findById(req.user.id).select("+password");
+    if (!user) return res.status(404).json({ message: "Admin user not found" });
+
+    // verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash and save new password
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("updateAdminPassword error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

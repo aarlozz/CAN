@@ -67,6 +67,17 @@ const institutionSchema = new mongoose.Schema(
     website: { type: String },
     description: { type: String },
 
+    // Institution logo (separate from the owning user's personal avatar)
+    logo: {
+      type: String,     // full public URL, e.g. http://host/uploads/institution-logos/<userId>/<file>
+      default: null,
+    },
+    logoPath: {
+      type: String,     // relative disk path, used internally to delete the old file
+      default: null,
+      select: false,    // internal only — never sent to the frontend
+    },
+
     contactPerson: {
       name:        String,
       phone:       String,

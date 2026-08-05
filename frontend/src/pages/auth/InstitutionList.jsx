@@ -296,17 +296,34 @@ export default function InstitutionList() {
                 to={`/institutions/${inst._id}`}
                 className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-red-100 transition-all"
               >
-                {/* Cover placeholder — gradient banner using the institution's initials */}
-                <div className="h-24 bg-gradient-to-br from-gray-900 to-gray-700 relative flex items-end px-5 pb-3">
-                  <div className="absolute -right-6 -top-6 w-28 h-28 bg-red-500/20 rounded-full blur-2xl" />
-                  <span
-                    className={`relative text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                      TYPE_COLORS[inst.institutionType] || "bg-white/10 text-white"
-                    }`}
-                  >
-                    {inst.institutionType}
-                  </span>
-                </div>
+                {/* Cover — real logo if uploaded, else gradient placeholder with type badge */}
+                {inst.logo ? (
+                  <div className="h-24 bg-gray-50 border-b border-gray-100 relative flex items-center justify-center p-3">
+                    <img
+                      src={inst.logo}
+                      alt={inst.institutionName}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                    <span
+                      className={`absolute top-2 right-2 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        TYPE_COLORS[inst.institutionType] || "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {inst.institutionType}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-24 bg-gradient-to-br from-gray-900 to-gray-700 relative flex items-end px-5 pb-3">
+                    <div className="absolute -right-6 -top-6 w-28 h-28 bg-red-500/20 rounded-full blur-2xl" />
+                    <span
+                      className={`relative text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        TYPE_COLORS[inst.institutionType] || "bg-white/10 text-white"
+                      }`}
+                    >
+                      {inst.institutionType}
+                    </span>
+                  </div>
+                )}
 
                 <div className="p-5">
                   <h4 className="font-bold text-gray-900 text-base leading-tight mb-1.5 group-hover:text-red-600 transition-colors">

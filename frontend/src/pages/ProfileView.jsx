@@ -96,6 +96,11 @@ export default function ProfileView() {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState("");
 
+  // ── Institution logo state (institution role only) ──────────────────────
+  const logoInputRef = useRef(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoError, setLogoError] = useState("");
+
   const studentTabs = [
     { key: "overview", label: "Overview" },
     { key: "personal", label: "Personal" },
@@ -290,9 +295,59 @@ export default function ProfileView() {
     }
   };
 
+  // ── Institution logo handlers (institution role only) ────────────────────
+  const handleLogoPick = () => {
+    setLogoError("");
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setLogoError("Please choose a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      setLogoError(`Image must be under ${MAX_AVATAR_MB}MB.`);
+      return;
+    }
+
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await api.post("/institution/logo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfile((prev) => prev && { ...prev, logo: res.data.logo });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to upload logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      await api.delete("/institution/logo");
+      setProfile((prev) => prev && { ...prev, logo: null });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to remove logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
   const displayName = profile?.user?.name || (role === "institution" ? profile?.institutionName : "") || "";
   const displayEmail = profile?.user?.email || "";
   const avatarUrl = profile?.user?.avatar || null;
+  const logoUrl = profile?.logo || null;
 
   // ── Profile completeness ────────────────────────────────────────────────
   const completeness = useMemo(() => {
@@ -325,11 +380,12 @@ export default function ProfileView() {
             ["Contact Phone", institutionForm.contactPhone],
             ["Contact Email", institutionForm.contactEmail],
             ["Profile Photo", avatarUrl],
+            ["Institution Logo", logoUrl],
           ];
     const filled = checks.filter(([, v]) => v && String(v).trim() !== "").length;
     const missing = checks.filter(([, v]) => !v || String(v).trim() === "").map(([l]) => l);
     return { pct: Math.round((filled / checks.length) * 100), missing };
-  }, [role, profile, studentForm, institutionForm, avatarUrl]);
+  }, [role, profile, studentForm, institutionForm, avatarUrl, logoUrl]);
 
   if (loading) {
     return (
@@ -503,6 +559,67 @@ export default function ProfileView() {
                         )}
                       </div>
                     </div>
+
+                    {/* ── Institution Logo section (institution accounts only) ── */}
+                    {role === "institution" && (
+                      <>
+                        <SectionTitle>Institution Logo</SectionTitle>
+                        <div className="flex items-center gap-5 mb-6 pb-6 border-b border-gray-50">
+                          <div className="w-20 h-20 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 p-2 overflow-hidden">
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt="Institution logo"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-gray-300 text-center">No logo</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2.5">
+                              <button
+                                onClick={handleLogoPick}
+                                disabled={logoBusy}
+                                className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {logoBusy ? "Uploading…" : logoUrl ? "Change Logo" : "Upload Logo"}
+                              </button>
+                              {logoUrl && (
+                                <button
+                                  onClick={handleLogoDelete}
+                                  disabled={logoBusy}
+                                  className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Remove
+                                </button>
+                              )}
+                              <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleLogoChange}
+                                className="hidden"
+                              />
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-2">
+                              Shown on your institution's public listing and profile page. JPG, PNG, or WEBP. Max {MAX_AVATAR_MB}MB.
+                            </p>
+                            {logoError && (
+                              <p className="text-xs text-red-600 mt-1.5">{logoError}</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 

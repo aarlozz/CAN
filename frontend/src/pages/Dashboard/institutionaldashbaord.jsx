@@ -14,42 +14,32 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function InfoRow({ label, value }) {
-  if (!value) return null;
+function Avatar({ url, name, size = "w-14 h-14", textSize = "text-xl", rounded = "rounded-2xl" }) {
+  const initials = (name || "IN")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        className={`${size} ${rounded} object-cover shrink-0 shadow-lg ring-4 ring-white/10`}
+      />
+    );
+  }
   return (
-    <div className="flex flex-col gap-0.5 mb-3">
-      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-        {label}
-      </span>
-      <span className="text-gray-800 text-xs">{value}</span>
+    <div
+      className={`${size} ${rounded} bg-red-500 flex items-center justify-center ${textSize} font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10`}
+    >
+      {initials}
     </div>
   );
 }
 
-function ExpandSection({ title, children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mb-1">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs text-gray-600 font-medium transition-colors"
-      >
-        <span>{title}</span>
-        <span
-          className="text-gray-400 transition-transform duration-200"
-          style={{ transform: open ? "rotate(90deg)" : "none" }}
-        >
-          ›
-        </span>
-      </button>
-      {open && (
-        <div className="px-3 pt-3 pb-1 bg-gray-50 rounded-b-lg mt-0.5">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
+
 
 const TYPE_COLORS = {
   merit: "bg-blue-50 text-blue-700",
@@ -262,11 +252,7 @@ export default function InstitutionalDashboard() {
 
   const token = localStorage.getItem("token");
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+  // Logout is now handled by the shared Header component's dropdown.
 
   // ── Applications fetch (filter/paginate aware) ──────────────────────────────
   const fetchApplications = async (filters = appFilters, page = 1) => {
@@ -591,14 +577,6 @@ export default function InstitutionalDashboard() {
     );
 
   const loc = data?.location || {};
-  const contact = data?.contactPerson || {};
-  const user = data?.user || {};
-  const initials = (data?.institutionName || "IN")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
 
   // Note: pending/approved counts are computed from the *currently loaded
   // page* of applications, since applications are now server-paginated.
@@ -620,14 +598,20 @@ export default function InstitutionalDashboard() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ── TOP NAV ──────────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+      <Header />
+
+      {/* ── DASHBOARD SUB-NAV (identity only — tabs now live in the right sidebar) ── */}
+      <nav className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Left – institution identity */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-700 shrink-0">
-              {initials}
-            </div>
+            <Avatar
+              url={data?.user?.avatar}
+              name={data?.institutionName}
+              size="w-8 h-8"
+              textSize="text-xs"
+              rounded="rounded-lg"
+            />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
                 {data?.institutionName}
@@ -638,8 +622,8 @@ export default function InstitutionalDashboard() {
             </div>
           </div>
 
-          {/* Center – tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
+          {/* Compact tab strip — mobile/tablet only; desktop uses the right sidebar */}
+          <div className="flex lg:hidden gap-1 bg-gray-100 rounded-xl p-1 shrink-0">
             {["scholarships", "courses", "applications"].map((t) => (
               <button
                 key={t}
@@ -659,56 +643,13 @@ export default function InstitutionalDashboard() {
               </button>
             ))}
           </div>
-
-          {/* Right – profile toggle + logout */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setSidebarOpen((o) => !o)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                sidebarOpen
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <div className="w-4 h-4 rounded-full bg-green-400 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-white" />
-              </div>
-              Profile
-              <span
-                className="transition-transform duration-200 text-[10px]"
-                style={{ transform: sidebarOpen ? "rotate(90deg)" : "none" }}
-              >
-                ›
-              </span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
-            >
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Logout
-            </button>
-          </div>
         </div>
       </nav>
 
-      {/* ── BODY (content + sidebar) ─────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
+      {/* ── BODY ─────────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
-        <main className="flex-1 min-w-0 space-y-6">
+        <main className="flex-1 min-w-0 space-y-6 order-2 lg:order-1">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -1386,242 +1327,53 @@ export default function InstitutionalDashboard() {
           )}
         </main>
 
-        {/* ── PROFILE SIDEBAR ──────────────────────────────────────────────── */}
-        {sidebarOpen && (
-          <aside className="w-72 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm self-start sticky top-20 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">
-                Profile
+        {/* ── SECTION NAV (desktop) — vertical, bigger buttons, right side ──── */}
+        <aside className="hidden lg:flex flex-col gap-2 w-60 shrink-0 order-1 lg:order-2">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-1">
+            Manage
+          </p>
+          {[
+            { key: "scholarships", label: "Scholarships", icon: "🎓", desc: "Post & edit listings" },
+            { key: "courses", label: "Courses", icon: "📚", desc: "Programs you offer" },
+            { key: "applications", label: "Applications", icon: "📝", desc: "Review submissions" },
+          ].map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setTab(s.key)}
+              className={`flex items-center gap-3 w-full text-left px-4 py-3.5 rounded-2xl border transition-colors ${
+                tab === s.key
+                  ? "bg-gray-900 border-gray-900 text-white shadow-sm"
+                  : "bg-white border-gray-100 text-gray-700 hover:border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              <span
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                  tab === s.key ? "bg-white/10" : "bg-red-50"
+                }`}
+              >
+                {s.icon}
               </span>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex flex-col items-center py-5 px-4 border-b border-gray-50">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-xl font-bold text-blue-700 mb-3">
-                {initials}
-              </div>
-              <p className="text-sm font-bold text-gray-900 text-center">
-                {data?.institutionName}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">
-                {data?.institutionType}
-              </p>
-              {data?.establishedYear && (
-                <p className="text-[10px] text-gray-400">
-                  Est. {data.establishedYear}
-                </p>
-              )}
-            </div>
-            <div className="p-3 space-y-1.5">
-              <ExpandSection title="Account">
-                <InfoRow label="Name" value={user.name} />
-                <InfoRow label="Email" value={user.email} />
-              </ExpandSection>
-              <ExpandSection title="Location">
-                {loc.street && <InfoRow label="Street" value={loc.street} />}
-                {loc.ward && (
-                  <InfoRow label="Ward" value={`Ward ${loc.ward}`} />
-                )}
-                {loc.municipality && (
-                  <InfoRow label="Municipality" value={loc.municipality} />
-                )}
-                {loc.district && (
-                  <InfoRow label="District" value={loc.district} />
-                )}
-                {loc.province && (
-                  <InfoRow label="Province" value={loc.province} />
-                )}
-                {data?.website && (
-                  <InfoRow label="Website" value={data.website} />
-                )}
-              </ExpandSection>
-              <ExpandSection title="Contact Person">
-                {contact.name ? (
-                  <>
-                    <InfoRow label="Name" value={contact.name} />
-                    <InfoRow label="Designation" value={contact.designation} />
-                    <InfoRow label="Phone" value={contact.phone} />
-                    <InfoRow label="Email" value={contact.email} />
-                  </>
-                ) : (
-                  <p className="text-xs text-gray-400">
-                    No contact person added.
-                  </p>
-                )}
-              </ExpandSection>
-              {data?.description && (
-                <ExpandSection title="About">
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {data.description}
-                  </p>
-                </ExpandSection>
-              )}
-            </div>
-            <div className="px-3 pb-4">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-colors"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="font-semibold text-sm">{s.label}</span>
+                  {s.key === "applications" && pendingCount > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                      {pendingCount}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`block text-xs mt-0.5 truncate ${
+                    tab === s.key ? "text-gray-300" : "text-gray-400"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Logout
-              </button>
-            </div>
-          </aside>
-        )}
+                  {s.desc}
+                </span>
+              </span>
+            </button>
+          ))}
+        </aside>
       </div>
-
-      {selectedApp && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-lg font-bold text-gray-900">
-                Application Details
-              </h3>
-              <button
-                onClick={() => setSelectedApp(null)}
-                className="text-gray-400 hover:text-gray-600 bg-white rounded-full p-1.5 shadow-sm hover:shadow transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-            </div>
-            
-            <div className="overflow-y-auto p-6 space-y-6">
-              {/* Header Info */}
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl font-bold text-indigo-700 shrink-0 border border-indigo-100">
-                  {selectedApp.studentSnapshot?.fullName?.charAt(0) || "S"}
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-900 leading-tight mb-1">
-                    {selectedApp.studentSnapshot?.fullName || "N/A"}
-                  </h4>
-                  <div className="flex flex-wrap gap-2 items-center text-xs text-gray-500 font-medium">
-                    <span className="flex items-center gap-1"><span>📧</span> {selectedApp.studentSnapshot?.contact?.email || "N/A"}</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1"><span>📞</span> {selectedApp.studentSnapshot?.contact?.phone || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Personal Details</p>
-                  <p className="text-sm font-medium text-gray-800">Gender: <span className="font-normal text-gray-600">{selectedApp.studentSnapshot?.gender || "N/A"}</span></p>
-                  <p className="text-sm font-medium text-gray-800">DOB: <span className="font-normal text-gray-600">{selectedApp.studentSnapshot?.dateOfBirth ? new Date(selectedApp.studentSnapshot.dateOfBirth).toLocaleDateString() : "N/A"}</span></p>
-                  <p className="text-sm font-medium text-gray-800">Location: <span className="font-normal text-gray-600">{[selectedApp.studentSnapshot?.location?.municipality, selectedApp.studentSnapshot?.location?.district].filter(Boolean).join(", ") || "N/A"}</span></p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Application Info</p>
-                  <p className="text-sm font-medium text-blue-900">Type: <span className="font-normal text-blue-700 capitalize">{selectedApp.applicationType}</span></p>
-                  <p className="text-sm font-medium text-blue-900">Status: <span className="font-normal text-blue-700 capitalize">{selectedApp.applicationStatus?.replace("_", " ")}</span></p>
-                  <p className="text-sm font-medium text-blue-900">Applied: <span className="font-normal text-blue-700">{new Date(selectedApp.createdAt).toLocaleDateString()}</span></p>
-                </div>
-              </div>
-
-              {/* Academic Info */}
-              <div>
-                <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>🎓</span> Academic Background
-                </h5>
-                <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                      <tr>
-                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Level</th>
-                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Institution</th>
-                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Passed Year</th>
-                        <th className="text-left px-4 py-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Score</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {selectedApp.studentSnapshot?.academicDetails?.length > 0 ? (
-                        selectedApp.studentSnapshot.academicDetails.map((acd, idx) => (
-                          <tr key={idx}>
-                            <td className="px-4 py-3 font-medium text-gray-800 capitalize">{acd.level}</td>
-                            <td className="px-4 py-3 text-gray-600">{acd.institutionName}</td>
-                            <td className="px-4 py-3 text-gray-600">{acd.passedYear}</td>
-                            <td className="px-4 py-3 text-gray-600">{acd.gpa ? `${acd.gpa} GPA` : acd.percentage ? `${acd.percentage}%` : "N/A"}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr><td colSpan="4" className="px-4 py-4 text-center text-gray-400 text-xs">No academic records provided</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Answers */}
-              {selectedApp.answers && Object.keys(selectedApp.answers).length > 0 && (
-                <div>
-                  <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <span>📝</span> Questionnaire Responses
-                  </h5>
-                  <div className="space-y-3">
-                    {Object.entries(selectedApp.answers).map(([question, answer], idx) => (
-                      <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <p className="text-xs font-semibold text-gray-700 mb-1">{question}</p>
-                        <p className="text-sm text-gray-600">{String(answer)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Documents */}
-              {selectedApp.documents && selectedApp.documents.length > 0 && (
-                <div>
-                  <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                    <span>📎</span> Uploaded Documents
-                  </h5>
-                  <div className="flex flex-wrap gap-3">
-                    {selectedApp.documents.map((doc, idx) => (
-                      <a
-                        key={idx}
-                        href={doc.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 hover:shadow transition-all group"
-                      >
-                        <span className="text-lg opacity-70 group-hover:opacity-100 transition-opacity">📄</span>
-                        <div>
-                          <p className="text-xs font-semibold text-gray-800 capitalize">{doc.documentType?.replace("_", " ")}</p>
-                          <p className="text-[10px] text-blue-500 font-medium mt-0.5">View Document ↗</p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-              <button
-                onClick={() => setSelectedApp(null)}
-                className="px-5 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>

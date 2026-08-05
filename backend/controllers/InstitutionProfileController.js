@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import InstitutionProfile from "../models/InstitutionProfile.js";
 
 // GET /api/institution/dashboard-institution
@@ -6,7 +8,7 @@ export const getInstitutionDashboard = async (req, res) => {
     
     const institution = await InstitutionProfile.findOne({
       user: req.user.id,
-    }).populate("user", "name email role");
+    }).populate("user", "name email role avatar");
 
     if (!institution) {
       return res.status(404).json({ message: "Institution not found." });
@@ -18,7 +20,7 @@ export const getInstitutionDashboard = async (req, res) => {
   }
 };
 
-// PUT /api/institution/profile — NEW: edit own institution profile
+// PUT /api/institution/profile — edit own institution profile
 export const updateInstitutionProfile = async (req, res) => {
   try {
     const {
@@ -66,7 +68,7 @@ export const updateInstitutionProfile = async (req, res) => {
 
     const updated = await InstitutionProfile.findById(institution._id).populate(
       "user",
-      "name email role"
+      "name email role avatar"
     );
 
     res.json({ message: "Profile updated.", institution: updated });
@@ -75,10 +77,128 @@ export const updateInstitutionProfile = async (req, res) => {
   }
 };
 
+// POST /api/institution/logo  (multipart/form-data, field name: "logo")
+export const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file received." });
+    }
+
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    }).select("+logoPath");
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    // Best-effort delete of the previous logo file so disk doesn't fill up
+    if (institution.logoPath) {
+      fs.unlink(institution.logoPath, () => {});
+    }
+
+    const relativePath = path
+      .join("uploads", "institution-logos", req.user.id, req.file.filename)
+      .replace(/\\/g, "/");
+
+    institution.logoPath = relativePath;
+    institution.logo = `${req.protocol}://${req.get("host")}/${relativePath}`;
+    await institution.save();
+
+    res.json({ message: "Institution logo updated.", logo: institution.logo });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// DELETE /api/institution/logo
+export const deleteLogo = async (req, res) => {
+  try {
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    }).select("+logoPath");
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    if (institution.logoPath) {
+      fs.unlink(institution.logoPath, () => {});
+    }
+
+    institution.logo = null;
+    institution.logoPath = null;
+    await institution.save();
+
+    res.json({ message: "Institution logo removed.", logo: null });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// POST /api/institution/courses
+export const addCourse = async (req, res) => {
+  try {
+    const { courseName, courseLevel, duration, description } = req.body;
+
+    if (!courseName || !courseLevel) {
+      return res
+        .status(400)
+        .json({ message: "courseName and courseLevel are required." });
+    }
+
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    institution.courses.push({ courseName, courseLevel, duration, description });
+    await institution.save();
+
+    res.status(201).json({
+      message: "Course added.",
+      courses: institution.courses,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// DELETE /api/institution/courses/:courseId
+export const removeCourse = async (req, res) => {
+  try {
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    const idx = institution.courses.findIndex(
+      (c) => c._id.toString() === req.params.courseId
+    );
+
+    if (idx === -1) {
+      return res.status(404).json({ message: "Course not found." });
+    }
+
+    institution.courses.splice(idx, 1);
+    await institution.save();
+
+    res.json({ message: "Course removed.", courses: institution.courses });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // PATCH /api/institution/verify/:institutionId  (admin only)
 export const verifyInstitution = async (req, res) => {
   try {
-    const { status, remarks } = req.body;
+    const { status, rejectionReason } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {
       return res
@@ -97,8 +217,8 @@ export const verifyInstitution = async (req, res) => {
     institution.verification.status     = status;
     institution.verification.verifiedBy = req.user.id;
     institution.verification.verifiedAt = new Date();
-    institution.verification.remarks =
-      status === "rejected" ? remarks || "No reason given." : null;
+    institution.verification.rejectionReason =
+      status === "rejected" ? rejectionReason || "No reason given." : null;
 
     await institution.save();
 

@@ -1,5 +1,5 @@
 # 📦 PROJECT CONTEXT — AI-Ready Summary
-> Generated: 2026-08-03 07:24:29
+> Generated: 2026-08-05 14:15:33
 > Root: `C:\Users\Asus\CAN`
 
 ---
@@ -59,6 +59,7 @@ CAN/
 │   │   ├── authMiddleware.js
 │   │   ├── avatarUpload.js
 │   │   ├── errorHandler.js
+│   │   ├── logoUpload.js
 │   │   └── upload.js
 │   ├── models
 │   │   ├── Activitylog.js
@@ -183,6 +184,7 @@ CAN/
 │   │   │   │   ├── CollegeSignup.jsx
 │   │   │   │   ├── CompleteProfile.jsx
 │   │   │   │   ├── institutionallogin.jsx
+│   │   │   │   ├── InstitutionDetail.jsx
 │   │   │   │   ├── InstitutionList.jsx
 │   │   │   │   ├── institutionsignup.jsx
 │   │   │   │   ├── login.jsx
@@ -443,15 +445,18 @@ export default router;
 
 #### `backend/routes/InstitutionbuildingRoutes.js`
 ```js
-import { getInstitutionData } from "../controllers/Institutionbuilding.js";
+import { getInstitutionData, getInstitutionById } from "../controllers/Institutionbuilding.js";
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Named routes MUST come before /:id — otherwise Express/Mongoose will try
+// to treat "all-institution" as an :id and throw a CastError.
 router.get("/all-institution", getInstitutionData);
-export default router
+router.get("/:id", getInstitutionById);
 
+export default router;
 ```
 
 #### `backend/routes/institutionRoutes.js`
@@ -460,9 +465,12 @@ import express from "express";
 import {
   getInstitutionDashboard,
   updateInstitutionProfile,
+  uploadLogo,
+  deleteLogo,
   verifyInstitution,
 } from "../controllers/InstitutionProfileController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
+import logoUpload from "../middleware/logoUpload.js";
 
 const router = express.Router();
 
@@ -474,7 +482,7 @@ router.get(
   getInstitutionDashboard
 );
 
-// ── Profile (NEW) ──────────────────────────────────────────────────────────────
+// ── Profile ──────────────────────────────────────────────────────────────────
 router.put(
   "/profile",
   protect,
@@ -482,7 +490,15 @@ router.put(
   updateInstitutionProfile
 );
 
-
+// ── Institution logo (separate from the user's personal avatar) ─────────────
+router.post(
+  "/logo",
+  protect,
+  requireRole("institution"),
+  logoUpload.single("logo"),
+  uploadLogo
+);
+router.delete("/logo", protect, requireRole("institution"), deleteLogo);
 
 // ── Verification (admin only) ─────────────────────────────────────────────────
 router.patch(
@@ -1119,6 +1135,17 @@ const institutionSchema = new mongoose.Schema(
     // Contact
     website: { type: String },
     description: { type: String },
+
+    // Institution logo (separate from the owning user's personal avatar)
+    logo: {
+      type: String,     // full public URL, e.g. http://host/uploads/institution-logos/<userId>/<file>
+      default: null,
+    },
+    logoPath: {
+      type: String,     // relative disk path, used internally to delete the old file
+      default: null,
+      select: false,    // internal only — never sent to the frontend
+    },
 
     contactPerson: {
       name:        String,
@@ -3656,25 +3683,12 @@ export const getMyBookmarkIds = async (req, res) => {
 
 #### `backend/controllers/collegeController.js`
 ```js
-// collegeController.js — College profile management
-//
-// Protected handlers (college role only):
-//   getMyProfile     GET  /api/college/profile
-//   updateMyProfile  PUT  /api/college/profile
-//   getVerification  GET  /api/college/verification
-//   addCourse        POST /api/college/courses
-//   removeCourse     DEL  /api/college/courses/:courseId
-//
-// Public handlers (no auth):
-//   listColleges     GET  /api/college/list
-//   getCollegeById   GET  /api/college/:id
 
 const asyncHandler = require('../utils/asyncHandler');
 const paginate     = require('../utils/paginate');
 const College      = require('../models/College');
 
-// Fields a college CANNOT update themselves —
-// only admins/system can touch these
+
 const BLOCKED_UPDATE_FIELDS = [
   'userId', 'verification', 'isDeleted', 'deletedAt', 'createdAt', 'updatedAt',
 ];
@@ -4062,16 +4076,16 @@ export const removeCourse = async (req, res) => {
 ```js
 import InstitutionProfile from "../models/InstitutionProfile.js";
 
+// GET /api/instituionall/all-institution
 export const getInstitutionData = async (req, res) => {
   try {
-
     const institutions = await InstitutionProfile.find({
       isDeleted: { $ne: true },
       "verification.status": "verified",
     })
       .populate("user", "name email")
       .select(
-        "institutionName institutionType location contactPerson website establishedYear description"
+        "institutionName institutionType location contactPerson website establishedYear description courses logo"
       )
       .sort({ institutionName: 1 })
       .lean();
@@ -4082,10 +4096,38 @@ export const getInstitutionData = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// GET /api/instituionall/:id — public single-institution profile page
+export const getInstitutionById = async (req, res) => {
+  try {
+    const institution = await InstitutionProfile.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true },
+      "verification.status": "verified",
+    })
+      .populate("user", "name email avatar")
+      .lean();
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    res.json({ institution });
+  } catch (error) {
+    // Invalid ObjectId format lands here too — treat as not found rather than 500
+    if (error.name === "CastError") {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+    console.error("getInstitutionById error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 ```
 
 #### `backend/controllers/InstitutionProfileController.js`
 ```js
+import fs from "fs";
+import path from "path";
 import InstitutionProfile from "../models/InstitutionProfile.js";
 
 // GET /api/institution/dashboard-institution
@@ -4094,7 +4136,7 @@ export const getInstitutionDashboard = async (req, res) => {
     
     const institution = await InstitutionProfile.findOne({
       user: req.user.id,
-    }).populate("user", "name email role");
+    }).populate("user", "name email role avatar");
 
     if (!institution) {
       return res.status(404).json({ message: "Institution not found." });
@@ -4106,7 +4148,7 @@ export const getInstitutionDashboard = async (req, res) => {
   }
 };
 
-// PUT /api/institution/profile — NEW: edit own institution profile
+// PUT /api/institution/profile — edit own institution profile
 export const updateInstitutionProfile = async (req, res) => {
   try {
     const {
@@ -4154,7 +4196,7 @@ export const updateInstitutionProfile = async (req, res) => {
 
     const updated = await InstitutionProfile.findById(institution._id).populate(
       "user",
-      "name email role"
+      "name email role avatar"
     );
 
     res.json({ message: "Profile updated.", institution: updated });
@@ -4163,10 +4205,128 @@ export const updateInstitutionProfile = async (req, res) => {
   }
 };
 
+// POST /api/institution/logo  (multipart/form-data, field name: "logo")
+export const uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file received." });
+    }
+
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    }).select("+logoPath");
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    // Best-effort delete of the previous logo file so disk doesn't fill up
+    if (institution.logoPath) {
+      fs.unlink(institution.logoPath, () => {});
+    }
+
+    const relativePath = path
+      .join("uploads", "institution-logos", req.user.id, req.file.filename)
+      .replace(/\\/g, "/");
+
+    institution.logoPath = relativePath;
+    institution.logo = `${req.protocol}://${req.get("host")}/${relativePath}`;
+    await institution.save();
+
+    res.json({ message: "Institution logo updated.", logo: institution.logo });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// DELETE /api/institution/logo
+export const deleteLogo = async (req, res) => {
+  try {
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    }).select("+logoPath");
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    if (institution.logoPath) {
+      fs.unlink(institution.logoPath, () => {});
+    }
+
+    institution.logo = null;
+    institution.logoPath = null;
+    await institution.save();
+
+    res.json({ message: "Institution logo removed.", logo: null });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// POST /api/institution/courses
+export const addCourse = async (req, res) => {
+  try {
+    const { courseName, courseLevel, duration, description } = req.body;
+
+    if (!courseName || !courseLevel) {
+      return res
+        .status(400)
+        .json({ message: "courseName and courseLevel are required." });
+    }
+
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    institution.courses.push({ courseName, courseLevel, duration, description });
+    await institution.save();
+
+    res.status(201).json({
+      message: "Course added.",
+      courses: institution.courses,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// DELETE /api/institution/courses/:courseId
+export const removeCourse = async (req, res) => {
+  try {
+    const institution = await InstitutionProfile.findOne({
+      user: req.user.id,
+    });
+
+    if (!institution) {
+      return res.status(404).json({ message: "Institution not found." });
+    }
+
+    const idx = institution.courses.findIndex(
+      (c) => c._id.toString() === req.params.courseId
+    );
+
+    if (idx === -1) {
+      return res.status(404).json({ message: "Course not found." });
+    }
+
+    institution.courses.splice(idx, 1);
+    await institution.save();
+
+    res.json({ message: "Course removed.", courses: institution.courses });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // PATCH /api/institution/verify/:institutionId  (admin only)
 export const verifyInstitution = async (req, res) => {
   try {
-    const { status, remarks } = req.body;
+    const { status, rejectionReason } = req.body;
 
     if (!["verified", "rejected"].includes(status)) {
       return res
@@ -4185,8 +4345,8 @@ export const verifyInstitution = async (req, res) => {
     institution.verification.status     = status;
     institution.verification.verifiedBy = req.user.id;
     institution.verification.verifiedAt = new Date();
-    institution.verification.remarks =
-      status === "rejected" ? remarks || "No reason given." : null;
+    institution.verification.rejectionReason =
+      status === "rejected" ? rejectionReason || "No reason given." : null;
 
     await institution.save();
 
@@ -6268,6 +6428,63 @@ const errorHandler = (err, req, res, next) => {   // eslint-disable-line no-unus
 module.exports = errorHandler;
 ```
 
+#### `backend/middleware/logoUpload.js`
+```js
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+/* =========================================================
+   📁 STORAGE CONFIG
+   Saves files to: uploads/institution-logos/{userId}/logo_{timestamp}.{ext}
+========================================================= */
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return cb(new Error("User not authenticated"), null);
+      }
+      const uploadPath = path.join("uploads", "institution-logos", userId);
+      fs.mkdirSync(uploadPath, { recursive: true });
+      cb(null, uploadPath);
+    } catch (err) {
+      cb(err, null);
+    }
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `logo_${Date.now()}${ext}`);
+  },
+});
+
+/* =========================================================
+   📦 FILE FILTER — images only
+========================================================= */
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const fileFilter = (req, file, cb) => {
+  if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only JPG, PNG, or WEBP allowed."), false);
+  }
+};
+
+/* =========================================================
+   ⚙️ MULTER CONFIG
+========================================================= */
+const logoUpload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB
+    files: 1,
+  },
+});
+
+export default logoUpload;
+```
+
 #### `backend/middleware/upload.js`
 ```js
 import multer from "multer";
@@ -7421,10 +7638,18 @@ export default function InstitutionLogin() {
 }
 ```
 
-#### `frontend/src/pages/auth/InstitutionList.jsx`
+#### `frontend/src/pages/auth/InstitutionDetail.jsx`
 ```jsx
+// InstitutionDetail.jsx — /institutions/:id
+//
+// Public institution profile page. Mirrors the structure of a typical
+// college-finder profile: dark hero banner + name/type/location, a programs
+// section grouped by level, description, and a sticky contact/info sidebar.
+//
+// GET /api/instituionall/:id → load (public, verified institutions only)
+
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -7434,23 +7659,330 @@ const TYPE_COLORS = {
   University: "bg-purple-50 text-purple-700",
 };
 
+const LEVEL_ORDER = ["Postgraduate", "Graduate", "Undergraduate", "Diploma", "Certificate"];
+
+function InfoRow({ icon, label, children }) {
+  if (!children) return null;
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
+      <span className="text-gray-400 text-sm shrink-0 w-5 text-center">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+          {label}
+        </p>
+        <div className="text-sm text-gray-800 break-words">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function InstitutionDetail() {
+  const { id } = useParams();
+  const [institution, setInstitution] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    fetch(`${API}/api/instituionall/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(res.status === 404 ? "Institution not found." : "Failed to load institution.");
+        return res.json();
+      })
+      .then((data) => setInstitution(data.institution))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const coursesByLevel = (institution?.courses || []).reduce((acc, c) => {
+    const level = c.courseLevel || "Other";
+    (acc[level] = acc[level] || []).push(c);
+    return acc;
+  }, {});
+
+  const orderedLevels = [
+    ...LEVEL_ORDER.filter((l) => coursesByLevel[l]),
+    ...Object.keys(coursesByLevel).filter((l) => !LEVEL_ORDER.includes(l)),
+  ];
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-10 pb-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 animate-pulse">
+          <div className="h-40 bg-gray-100 rounded-2xl mb-6" />
+          <div className="h-64 bg-gray-100 rounded-2xl" />
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !institution) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-16 pb-20">
+        <div className="max-w-lg mx-auto px-4 text-center">
+          <div className="text-5xl mb-4">🏫</div>
+          <p className="font-semibold text-gray-800 mb-1">{error || "Institution not found."}</p>
+          <p className="text-sm text-gray-400 mb-6">
+            It may have been removed, or the link may be incorrect.
+          </p>
+          <Link
+            to="/institutions"
+            className="inline-block bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+          >
+            ← Back to Institutions
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const {
+    institutionName,
+    institutionType,
+    establishedYear,
+    location,
+    website,
+    description,
+    contactPerson,
+    verification,
+  } = institution;
+
+  return (
+    <main className="min-h-screen bg-gray-50 pb-20">
+      {/* ── Hero ── */}
+      <div className="bg-gradient-to-br from-gray-900 to-gray-700 relative overflow-hidden">
+        <div className="absolute -right-16 -top-16 w-72 h-72 bg-red-500/20 rounded-full blur-3xl" />
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-10 relative">
+          <Link
+            to="/institutions"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-300 hover:text-white transition-colors mb-6"
+          >
+            ← All Institutions
+          </Link>
+
+          <div className="flex flex-wrap items-start gap-4">
+            {institution.logo ? (
+              <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-lg ring-4 ring-white/10 p-1.5">
+                <img
+                  src={institution.logo}
+                  alt={institutionName}
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-red-500 flex items-center justify-center text-2xl font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10">
+                {(institutionName || "?").slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    TYPE_COLORS[institutionType] || "bg-white/10 text-white"
+                  }`}
+                >
+                  {institutionType}
+                </span>
+                {verification?.status === "verified" && (
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/10 text-white border border-white/20">
+                    ✓ Verified
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                {institutionName}
+              </h1>
+              {(location?.district || location?.province) && (
+                <p className="text-gray-300 text-sm mt-1">
+                  📍 {[location?.municipality, location?.district, location?.province]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-6 relative grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main column */}
+        <div className="lg:col-span-2 space-y-6">
+          {description && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-3">
+                About
+              </p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                {description}
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                Offered Programs
+              </p>
+              <span className="text-xs text-gray-400">
+                {(institution.courses || []).length} total
+              </span>
+            </div>
+
+            {(!institution.courses || institution.courses.length === 0) && (
+              <p className="text-sm text-gray-400">No programs listed yet.</p>
+            )}
+
+            <div className="space-y-6">
+              {orderedLevels.map((level) => (
+                <div key={level}>
+                  <p className="text-xs font-semibold text-gray-500 mb-2.5">{level}</p>
+                  <div className="space-y-2.5">
+                    {coursesByLevel[level].map((c, idx) => (
+                      <div
+                        key={idx}
+                        className="border border-gray-100 rounded-xl px-4 py-3 hover:border-red-100 transition-colors"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-gray-900 text-sm">{c.courseName}</p>
+                          {c.duration && (
+                            <span className="text-xs text-gray-400 shrink-0">{c.duration}</span>
+                          )}
+                        </div>
+                        {c.description && (
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            {c.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-6">
+            <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">
+              Institution Info
+            </p>
+
+            <InfoRow icon="🏷️" label="Type">{institutionType}</InfoRow>
+            <InfoRow icon="📅" label="Established">{establishedYear}</InfoRow>
+            <InfoRow icon="📍" label="Address">
+              {[location?.street, location?.municipality, location?.district, location?.province]
+                .filter(Boolean)
+                .join(", ") || null}
+            </InfoRow>
+            <InfoRow icon="🌐" label="Website">
+              {website && (
+                <a
+                  href={website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-500 hover:underline break-all"
+                >
+                  {website}
+                </a>
+              )}
+            </InfoRow>
+
+            {(contactPerson?.name || contactPerson?.phone || contactPerson?.email) && (
+              <>
+                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mt-5 mb-1">
+                  Contact Person
+                </p>
+                <InfoRow icon="👤" label="Name">
+                  {contactPerson?.name}
+                  {contactPerson?.designation ? ` — ${contactPerson.designation}` : ""}
+                </InfoRow>
+                <InfoRow icon="📞" label="Phone">{contactPerson?.phone}</InfoRow>
+                <InfoRow icon="✉️" label="Email">
+                  {contactPerson?.email && (
+                    <a href={`mailto:${contactPerson.email}`} className="text-red-500 hover:underline">
+                      {contactPerson.email}
+                    </a>
+                  )}
+                </InfoRow>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+```
+
+#### `frontend/src/pages/auth/InstitutionList.jsx`
+```jsx
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const TYPE_COLORS = {
+  School: "bg-blue-50 text-blue-700",
+  College: "bg-green-50 text-green-700",
+  University: "bg-purple-50 text-purple-700",
+};
+
+const COURSE_LEVELS = ["Undergraduate", "Graduate", "Postgraduate", "Diploma", "Certificate"];
+
+function FilterSection({ title, children }) {
+  return (
+    <div className="py-5 border-b border-gray-100 last:border-0">
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function CheckboxRow({ label, count, checked, onChange }) {
+  return (
+    <label className="flex items-center justify-between gap-2 py-1.5 cursor-pointer group">
+      <span className="flex items-center gap-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          className="w-3.5 h-3.5 rounded border-gray-300 text-red-500 focus:ring-red-400 focus:ring-offset-0"
+        />
+        {label}
+      </span>
+      {count !== undefined && (
+        <span className="text-xs text-gray-400">{count}</span>
+      )}
+    </label>
+  );
+}
+
 export default function InstitutionList() {
   const navigate = useNavigate();
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState("");
+  const [types, setTypes] = useState([]); // selected institutionType values
+  const [province, setProvince] = useState("");
+  const [district, setDistrict] = useState("");
+  const [levels, setLevels] = useState([]); // selected course levels
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
-    // Correct backend route: GET /api/instituionall/all-institution (protected)
     fetch(`${API}/api/instituionall/all-institution`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch institutions");
         return res.json();
       })
       .then((data) => {
-        // Backend returns { institution: {...} } (single) — adjust if returns array
         const list = data.institutions || (data.institution ? [data.institution] : []);
         setInstitutions(list);
       })
@@ -7458,14 +7990,130 @@ export default function InstitutionList() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
+  // ── Derive filter option lists from the actual data ──────────────────────
+  const provinceOptions = useMemo(() => {
+    const set = new Set(institutions.map((i) => i.location?.province).filter(Boolean));
+    return [...set].sort();
+  }, [institutions]);
+
+  const districtOptions = useMemo(() => {
+    const pool = province
+      ? institutions.filter((i) => i.location?.province === province)
+      : institutions;
+    const set = new Set(pool.map((i) => i.location?.district).filter(Boolean));
+    return [...set].sort();
+  }, [institutions, province]);
+
+  const typeCounts = useMemo(() => {
+    const counts = {};
+    institutions.forEach((i) => {
+      if (i.institutionType) counts[i.institutionType] = (counts[i.institutionType] || 0) + 1;
+    });
+    return counts;
+  }, [institutions]);
+
+  // Reset district when province changes to something that no longer contains it
+  useEffect(() => {
+    if (district && !districtOptions.includes(district)) setDistrict("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [province]);
+
+  const toggleType = (t) =>
+    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+
+  const toggleLevel = (l) =>
+    setLevels((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
+
+  const clearAll = () => {
+    setSearch("");
+    setTypes([]);
+    setProvince("");
+    setDistrict("");
+    setLevels([]);
+  };
+
+  const activeFilterCount =
+    types.length + levels.length + (province ? 1 : 0) + (district ? 1 : 0) + (search ? 1 : 0);
+
   const filtered = institutions.filter((inst) => {
     const matchSearch =
       !search ||
       inst.institutionName?.toLowerCase().includes(search.toLowerCase()) ||
       inst.location?.district?.toLowerCase().includes(search.toLowerCase());
-    const matchType = !filterType || inst.institutionType === filterType;
-    return matchSearch && matchType;
+    const matchType = types.length === 0 || types.includes(inst.institutionType);
+    const matchProvince = !province || inst.location?.province === province;
+    const matchDistrict = !district || inst.location?.district === district;
+    const matchLevel =
+      levels.length === 0 ||
+      (inst.courses || []).some((c) => levels.includes(c.courseLevel));
+    return matchSearch && matchType && matchProvince && matchDistrict && matchLevel;
   });
+
+  const FilterPanel = (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5">
+      <div className="flex items-center justify-between py-4 border-b border-gray-100">
+        <p className="font-bold text-gray-900 text-sm">Filters</p>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearAll}
+            className="text-xs font-medium text-red-500 hover:text-red-600"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      <FilterSection title="Institution Type">
+        {["School", "College", "University"].map((t) => (
+          <CheckboxRow
+            key={t}
+            label={t}
+            count={typeCounts[t]}
+            checked={types.includes(t)}
+            onChange={() => toggleType(t)}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Province">
+        <select
+          value={province}
+          onChange={(e) => setProvince(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
+        >
+          <option value="">All Provinces</option>
+          {provinceOptions.map((p) => (
+            <option key={p} value={p}>{p}</option>
+          ))}
+        </select>
+      </FilterSection>
+
+      <FilterSection title="District">
+        <select
+          value={district}
+          onChange={(e) => setDistrict(e.target.value)}
+          disabled={districtOptions.length === 0}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
+        >
+          <option value="">All Districts</option>
+          {districtOptions.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+      </FilterSection>
+
+      <FilterSection title="Course Level">
+        {COURSE_LEVELS.map((l) => (
+          <CheckboxRow
+            key={l}
+            label={l}
+            checked={levels.includes(l)}
+            onChange={() => toggleLevel(l)}
+          />
+        ))}
+      </FilterSection>
+    </div>
+  );
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-10">
@@ -7474,8 +8122,8 @@ export default function InstitutionList() {
         <p className="text-gray-500 mt-1">Browse institutions registered on the CAN portal</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
+      {/* Search + mobile filter toggle */}
+      <div className="flex gap-3 mb-6">
         <input
           type="text"
           placeholder="Search by name or district…"
@@ -7483,90 +8131,143 @@ export default function InstitutionList() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
         />
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition"
+        <button
+          onClick={() => setMobileFiltersOpen(true)}
+          className="lg:hidden shrink-0 flex items-center gap-2 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-600"
         >
-          <option value="">All Types</option>
-          <option>School</option>
-          <option>College</option>
-          <option>University</option>
-        </select>
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full" />
-        </div>
-      )}
+      <div className="flex gap-8 items-start">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block w-64 shrink-0 sticky top-24">
+          {FilterPanel}
+        </aside>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      {!loading && !error && filtered.length === 0 && (
-        <div className="text-center py-20 text-gray-400">
-          <div className="text-5xl mb-4">🏫</div>
-          <p className="font-medium">No institutions found</p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((inst) => (
-          <div
-            key={inst._id}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md hover:border-red-100 transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <h4 className="font-bold text-gray-900 text-lg leading-tight flex-1 mr-2">
-                {inst.institutionName}
-              </h4>
-              <span
-                className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-                  TYPE_COLORS[inst.institutionType] || "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {inst.institutionType}
-              </span>
-            </div>
-
-            <div className="space-y-1.5 text-sm text-gray-500">
-              {inst.location?.province && (
-                <p>📍 {inst.location.district}, {inst.location.province}</p>
-              )}
-              {inst.contactPerson?.phone && (
-                <p>📞 {inst.contactPerson.phone}</p>
-              )}
-              {inst.website && (
-                <a
-                  href={inst.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-red-500 hover:underline truncate"
+        {/* Mobile filter drawer */}
+        {mobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setMobileFiltersOpen(false)}
+            />
+            <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-gray-50 overflow-y-auto p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-bold text-gray-900">Filters</p>
+                <button
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none px-2"
                 >
-                  🌐 {inst.website}
-                </a>
-              )}
-            </div>
-
-            {inst.isApproved !== undefined && (
-              <div className="mt-4">
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    inst.isApproved
-                      ? "bg-green-50 text-green-700"
-                      : "bg-yellow-50 text-yellow-700"
-                  }`}
-                >
-                  {inst.isApproved ? "✓ Approved" : "⏳ Pending Approval"}
-                </span>
+                  ×
+                </button>
               </div>
-            )}
+              {FilterPanel}
+              <button
+                onClick={() => setMobileFiltersOpen(false)}
+                className="w-full mt-4 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+              >
+                Show {filtered.length} results
+              </button>
+            </div>
           </div>
-        ))}
+        )}
+
+        {/* Results */}
+        <div className="flex-1 min-w-0">
+          {loading && (
+            <div className="flex justify-center py-20">
+              <div className="animate-spin w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full" />
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && (
+            <p className="text-sm text-gray-400 mb-4">
+              Showing {filtered.length} of {institutions.length} institutions
+            </p>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
+            <div className="text-center py-20 text-gray-400">
+              <div className="text-5xl mb-4">🏫</div>
+              <p className="font-medium">No institutions found</p>
+              <button
+                onClick={clearAll}
+                className="mt-3 text-sm text-red-500 hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filtered.map((inst) => (
+              <Link
+                key={inst._id}
+                to={`/institutions/${inst._id}`}
+                className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-red-100 transition-all"
+              >
+                {/* Cover — real logo if uploaded, else gradient placeholder with type badge */}
+                {inst.logo ? (
+                  <div className="h-24 bg-gray-50 border-b border-gray-100 relative flex items-center justify-center p-3">
+                    <img
+                      src={inst.logo}
+                      alt={inst.institutionName}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                    <span
+                      className={`absolute top-2 right-2 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        TYPE_COLORS[inst.institutionType] || "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {inst.institutionType}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="h-24 bg-gradient-to-br from-gray-900 to-gray-700 relative flex items-end px-5 pb-3">
+                    <div className="absolute -right-6 -top-6 w-28 h-28 bg-red-500/20 rounded-full blur-2xl" />
+                    <span
+                      className={`relative text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                        TYPE_COLORS[inst.institutionType] || "bg-white/10 text-white"
+                      }`}
+                    >
+                      {inst.institutionType}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <h4 className="font-bold text-gray-900 text-base leading-tight mb-1.5 group-hover:text-red-600 transition-colors">
+                    {inst.institutionName}
+                  </h4>
+
+                  {inst.location?.district && (
+                    <p className="text-sm text-gray-500 mb-3">
+                      📍 {inst.location.district}
+                      {inst.location.province ? `, ${inst.location.province}` : ""}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50">
+                    <span>{(inst.courses || []).length} program{(inst.courses || []).length === 1 ? "" : "s"}</span>
+                    {inst.establishedYear && <span>Est. {inst.establishedYear}</span>}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -9490,42 +10191,32 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function InfoRow({ label, value }) {
-  if (!value) return null;
+function Avatar({ url, name, size = "w-14 h-14", textSize = "text-xl", rounded = "rounded-2xl" }) {
+  const initials = (name || "IN")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        className={`${size} ${rounded} object-cover shrink-0 shadow-lg ring-4 ring-white/10`}
+      />
+    );
+  }
   return (
-    <div className="flex flex-col gap-0.5 mb-3">
-      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-        {label}
-      </span>
-      <span className="text-gray-800 text-xs">{value}</span>
+    <div
+      className={`${size} ${rounded} bg-red-500 flex items-center justify-center ${textSize} font-bold text-white shrink-0 shadow-lg ring-4 ring-white/10`}
+    >
+      {initials}
     </div>
   );
 }
 
-function ExpandSection({ title, children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mb-1">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs text-gray-600 font-medium transition-colors"
-      >
-        <span>{title}</span>
-        <span
-          className="text-gray-400 transition-transform duration-200"
-          style={{ transform: open ? "rotate(90deg)" : "none" }}
-        >
-          ›
-        </span>
-      </button>
-      {open && (
-        <div className="px-3 pt-3 pb-1 bg-gray-50 rounded-b-lg mt-0.5">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
+
 
 const TYPE_COLORS = {
   merit: "bg-blue-50 text-blue-700",
@@ -9725,7 +10416,6 @@ export default function InstitutionalDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("scholarships");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [showScholarshipForm, setShowScholarshipForm] = useState(false);
   const [editingId, setEditingId] = useState(null); // null = create mode, string = edit mode
@@ -9737,11 +10427,7 @@ export default function InstitutionalDashboard() {
 
   const token = localStorage.getItem("token");
 
-  // ── Logout ──────────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+  // Logout is now handled by the shared Header component's dropdown.
 
   // ── Applications fetch (filter/paginate aware) ──────────────────────────────
   const fetchApplications = async (filters = appFilters, page = 1) => {
@@ -10066,14 +10752,6 @@ export default function InstitutionalDashboard() {
     );
 
   const loc = data?.location || {};
-  const contact = data?.contactPerson || {};
-  const user = data?.user || {};
-  const initials = (data?.institutionName || "IN")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
 
   // Note: pending/approved counts are computed from the *currently loaded
   // page* of applications, since applications are now server-paginated.
@@ -10095,14 +10773,20 @@ export default function InstitutionalDashboard() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ── TOP NAV ──────────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+      <Header />
+
+      {/* ── DASHBOARD SUB-NAV (identity + tabs) ─────────────────────────────── */}
+      <nav className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
           {/* Left – institution identity */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-700 shrink-0">
-              {initials}
-            </div>
+            <Avatar
+              url={data?.user?.avatar}
+              name={data?.institutionName}
+              size="w-8 h-8"
+              textSize="text-xs"
+              rounded="rounded-lg"
+            />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
                 {data?.institutionName}
@@ -10135,52 +10819,12 @@ export default function InstitutionalDashboard() {
             ))}
           </div>
 
-          {/* Right – profile toggle + logout */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setSidebarOpen((o) => !o)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                sidebarOpen
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <div className="w-4 h-4 rounded-full bg-green-400 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-white" />
-              </div>
-              Profile
-              <span
-                className="transition-transform duration-200 text-[10px]"
-                style={{ transform: sidebarOpen ? "rotate(90deg)" : "none" }}
-              >
-                ›
-              </span>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 text-xs font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
-            >
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Logout
-            </button>
-          </div>
+          {/* Spacer — profile access & logout now live in the shared Header dropdown above */}
+          <div className="w-0 sm:w-24 shrink-0" />
         </div>
       </nav>
 
-      {/* ── BODY (content + sidebar) ─────────────────────────────────────────── */}
+      {/* ── BODY ─────────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 gap-6">
         {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
         <main className="flex-1 min-w-0 space-y-6">
@@ -10859,105 +11503,6 @@ export default function InstitutionalDashboard() {
             </div>
           )}
         </main>
-
-        {/* ── PROFILE SIDEBAR ──────────────────────────────────────────────── */}
-        {sidebarOpen && (
-          <aside className="w-72 shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm self-start sticky top-20 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-              <span className="text-xs font-semibold text-gray-700 uppercase tracking-widest">
-                Profile
-              </span>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-lg leading-none"
-              >
-                ×
-              </button>
-            </div>
-            <div className="flex flex-col items-center py-5 px-4 border-b border-gray-50">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-xl font-bold text-blue-700 mb-3">
-                {initials}
-              </div>
-              <p className="text-sm font-bold text-gray-900 text-center">
-                {data?.institutionName}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">
-                {data?.institutionType}
-              </p>
-              {data?.establishedYear && (
-                <p className="text-[10px] text-gray-400">
-                  Est. {data.establishedYear}
-                </p>
-              )}
-            </div>
-            <div className="p-3 space-y-1.5">
-              <ExpandSection title="Account">
-                <InfoRow label="Name" value={user.name} />
-                <InfoRow label="Email" value={user.email} />
-              </ExpandSection>
-              <ExpandSection title="Location">
-                {loc.street && <InfoRow label="Street" value={loc.street} />}
-                {loc.ward && (
-                  <InfoRow label="Ward" value={`Ward ${loc.ward}`} />
-                )}
-                {loc.municipality && (
-                  <InfoRow label="Municipality" value={loc.municipality} />
-                )}
-                {loc.district && (
-                  <InfoRow label="District" value={loc.district} />
-                )}
-                {loc.province && (
-                  <InfoRow label="Province" value={loc.province} />
-                )}
-                {data?.website && (
-                  <InfoRow label="Website" value={data.website} />
-                )}
-              </ExpandSection>
-              <ExpandSection title="Contact Person">
-                {contact.name ? (
-                  <>
-                    <InfoRow label="Name" value={contact.name} />
-                    <InfoRow label="Designation" value={contact.designation} />
-                    <InfoRow label="Phone" value={contact.phone} />
-                    <InfoRow label="Email" value={contact.email} />
-                  </>
-                ) : (
-                  <p className="text-xs text-gray-400">
-                    No contact person added.
-                  </p>
-                )}
-              </ExpandSection>
-              {data?.description && (
-                <ExpandSection title="About">
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {data.description}
-                  </p>
-                </ExpandSection>
-              )}
-            </div>
-            <div className="px-3 pb-4">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-red-500 border border-red-100 rounded-lg hover:bg-red-50 transition-colors"
-              >
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Logout
-              </button>
-            </div>
-          </aside>
-        )}
       </div>
 
       <Footer />
@@ -12699,17 +13244,27 @@ function Field({ label, children }) {
   );
 }
 
-function InfoRow({ label, value }) {
+function DetailCard({ icon, label, value }) {
+  const isEmpty = !value && value !== 0;
   return (
-    <div className="flex flex-col gap-0.5 py-3 border-b border-gray-50 last:border-0">
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-        {label}
-      </span>
-      <span className="text-gray-800 text-sm">
-        {value || <span className="text-gray-300">Not provided</span>}
-      </span>
+    <div className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-4 hover:bg-gray-50 hover:border-gray-200 transition-colors">
+      <div className="w-9 h-9 rounded-lg bg-red-50 text-red-500 flex items-center justify-center text-base shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+          {label}
+        </p>
+        <p className={`text-sm font-semibold break-words ${isEmpty ? "text-gray-300 font-normal" : "text-gray-900"}`}>
+          {isEmpty ? "Not provided" : value}
+        </p>
+      </div>
     </div>
   );
+}
+
+function DetailGrid({ children }) {
+  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{children}</div>;
 }
 
 function Avatar({ url, name, size = "w-16 h-16", textSize = "text-2xl" }) {
@@ -12746,6 +13301,11 @@ export default function ProfileView() {
   const fileInputRef = useRef(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState("");
+
+  // ── Institution logo state (institution role only) ──────────────────────
+  const logoInputRef = useRef(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [logoError, setLogoError] = useState("");
 
   const studentTabs = [
     { key: "overview", label: "Overview" },
@@ -12941,9 +13501,59 @@ export default function ProfileView() {
     }
   };
 
+  // ── Institution logo handlers (institution role only) ────────────────────
+  const handleLogoPick = () => {
+    setLogoError("");
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setLogoError("Please choose a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > MAX_AVATAR_MB * 1024 * 1024) {
+      setLogoError(`Image must be under ${MAX_AVATAR_MB}MB.`);
+      return;
+    }
+
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await api.post("/institution/logo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfile((prev) => prev && { ...prev, logo: res.data.logo });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to upload logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    setLogoError("");
+    setLogoBusy(true);
+    try {
+      await api.delete("/institution/logo");
+      setProfile((prev) => prev && { ...prev, logo: null });
+    } catch (err) {
+      setLogoError(err.response?.data?.message || "Failed to remove logo.");
+    } finally {
+      setLogoBusy(false);
+    }
+  };
+
   const displayName = profile?.user?.name || (role === "institution" ? profile?.institutionName : "") || "";
   const displayEmail = profile?.user?.email || "";
   const avatarUrl = profile?.user?.avatar || null;
+  const logoUrl = profile?.logo || null;
 
   // ── Profile completeness ────────────────────────────────────────────────
   const completeness = useMemo(() => {
@@ -12976,11 +13586,12 @@ export default function ProfileView() {
             ["Contact Phone", institutionForm.contactPhone],
             ["Contact Email", institutionForm.contactEmail],
             ["Profile Photo", avatarUrl],
+            ["Institution Logo", logoUrl],
           ];
     const filled = checks.filter(([, v]) => v && String(v).trim() !== "").length;
     const missing = checks.filter(([, v]) => !v || String(v).trim() === "").map(([l]) => l);
     return { pct: Math.round((filled / checks.length) * 100), missing };
-  }, [role, profile, studentForm, institutionForm, avatarUrl]);
+  }, [role, profile, studentForm, institutionForm, avatarUrl, logoUrl]);
 
   if (loading) {
     return (
@@ -13154,6 +13765,67 @@ export default function ProfileView() {
                         )}
                       </div>
                     </div>
+
+                    {/* ── Institution Logo section (institution accounts only) ── */}
+                    {role === "institution" && (
+                      <>
+                        <SectionTitle>Institution Logo</SectionTitle>
+                        <div className="flex items-center gap-5 mb-6 pb-6 border-b border-gray-50">
+                          <div className="w-20 h-20 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 p-2 overflow-hidden">
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt="Institution logo"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-gray-300 text-center">No logo</span>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex flex-wrap gap-2.5">
+                              <button
+                                onClick={handleLogoPick}
+                                disabled={logoBusy}
+                                className="flex items-center gap-1.5 bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {logoBusy ? "Uploading…" : logoUrl ? "Change Logo" : "Upload Logo"}
+                              </button>
+                              {logoUrl && (
+                                <button
+                                  onClick={handleLogoDelete}
+                                  disabled={logoBusy}
+                                  className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Remove
+                                </button>
+                              )}
+                              <input
+                                ref={logoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleLogoChange}
+                                className="hidden"
+                              />
+                            </div>
+                            <p className="text-[11px] text-gray-400 mt-2">
+                              Shown on your institution's public listing and profile page. JPG, PNG, or WEBP. Max {MAX_AVATAR_MB}MB.
+                            </p>
+                            {logoError && (
+                              <p className="text-xs text-red-600 mt-1.5">{logoError}</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -13225,8 +13897,10 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return (
       <div>
         <SectionTitle>Account</SectionTitle>
-        <InfoRow label="Full Name" value={displayName} />
-        <InfoRow label="Email" value={displayEmail} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Full Name" value={displayName} />
+          <DetailCard icon="✉️" label="Email" value={displayEmail} />
+        </DetailGrid>
         <p className="text-xs text-gray-400 mt-4">
           Name and email are tied to your login account. To change them, contact support.
         </p>
@@ -13244,9 +13918,11 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Personal Info</SectionTitle>
-        <InfoRow label="Date of Birth" value={form.dob} />
-        <InfoRow label="Gender" value={form.gender} />
-        <InfoRow label="Phone" value={form.phone} />
+        <DetailGrid>
+          <DetailCard icon="🎂" label="Date of Birth" value={form.dob} />
+          <DetailCard icon="⚥" label="Gender" value={form.gender} />
+          <DetailCard icon="📞" label="Phone" value={form.phone} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13273,11 +13949,13 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Address</SectionTitle>
-        <InfoRow label="Province" value={form.province} />
-        <InfoRow label="District" value={form.district} />
-        <InfoRow label="Municipality" value={form.municipality} />
-        <InfoRow label="Ward" value={form.ward} />
-        <InfoRow label="Street" value={form.street} />
+        <DetailGrid>
+          <DetailCard icon="🗺️" label="Province" value={form.province} />
+          <DetailCard icon="📍" label="District" value={form.district} />
+          <DetailCard icon="🏘️" label="Municipality" value={form.municipality} />
+          <DetailCard icon="#️⃣" label="Ward" value={form.ward} />
+          <DetailCard icon="🛣️" label="Street" value={form.street} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13297,10 +13975,12 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Guardian</SectionTitle>
-        <InfoRow label="Name" value={form.guardianName} />
-        <InfoRow label="Relation" value={form.guardianRelation} />
-        <InfoRow label="Phone" value={form.guardianPhone} />
-        <InfoRow label="Occupation" value={form.guardianOccupation} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Name" value={form.guardianName} />
+          <DetailCard icon="🔗" label="Relation" value={form.guardianRelation} />
+          <DetailCard icon="📞" label="Phone" value={form.guardianPhone} />
+          <DetailCard icon="💼" label="Occupation" value={form.guardianOccupation} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13319,9 +13999,11 @@ function StudentTabContent({ tab, isEditing, form, setForm, displayName, display
     return !isEditing ? (
       <div>
         <SectionTitle>Education</SectionTitle>
-        <InfoRow label="School / College" value={form.schoolName} />
-        <InfoRow label="School Type" value={form.schoolType} />
-        <InfoRow label="Current Level" value={form.currentEducationLevel} />
+        <DetailGrid>
+          <DetailCard icon="🏫" label="School / College" value={form.schoolName} />
+          <DetailCard icon="🏷️" label="School Type" value={form.schoolType} />
+          <DetailCard icon="🎓" label="Current Level" value={form.currentEducationLevel} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13360,12 +14042,15 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return (
       <div>
         <SectionTitle>Account</SectionTitle>
-        <InfoRow label="Registered Name" value={displayName} />
-        <InfoRow label="Email" value={displayEmail} />
-        <InfoRow
-          label="Verification Status"
-          value={isApproved ? "✓ Approved" : "⏳ Pending Approval"}
-        />
+        <DetailGrid>
+          <DetailCard icon="🏢" label="Registered Name" value={displayName} />
+          <DetailCard icon="✉️" label="Email" value={displayEmail} />
+          <DetailCard
+            icon={isApproved ? "✓" : "⏳"}
+            label="Verification Status"
+            value={isApproved ? "Approved" : "Pending Approval"}
+          />
+        </DetailGrid>
         {completenessPct < 100 && (
           <div className="mt-5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl">
             Your institution profile is {completenessPct}% complete. A fuller profile builds
@@ -13380,11 +14065,13 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Institution Info</SectionTitle>
-        <InfoRow label="Name" value={form.institutionName} />
-        <InfoRow label="Type" value={form.institutionType} />
-        <InfoRow label="Established Year" value={form.establishedYear} />
-        <InfoRow label="Website" value={form.website} />
-        <InfoRow label="Description" value={form.description} />
+        <DetailGrid>
+          <DetailCard icon="🏢" label="Name" value={form.institutionName} />
+          <DetailCard icon="🏷️" label="Type" value={form.institutionType} />
+          <DetailCard icon="📅" label="Established Year" value={form.establishedYear} />
+          <DetailCard icon="🌐" label="Website" value={form.website} />
+          <DetailCard icon="📝" label="Description" value={form.description} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13417,11 +14104,13 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Location</SectionTitle>
-        <InfoRow label="Province" value={form.province} />
-        <InfoRow label="District" value={form.district} />
-        <InfoRow label="Municipality" value={form.municipality} />
-        <InfoRow label="Ward" value={form.ward} />
-        <InfoRow label="Street" value={form.street} />
+        <DetailGrid>
+          <DetailCard icon="🗺️" label="Province" value={form.province} />
+          <DetailCard icon="📍" label="District" value={form.district} />
+          <DetailCard icon="🏘️" label="Municipality" value={form.municipality} />
+          <DetailCard icon="#️⃣" label="Ward" value={form.ward} />
+          <DetailCard icon="🛣️" label="Street" value={form.street} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -13441,10 +14130,12 @@ function InstitutionTabContent({ tab, isEditing, form, setForm, displayName, dis
     return !isEditing ? (
       <div>
         <SectionTitle>Contact Person</SectionTitle>
-        <InfoRow label="Name" value={form.contactName} />
-        <InfoRow label="Phone" value={form.contactPhone} />
-        <InfoRow label="Email" value={form.contactEmail} />
-        <InfoRow label="Designation" value={form.contactDesignation} />
+        <DetailGrid>
+          <DetailCard icon="👤" label="Name" value={form.contactName} />
+          <DetailCard icon="📞" label="Phone" value={form.contactPhone} />
+          <DetailCard icon="✉️" label="Email" value={form.contactEmail} />
+          <DetailCard icon="🏷️" label="Designation" value={form.contactDesignation} />
+        </DetailGrid>
       </div>
     ) : (
       <div>
@@ -17841,21 +18532,7 @@ export default connectionDM
 
 #### `backend/constants/educationTaxonomy.js`
 ```js
-// backend/constants/educationTaxonomy.js
-//
-// Backend copy of the frontend's educationTaxonomy.js. Keep these two files
-// identical — this is what makes course validation on the server agree with
-// what the EducationCascade dropdown showed the institution on the client.
-// If you update the frontend file, copy the change here too.
-//
-// Single source of truth for education dropdowns — structured as a real
-// cascade: Target Level → Faculty/Stream → Program/Major, mirroring how
-// Nepal's education system is actually organized:
-//   +2          → governed by NEB (streams: Science, Management, ...)
-//   Diploma/PCL → governed by CTEVT (Engineering, Health Sciences, ...)
-//   Bachelor's / Master's → governed by universities (faculties → programs)
 
-// ─── Study Levels ────────────────────────────────────────────────────────────
 export const STUDY_LEVELS = [
   { value: "short_term_training", label: "Short-Term Training" },
   { value: "primary", label: "Primary" },
@@ -17873,10 +18550,6 @@ export const STUDY_LEVELS = [
   { value: "phd", label: "Doctorate (PhD)" },
 ];
 
-// Levels where Faculty/Program selection is meaningful.
-// Everything else (primary, lower_secondary, secondary, see, short_term_training,
-// ca, pre_diploma, postgraduate_diploma, mphil, phd) has no faculty/program step —
-// the form should hide those fields for these levels.
 export const LEVELS_WITH_FACULTY = [
   "plus_two",
   "diploma_pcl",
@@ -29583,6 +30256,7 @@ import Signup from "./pages/auth/signup";
 import InstitutionSignup from "./pages/auth/institutionsignup";
 import InstitutionLogin from "./pages/auth/institutionallogin";
 import InstitutionList from "./pages/auth/InstitutionList";
+import InstitutionDetail from "./pages/auth/InstitutionDetail";
 import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
 import StudentDashboard from "./pages/Dashboard/studentdashboard";
 import ScholarshipList from "./pages/scholarships/scholarshipList";
@@ -29604,6 +30278,7 @@ function App() {
         <Route path="/scholarships" element={<ScholarshipList />} />
         <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
         <Route path="/institutions" element={<InstitutionList />} />
+        <Route path="/institutions/:id" element={<InstitutionDetail />} />
 
         {/* Protected — any logged-in user (student or institution) */}
         <Route
@@ -29640,7 +30315,7 @@ function App() {
         }
       />
 
-      {/* Protected — Student (manages its own Header internally) */}
+      {/* Protected — Student */}
       <Route
         path="/dashboard-student"
         element={
@@ -32614,7 +33289,7 @@ export default App;
 
 ---
 ## 📊 Stats
-- Total source files scanned: **148**
+- Total source files scanned: **150**
 - Detected technologies: **0**
 - package.json files found: **3**
 

@@ -2,9 +2,12 @@ import express from "express";
 import {
   getInstitutionDashboard,
   updateInstitutionProfile,
+  uploadLogo,
+  deleteLogo,
   verifyInstitution,
 } from "../controllers/InstitutionProfileController.js";
 import { protect, requireRole } from "../middleware/authMiddleware.js";
+import logoUpload from "../middleware/logoUpload.js";
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ router.get(
   getInstitutionDashboard
 );
 
-// ── Profile (NEW) ──────────────────────────────────────────────────────────────
+// ── Profile ──────────────────────────────────────────────────────────────────
 router.put(
   "/profile",
   protect,
@@ -24,7 +27,15 @@ router.put(
   updateInstitutionProfile
 );
 
-
+// ── Institution logo (separate from the user's personal avatar) ─────────────
+router.post(
+  "/logo",
+  protect,
+  requireRole("institution"),
+  logoUpload.single("logo"),
+  uploadLogo
+);
+router.delete("/logo", protect, requireRole("institution"), deleteLogo);
 
 // ── Verification (admin only) ─────────────────────────────────────────────────
 router.patch(

@@ -247,7 +247,7 @@ export default function StudentDashboard() {
           {/* ── MAIN CONTENT ──────────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 space-y-6">
             {/* Stats bar */}
-             <DocumentManager />
+             
 
   {/* SCHOLARSHIPS SECTION */}
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"></div>

@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import DocumentManager from "../components/DocumentManager";
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const SCHOOL_TYPES = ["Government", "Community", "Private", "Other"];
@@ -549,6 +550,10 @@ export default function ProfileView() {
                 </div>
               )}
             </div>
+
+              <div className="mt-5">
+                 <DocumentManager/>
+              </div>
           </>
         )}
       </div>

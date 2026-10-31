@@ -17,11 +17,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
-<<<<<<< HEAD
 import { UNIVERSITIES } from "../constants/educationTaxonomy"; // adjust path
-=======
-import DocumentManager from "../components/DocumentManager";
->>>>>>> 7a3609643a1f25141222156cdf4659c6ea0d8b4d
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const SCHOOL_TYPES = ["Government", "Community", "Private", "Other"];

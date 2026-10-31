@@ -6,17 +6,17 @@ export default function StatsCard({
   subtitle,
 }) {
   return (
-    <div className="group rounded-2xl bg-white border border-slate-200 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+    <div className="group rounded-2xl bg-white border border-gray-200 p-6 shadow-sm transition-all duration-300 hover:-trangray-y-1 hover:shadow-xl">
 
       <div className="flex items-center justify-between">
 
         <div>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-gray-500">
             {title}
           </p>
 
-          <h2 className="mt-3 text-4xl font-bold text-slate-800">
+          <h2 className="mt-3 text-4xl font-bold text-gray-800">
             {value}
           </h2>
 

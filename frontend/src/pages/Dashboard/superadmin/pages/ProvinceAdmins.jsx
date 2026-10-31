@@ -25,15 +25,15 @@ export default function ProvinceAdmins({ admins, provinces, handleToggleStatus, 
       header: "Name & Email",
       cell: (row) => (
         <div>
-          <div className="font-semibold text-slate-900">{row.user.name}</div>
-          <div className="text-slate-500 text-xs mt-0.5">{row.user.email}</div>
+          <div className="font-semibold text-gray-900">{row.user.name}</div>
+          <div className="text-gray-500 text-xs mt-0.5">{row.user.email}</div>
         </div>
       )
     },
     {
       header: "Assigned Province",
       cell: (row) => (
-        <span className="inline-block bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">
+        <span className="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
           {row.assignedProvince?.name || row.assignedProvince?.provinceName || "Unknown"}
         </span>
       )
@@ -63,8 +63,8 @@ export default function ProvinceAdmins({ admins, provinces, handleToggleStatus, 
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Province Administrators</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage regional admin accounts and their access levels.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Province Administrators</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage regional admin accounts and their access levels.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -83,7 +83,7 @@ export default function ProvinceAdmins({ admins, provinces, handleToggleStatus, 
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-4 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none transition-all shadow-sm"
+            className="w-full pl-4 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none transition-all shadow-sm"
           />
         </div>
       </div>

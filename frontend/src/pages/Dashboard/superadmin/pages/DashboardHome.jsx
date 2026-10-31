@@ -9,7 +9,7 @@ export default function DashboardHome({ user, stats, setActiveTab }) {
       <WelcomeBanner user={user} />
       
       <div className="mb-8">
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Platform Overview</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">Platform Overview</h2>
         <StatsGrid stats={stats} />
       </div>
 

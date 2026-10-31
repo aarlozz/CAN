@@ -27,17 +27,17 @@ export default function CreateAdminModal({ isOpen, onClose, onSubmit, provinces 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Panel */}
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-900">Create Province Admin</h3>
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">Create Province Admin</h3>
           <button 
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
@@ -49,31 +49,31 @@ export default function CreateAdminModal({ isOpen, onClose, onSubmit, provinces 
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
               <input
                 type="text"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
                 placeholder="e.g. John Doe"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
               <input
                 type="email"
                 name="email"
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
                 placeholder="admin@province.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Temporary Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Temporary Password</label>
               <input
                 type="password"
                 name="password"
@@ -81,18 +81,18 @@ export default function CreateAdminModal({ isOpen, onClose, onSubmit, provinces 
                 onChange={handleChange}
                 required
                 minLength="6"
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
                 placeholder="••••••••"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Assign Province</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Assign Province</label>
               <select
                 name="assignedProvince"
                 value={form.assignedProvince}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-2.5 text-sm focus:bg-white focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all"
               >
                 <option value="">Select a Province...</option>
                 {provinces.map((prov) => (

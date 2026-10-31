@@ -6,7 +6,7 @@ export default function Badge({ status }) {
     verified: "bg-green-100 text-green-700 border-green-200",
     rejected: "bg-red-100 text-red-700 border-red-200",
     active: "bg-green-100 text-green-700 border-green-200",
-    inactive: "bg-slate-100 text-slate-600 border-slate-200",
+    inactive: "bg-gray-100 text-gray-600 border-gray-200",
   };
 
   const normalizedStatus = status?.toLowerCase() || "pending";

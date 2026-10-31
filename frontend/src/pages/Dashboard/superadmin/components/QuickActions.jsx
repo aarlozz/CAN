@@ -38,8 +38,8 @@ export default function QuickActions({ setActiveTab }) {
   ];
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-      <h2 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h2>
+    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+      <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {actions.map((action, i) => {
           const Icon = action.icon;
@@ -53,8 +53,8 @@ export default function QuickActions({ setActiveTab }) {
                 <Icon size={20} />
               </div>
               <div>
-                <h4 className="font-semibold text-slate-900 text-sm mb-0.5">{action.title}</h4>
-                <p className="text-xs text-slate-600">{action.description}</p>
+                <h4 className="font-semibold text-gray-900 text-sm mb-0.5">{action.title}</h4>
+                <p className="text-xs text-gray-600">{action.description}</p>
               </div>
             </button>
           );

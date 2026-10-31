@@ -60,15 +60,15 @@ export default function Scholarships() {
       header: "Scholarship Title",
       cell: (row) => (
         <div>
-          <div className="font-semibold text-slate-900">{row.scholarshipTitle}</div>
-          <div className="text-slate-500 text-xs mt-0.5">{row.institutionName || row.institutionId?.institutionName || "Unknown Institution"}</div>
+          <div className="font-semibold text-gray-900">{row.scholarshipTitle}</div>
+          <div className="text-gray-500 text-xs mt-0.5">{row.institutionName || row.institutionId?.institutionName || "Unknown Institution"}</div>
         </div>
       )
     },
     {
       header: "Coverage",
       cell: (row) => (
-        <span className="text-slate-700 text-sm capitalize">
+        <span className="text-gray-700 text-sm capitalize">
           {row.coverage?.scholarshipType2?.replace("_", " ") || "N/A"}
         </span>
       )
@@ -76,7 +76,7 @@ export default function Scholarships() {
     {
       header: "Seats",
       cell: (row) => (
-        <span className="text-slate-700 text-sm">
+        <span className="text-gray-700 text-sm">
           {row.remainingSeats} / {row.totalSeats}
         </span>
       )
@@ -84,7 +84,7 @@ export default function Scholarships() {
     {
       header: "Deadline",
       cell: (row) => (
-        <span className={`text-sm ${row.isExpired ? "text-red-600 font-medium" : "text-slate-700"}`}>
+        <span className={`text-sm ${row.isExpired ? "text-red-600 font-medium" : "text-gray-700"}`}>
           {new Date(row.applicationDeadline).toLocaleDateString()}
         </span>
       )
@@ -99,31 +99,31 @@ export default function Scholarships() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Scholarships</h1>
-          <p className="text-sm text-slate-500 mt-1">Overview of all active and upcoming scholarship programs.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Scholarships</h1>
+          <p className="text-sm text-gray-500 mt-1">Overview of all active and upcoming scholarship programs.</p>
         </div>
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-3 top-1/2 -trangray-y-1/2 text-gray-400" size={18} />
           <input 
             type="text"
             placeholder="Search scholarships..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none transition-all shadow-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none transition-all shadow-sm"
           />
         </div>
         
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Filter className="absolute left-3 top-1/2 -trangray-y-1/2 text-gray-400" size={16} />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none appearance-none shadow-sm cursor-pointer"
+              className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-100 focus:border-red-400 outline-none appearance-none shadow-sm cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active</option>

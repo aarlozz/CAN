@@ -10,11 +10,11 @@ export default function ProvinceAdminTable({
       title: "Administrator",
       render: (row) => (
         <div>
-          <p className="font-semibold text-slate-800">
+          <p className="font-semibold text-gray-800">
             {row.user.name}
           </p>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-gray-500">
             {row.user.email}
           </p>
         </div>
@@ -25,7 +25,7 @@ export default function ProvinceAdminTable({
       key: "province",
       title: "Province",
       render: (row) => (
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium">
           {row.assignedProvince?.provinceName}
         </span>
       ),
@@ -66,11 +66,11 @@ export default function ProvinceAdminTable({
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">
+          <h2 className="text-2xl font-bold text-gray-800">
             Province Administrators
           </h2>
 
-          <p className="text-slate-500">
+          <p className="text-gray-500">
             Manage all province administrators.
           </p>
         </div>
@@ -82,13 +82,13 @@ export default function ProvinceAdminTable({
           <div className="relative">
 
             <Search
-              className="absolute left-3 top-3.5 text-slate-400"
+              className="absolute left-3 top-3.5 text-gray-400"
               size={18}
             />
 
             <input
               placeholder="Search..."
-              className="rounded-xl border border-slate-200 pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="rounded-xl border border-gray-200 pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500"
             />
 
           </div>

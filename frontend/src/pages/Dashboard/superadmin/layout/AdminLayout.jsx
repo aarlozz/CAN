@@ -6,7 +6,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, user })
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+    <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900">
       {/* Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -31,7 +31,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab, user })
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 lg:hidden transition-opacity"
+          className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-30 lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}

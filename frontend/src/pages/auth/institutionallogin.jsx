@@ -2,10 +2,13 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
+import { useAuth } from "../../context/AuthContext";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function InstitutionLogin() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,8 +23,7 @@ export default function InstitutionLogin() {
     try {
       // Uses the dedicated institution login endpoint
       const res = await axios.post(`${API}/api/auth/login-institution`, formData);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      login(res.data.token, res.data.role, res.data.user, res.data.profile);
 
       if (res.data.role === "institution") {
         navigate("/dashboard-institution");

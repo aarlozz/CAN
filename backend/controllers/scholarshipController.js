@@ -1,747 +1,97 @@
-import Scholarship from "../models/Scholarship.js";
-import InstitutionProfile from "../models/InstitutionProfile.js";
-import Province from "../models/Province.js";
-import District from "../models/District.js";
-import Municipality from "../models/Municipality.js";
-
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const VALID_TYPES = [
-  "full_tuition",
-  "partial_tuition",
-  "merit_based",
-  "need_based",
-  "disability",
-  "gender",
-  "ethnic",
-];
-const VALID_LEVELS = [
-  "short_term_training",
-  "primary",
-  "lower_secondary",
-  "secondary",
-  "see",
-  "plus_two",
-  "diploma_pcl",
-  "pre_diploma",
-  "bachelor",
-  "ca",
-  "postgraduate_diploma",
-  "master",
-  "mphil",
-  "phd",
-];
-const VALID_GENDERS = ["male", "female", "other", "any"];
-const VALID_COLLEGE_TYPES = [
-  "public",
-  "private",
-  "community",
-  "constituent_campus",
-  "affiliated_college",
-];
-const VALID_ETHNIC_CATEGORIES = [
-  "dalit",
-  "janajati",
-  "madhesi",
-  "muslim",
-  "backward_region",
-  "general",
-  "any",
-];
-
-// Fields the free-text search box checks — covers both the "browse by
-// title/institution" case and the "search by degree/level/faculty" case
-// (e.g. typing "BE Computer", "Master's", "Bachelors").
-const SEARCHABLE_FIELDS = [
-  "scholarshipTitle",
-  "institutionName",
-  "description",
-  "eligibilityCriteria.targetLevel",
-  "eligibilityCriteria.targetFaculty",
-  "eligibilityCriteria.degreeProgram",
-  "eligibilityCriteria.university",
-  "eligibilityCriteria.subject",
-];
-
-/**
- * Builds a Mongo filter clause for a free-text search string.
- * Splits on commas/whitespace, crudely normalizes plurals ("Bachelors" ->
- * "Bachelor", "Masters" -> "Master") so it matches enum/singular field
- * values, and requires EACH word to match at least one searchable field
- * (AND of per-word ORs) — so multi-word queries like "BE Computer Master"
- * narrow down correctly instead of only matching the exact phrase.
- */
-const buildSearchClauses = (search) => {
-  const terms = search
-    .trim()
-    .split(/[,\s]+/)
-    .map((t) => t.replace(/s$/i, ""))
-    .filter(Boolean);
-
-  return terms.map((term) => ({
-    $or: SEARCHABLE_FIELDS.map((field) => ({
-      [field]: { $regex: term, $options: "i" },
-    })),
-  }));
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Resolves location IDs → names, and also accepts plain name strings
- * so the frontend can send either { provinceId } or { provinceName }.
- * Also handles the nested shape the frontend sends:
- *   locationFilter.province.provinceName  (from scholarshipToForm → buildPayload)
- */
-const resolveLocationFilter = async (locationFilter = {}) => {
-  const result = {};
-
-  // Province
-  const provinceId =
-    locationFilter.province?.provinceId || locationFilter.provinceId;
-  const provinceName =
-    locationFilter.province?.provinceName || locationFilter.provinceName;
-  if (provinceId) {
-    const prov = await Province.findById(provinceId);
-    if (prov)
-      result.province = {
-        provinceId: prov._id,
-        provinceName: prov.provinceName,
-      };
-  } else if (provinceName) {
-    result.province = { provinceName };
-  }
-
-  // District
-  const districtId =
-    locationFilter.district?.districtId || locationFilter.districtId;
-  const districtName =
-    locationFilter.district?.districtName || locationFilter.districtName;
-  if (districtId) {
-    const dist = await District.findById(districtId);
-    if (dist)
-      result.district = {
-        districtId: dist._id,
-        districtName: dist.districtName,
-      };
-  } else if (districtName) {
-    result.district = { districtName };
-  }
-
-  // Municipality
-  const municipalityId =
-    locationFilter.municipality?.municipalityId ||
-    locationFilter.municipalityId;
-  const municipalityName =
-    locationFilter.municipality?.municipalityName ||
-    locationFilter.municipalityName;
-  if (municipalityId) {
-    const muni = await Municipality.findById(municipalityId);
-    if (muni)
-      result.municipality = {
-        municipalityId: muni._id,
-        municipalityName: muni.municipalityName,
-      };
-  } else if (municipalityName) {
-    result.municipality = { municipalityName };
-  }
-
-  return result;
-};
-
-/**
- * Builds a validated coverage object from raw body data.
- *
- * Handles the fee/amount/percentage triangle: an institution may not always
- * know or provide all three of {totalProgramFeeNpr, amountNpr, percentage}.
- * Whichever two are given, the third is derived automatically:
- *   - fee + percentage        → amount = fee * (percentage / 100)
- *   - fee + amount            → percentage = (amount / fee) * 100
- *   - percentage + amount     → fee = amount / (percentage / 100)
- *   - all three given         → trusted as-is, institution's numbers win
- *   - only one (or none) given → nothing to derive, left as-is
- *
- * Shared by both createScholarship and updateScholarship.
- */
-const buildCoverage = (coverage = {}) => {
-  const data = {};
-  if (
-    coverage.scholarshipType2 &&
-    VALID_TYPES.includes(coverage.scholarshipType2)
-  )
-    data.scholarshipType2 = coverage.scholarshipType2;
-
-  let fee =
-    coverage.totalProgramFeeNpr != null
-      ? Number(coverage.totalProgramFeeNpr)
-      : undefined;
-  let amount = coverage.amountNpr != null ? Number(coverage.amountNpr) : undefined;
-  let percentage =
-    coverage.percentage != null ? Number(coverage.percentage) : undefined;
-
-  const hasFee = fee != null && !Number.isNaN(fee) && fee > 0;
-  const hasAmount = amount != null && !Number.isNaN(amount);
-  const hasPercentage = percentage != null && !Number.isNaN(percentage);
-
-  if (hasFee && hasPercentage && !hasAmount) {
-    amount = Math.round(fee * (percentage / 100));
-  } else if (hasFee && hasAmount && !hasPercentage) {
-    percentage = Math.min(100, Math.round((amount / fee) * 10000) / 100);
-  } else if (hasPercentage && hasAmount && !hasFee && percentage > 0) {
-    fee = Math.round(amount / (percentage / 100));
-  }
-  // If all three are present, or only one is present, leave as given —
-  // nothing to (re)compute either way.
-
-  if (fee != null && !Number.isNaN(fee)) data.totalProgramFeeNpr = fee;
-  if (amount != null && !Number.isNaN(amount)) data.amountNpr = amount;
-  if (percentage != null && !Number.isNaN(percentage))
-    data.percentage = percentage;
-
-  return data;
-};
-
-/**
- * Validates the extra eligibility fields that have cross-field or numeric
- * range constraints beyond what Mongoose enum/min/max already enforce.
- * Returns an array of human-readable error strings (empty = valid).
- */
-const validateEligibilityExtras = (e = {}) => {
-  const errors = [];
-
-  if (e.minGPA != null && e.minPercentage != null)
-    errors.push(
-      "Set either minGPA or minPercentage, not both — they measure the same thing on different scales.",
-    );
-
-  if (e.minGPA != null && (e.minGPA < 0 || e.minGPA > 5))
-    errors.push("minGPA should be between 0 and 5.");
-
-  if (e.minPercentage != null && (e.minPercentage < 0 || e.minPercentage > 100))
-    errors.push("minPercentage should be between 0 and 100.");
-
-  if (
-    e.ethnicCategory &&
-    !VALID_ETHNIC_CATEGORIES.includes(e.ethnicCategory)
-  )
-    errors.push(
-      `Invalid ethnicCategory. Must be one of: ${VALID_ETHNIC_CATEGORIES.join(", ")}`,
-    );
-
-  if (e.minAge != null && e.maxAge != null && e.minAge > e.maxAge)
-    errors.push("minAge cannot be greater than maxAge.");
-
-  if (e.minEntranceScore != null && !e.entranceExamName)
-    errors.push(
-      "entranceExamName is required when minEntranceScore is set (so applicants know which exam it refers to).",
-    );
-
-  if (
-    e.minAttendancePercent != null &&
-    (e.minAttendancePercent < 0 || e.minAttendancePercent > 100)
-  )
-    errors.push("minAttendancePercent should be between 0 and 100.");
-
-  return errors;
-};
-
-/**
- * Builds a validated eligibilityCriteria object from raw body data.
- * Shared by both createScholarship and updateScholarship.
- */
-const buildEligibility = (eligibilityCriteria = {}) => {
-  const data = {
-    gender: VALID_GENDERS.includes(eligibilityCriteria.gender)
-      ? eligibilityCriteria.gender
-      : "any",
-    isNepali: eligibilityCriteria.isNepali ?? true,
-    hasDisability: eligibilityCriteria.hasDisability ?? false,
-  };
-  if (
-    eligibilityCriteria.targetLevel &&
-    VALID_LEVELS.includes(eligibilityCriteria.targetLevel)
-  )
-    data.targetLevel = eligibilityCriteria.targetLevel;
-  if (eligibilityCriteria.targetFaculty)
-    data.targetFaculty = eligibilityCriteria.targetFaculty;
-  if (eligibilityCriteria.degreeProgram)
-    data.degreeProgram = eligibilityCriteria.degreeProgram;
-  if (eligibilityCriteria.university)
-    data.university = eligibilityCriteria.university;
-  if (
-    eligibilityCriteria.collegeType &&
-    VALID_COLLEGE_TYPES.includes(eligibilityCriteria.collegeType)
-  )
-    data.collegeType = eligibilityCriteria.collegeType;
-  if (eligibilityCriteria.subject) data.subject = eligibilityCriteria.subject;
-
-  // ── Academic performance ───────────────────────────────────────────────────
-  if (eligibilityCriteria.minGPA != null)
-    data.minGPA = Number(eligibilityCriteria.minGPA);
-  if (eligibilityCriteria.minPercentage != null)
-    data.minPercentage = Number(eligibilityCriteria.minPercentage);
-
-  // ── Category / quota ────────────────────────────────────────────────────────
-  if (
-    eligibilityCriteria.ethnicCategory &&
-    VALID_ETHNIC_CATEGORIES.includes(eligibilityCriteria.ethnicCategory)
-  )
-    data.ethnicCategory = eligibilityCriteria.ethnicCategory;
-
-  // ── Age limit ───────────────────────────────────────────────────────────────
-  if (eligibilityCriteria.minAge != null)
-    data.minAge = Number(eligibilityCriteria.minAge);
-  if (eligibilityCriteria.maxAge != null)
-    data.maxAge = Number(eligibilityCriteria.maxAge);
-
-  // ── Entrance exam ───────────────────────────────────────────────────────────
-  if (eligibilityCriteria.entranceExamName)
-    data.entranceExamName = eligibilityCriteria.entranceExamName;
-  if (eligibilityCriteria.minEntranceScore != null)
-    data.minEntranceScore = Number(eligibilityCriteria.minEntranceScore);
-
-  // ── Other flags ─────────────────────────────────────────────────────────────
-  if (eligibilityCriteria.isFirstGenerationLearner != null)
-    data.isFirstGenerationLearner = Boolean(
-      eligibilityCriteria.isFirstGenerationLearner,
-    );
-  if (eligibilityCriteria.minAttendancePercent != null)
-    data.minAttendancePercent = Number(
-      eligibilityCriteria.minAttendancePercent,
-    );
-
-  if (eligibilityCriteria.additionalRequirements)
-    data.additionalRequirements = eligibilityCriteria.additionalRequirements;
-  if (
-    Array.isArray(eligibilityCriteria.requiredDocuments) &&
-    eligibilityCriteria.requiredDocuments.length > 0
-  )
-    data.requiredDocuments = eligibilityCriteria.requiredDocuments;
-  return data;
-};
+import * as scholarshipService from "../services/scholarshipService.js";
 
 // ─── POST /api/scholarship/create ────────────────────────────────────────────
 export const createScholarship = async (req, res) => {
   try {
-    const institution = await InstitutionProfile.findOne({ user: req.user.id });
-    if (!institution)
-      return res
-        .status(404)
-        .json({ message: "Institution profile not found." });
-
-    if (institution.verification?.status !== "verified")
-      return res
-        .status(403)
-        .json({ message: "Only verified institutions can post scholarships." });
-
-    const {
-      scholarshipTitle,
-      description,
-      termsAndConditions,
-      applicationDeadline,
-      coverage,
-      eligibilityCriteria,
-      totalSeats,
-      remainingSeats,
-      locationFilter,
-    } = req.body;
-
-    if (!scholarshipTitle || !applicationDeadline)
-      return res.status(400).json({
-        message: "scholarshipTitle and applicationDeadline are required.",
-      });
-
-    if (
-      coverage?.scholarshipType2 &&
-      !VALID_TYPES.includes(coverage.scholarshipType2)
-    )
-      return res.status(400).json({
-        message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
-      });
-
-    const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
-    if (eligibilityErrors.length > 0)
-      return res.status(400).json({ message: eligibilityErrors.join(" ") });
-
-    const builtEligibility = buildEligibility(eligibilityCriteria);
-
-    // An institution can only post a scholarship for a level/faculty/program
-    // it has actually registered as a Course. See backend/utils/courseEligibility.js.
-    
-
-    const parsedTotalSeats = totalSeats ? Number(totalSeats) : undefined;
-    const parsedRemainingSeats = remainingSeats
-      ? Number(remainingSeats)
-      : parsedTotalSeats;
-
-    if (
-      parsedTotalSeats !== undefined &&
-      parsedRemainingSeats !== undefined &&
-      parsedRemainingSeats > parsedTotalSeats
-    ) {
-      return res
-        .status(400)
-        .json({ message: "remainingSeats cannot exceed totalSeats." });
-    }
-
-    const resolvedLocation = await resolveLocationFilter(locationFilter || {});
-
-    const scholarship = await Scholarship.create({
-      institutionId: institution._id,
-      institutionName: institution.institutionName,
-      scholarshipTitle,
-      ...(description && { description }),
-      ...(termsAndConditions && { termsAndConditions }),
-      applicationDeadline,
-      coverage: buildCoverage(coverage),
-      eligibilityCriteria: builtEligibility,
-      ...(parsedTotalSeats !== undefined && { totalSeats: parsedTotalSeats }),
-      ...(parsedRemainingSeats !== undefined && {
-        remainingSeats: parsedRemainingSeats,
-      }),
-      locationFilter: resolvedLocation,
-      isActive: true,
-      isDeleted: false,
-      verification: { status: "pending" }, // explicitly require approval
+    const scholarship = await scholarshipService.createScholarship({
+      userId: req.user.id,
+      body: req.body,
     });
-
     res.status(201).json({ message: "Scholarship created.", scholarship });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("createScholarship error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ─── GET /api/scholarship/all  (public) ──────────────────────────────────────
- 
- 
+// ─── GET /api/scholarship/all (public) ───────────────────────────────────────
 export const getAllScholarships = async (req, res) => {
   try {
-    const {
-      search,
-      subject,
-      targetLevel,
-      targetFaculty,
-      degreeProgram,
-      university,
-      collegeType,
-      scholarshipType,
-      gender,
-      ethnicCategory,
-      hasDisability,
-      province,
-      district,
-      municipality,
-      minAmount,
-      maxAmount,
-      includeExpired,
-      sort = "deadline",
-      page = 1,
-      limit = 12,
-    } = req.query;
- 
-    const query = {
-      isDeleted: false,
-      isActive: true,
-      "verification.status": "approved",
-    };
- 
-    if (includeExpired !== "true") {
-      query.applicationDeadline = { $gte: new Date() };
-    }
- 
-    if (search) {
-      query.$text = { $search: search };
-    }
- 
-    if (subject) {
-      query["eligibilityCriteria.subject"] = { $regex: subject, $options: "i" };
-    }
-    if (targetLevel) {
-      query["eligibilityCriteria.targetLevel"] = targetLevel;
-    }
-    if (targetFaculty) {
-      query["eligibilityCriteria.targetFaculty"] = {
-        $regex: targetFaculty,
-        $options: "i",
-      };
-    }
-    if (degreeProgram) {
-      query["eligibilityCriteria.degreeProgram"] = {
-        $regex: degreeProgram,
-        $options: "i",
-      };
-    }
-    if (university) {
-      query["eligibilityCriteria.university"] = {
-        $regex: university,
-        $options: "i",
-      };
-    }
-    if (collegeType) {
-      query["eligibilityCriteria.collegeType"] = collegeType;
-    }
-    if (scholarshipType) {
-      query["coverage.scholarshipType2"] = scholarshipType;
-    }
-    if (gender && gender !== "any") {
-      // A scholarship open to "any" gender should still show up when a
-      // student filters by their own gender, so match either.
-      query["eligibilityCriteria.gender"] = { $in: [gender, "any"] };
-    }
-    if (ethnicCategory && ethnicCategory !== "any") {
-      query["eligibilityCriteria.ethnicCategory"] = {
-        $in: [ethnicCategory, "any"],
-      };
-    }
-    if (hasDisability === "true") {
-      query["eligibilityCriteria.hasDisability"] = true;
-    }
- 
-    if (province) {
-      query["locationFilter.province.provinceName"] = province;
-    }
-    if (district) {
-      query["locationFilter.district.districtName"] = district;
-    }
-    if (municipality) {
-      query["locationFilter.municipality.municipalityName"] = municipality;
-    }
- 
-    if (minAmount || maxAmount) {
-      query["coverage.amountNpr"] = {};
-      if (minAmount) query["coverage.amountNpr"].$gte = Number(minAmount);
-      if (maxAmount) query["coverage.amountNpr"].$lte = Number(maxAmount);
-    }
- 
-    const sortMap = {
-      deadline: { applicationDeadline: 1 },
-      newest: { createdAt: -1 },
-      amount: { "coverage.amountNpr": -1 },
-    };
-    const sortSpec = sortMap[sort] || sortMap.deadline;
- 
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.min(50, Math.max(1, Number(limit) || 12));
- 
-    const [scholarships, total] = await Promise.all([
-      Scholarship.find(query)
-        .sort(sortSpec)
-        .skip((pageNum - 1) * limitNum)
-        .limit(limitNum)
-        .lean(),
-      Scholarship.countDocuments(query),
-    ]);
- 
-    return res.status(200).json({
-      scholarships,
-      total,
-      page: pageNum,
-      pages: Math.max(1, Math.ceil(total / limitNum)),
-    });
+    const result = await scholarshipService.getAllScholarships(req.query);
+    res.status(200).json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getAllScholarships error:", error);
-    return res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-// ─── GET /api/scholarship/my  (institution only) ──────────────────────────────
-// Now supports the same free-text `search` param as getAllScholarships, so
-// an institution managing many scholarships can type e.g. "Bachelor" or
-// "Computer" to filter their own list without scrolling the whole table.
+
+// ─── GET /api/scholarship/my (institution only) ──────────────────────────────
 export const getMyScholarships = async (req, res) => {
   try {
-    const institution = await InstitutionProfile.findOne({ user: req.user.id });
-    if (!institution)
-      return res.status(404).json({ message: "Institution not found." });
-
-    const { search } = req.query;
-
-    const filter = {
-      institutionId: institution._id,
-      isDeleted: { $ne: true },
-    };
-
-    if (search?.trim()) {
-      filter.$and = (filter.$and || []).concat(buildSearchClauses(search));
-    }
-
-    const scholarships = await Scholarship.find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    res.json({ count: scholarships.length, scholarships });
+    const result = await scholarshipService.getMyScholarships({
+      userId: req.user.id,
+      search: req.query.search,
+    });
+    res.json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getMyScholarships error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ─── GET /api/scholarship/:id  (public) ───────────────────────────────────────
+// ─── GET /api/scholarship/:id (public) ───────────────────────────────────────
 export const getScholarshipById = async (req, res) => {
   try {
-    const scholarship = await Scholarship.findOne({
-      _id: req.params.id,
-      isDeleted: { $ne: true },
-      "verification.status": "approved",
-    })
-      .populate(
-        "institutionId",
-        "institutionName location contactPerson website",
-      )
-      .lean();
-
-    if (!scholarship)
-      return res.status(404).json({ message: "Scholarship not found." });
-
+    const scholarship = await scholarshipService.getScholarshipById(req.params.id);
     res.json({ scholarship });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getScholarshipById error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ─── PUT /api/scholarship/:id  (institution only) ────────────────────────────
+// ─── PUT /api/scholarship/:id (institution only) ────────────────────────────
 export const updateScholarship = async (req, res) => {
   try {
-    const institution = await InstitutionProfile.findOne({ user: req.user.id });
-    if (!institution)
-      return res.status(404).json({ message: "Institution not found." });
-
-    const scholarship = await Scholarship.findOne({
-      _id: req.params.id,
-      institutionId: institution._id,
-      isDeleted: { $ne: true },
+    const scholarship = await scholarshipService.updateScholarship({
+      userId: req.user.id,
+      id: req.params.id,
+      body: req.body,
     });
-
-    if (!scholarship)
-      return res.status(404).json({ message: "Scholarship not found." });
-
-    const {
-      scholarshipTitle,
-      description,
-      termsAndConditions,
-      applicationDeadline,
-      coverage,
-      eligibilityCriteria,
-      totalSeats,
-      remainingSeats,
-      locationFilter,
-      isActive,
-    } = req.body;
-
-    // ── Basic validation ───────────────────────────────────────────────────────
-    if (scholarshipTitle !== undefined && !scholarshipTitle)
-      return res
-        .status(400)
-        .json({ message: "scholarshipTitle cannot be empty." });
-
-    if (applicationDeadline !== undefined && !applicationDeadline)
-      return res
-        .status(400)
-        .json({ message: "applicationDeadline cannot be empty." });
-
-    if (
-      coverage?.scholarshipType2 &&
-      !VALID_TYPES.includes(coverage.scholarshipType2)
-    )
-      return res.status(400).json({
-        message: `Invalid scholarshipType2. Must be one of: ${VALID_TYPES.join(", ")}`,
-      });
-
-    let builtEligibility;
-    if (eligibilityCriteria !== undefined) {
-      const eligibilityErrors = validateEligibilityExtras(eligibilityCriteria);
-      if (eligibilityErrors.length > 0)
-        return res.status(400).json({ message: eligibilityErrors.join(" ") });
-
-      builtEligibility = buildEligibility(eligibilityCriteria);
-
-      // Only re-check against registered Courses when eligibilityCriteria is
-      // actually part of this update — leaving it untouched means whatever
-      // was already validated at creation time still stands.
-      
-    }
-
-    // ── Seats validation (compare incoming vs existing as fallback) ────────────
-    const parsedTotalSeats =
-      totalSeats != null ? Number(totalSeats) : scholarship.totalSeats;
-    const parsedRemainingSeats =
-      remainingSeats != null
-        ? Number(remainingSeats)
-        : scholarship.remainingSeats;
-
-    if (
-      parsedTotalSeats !== undefined &&
-      parsedRemainingSeats !== undefined &&
-      parsedRemainingSeats > parsedTotalSeats
-    ) {
-      return res
-        .status(400)
-        .json({ message: "remainingSeats cannot exceed totalSeats." });
-    }
-
-    // ── Scalar fields ──────────────────────────────────────────────────────────
-    if (scholarshipTitle !== undefined)
-      scholarship.scholarshipTitle = scholarshipTitle;
-    if (description !== undefined) scholarship.description = description;
-    if (termsAndConditions !== undefined)
-      scholarship.termsAndConditions = termsAndConditions;
-    if (applicationDeadline !== undefined)
-      scholarship.applicationDeadline = applicationDeadline;
-    if (isActive !== undefined) scholarship.isActive = isActive;
-    if (totalSeats != null) scholarship.totalSeats = parsedTotalSeats;
-    if (remainingSeats != null)
-      scholarship.remainingSeats = parsedRemainingSeats;
-
-    // ── Nested objects — use the same builders as createScholarship ────────────
-    if (coverage !== undefined) scholarship.coverage = buildCoverage(coverage);
-    if (eligibilityCriteria !== undefined)
-      scholarship.eligibilityCriteria = builtEligibility;
-    if (locationFilter !== undefined)
-      scholarship.locationFilter = await resolveLocationFilter(locationFilter);
-    if (scholarship.verification?.status !== "pending") {
-      scholarship.verification = {
-        status: "pending",
-        verifiedBy: null,
-        verifiedAt: null,
-        remarks: "",
-      };
-    }
-    await scholarship.save();
     res.json({ message: "Scholarship updated.", scholarship });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("updateScholarship error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ─── DELETE /api/scholarship/:id  (institution only — soft delete) ────────────
+// ─── DELETE /api/scholarship/:id (institution only) ──────────────────────────
 export const deleteScholarship = async (req, res) => {
   try {
-    const institution = await InstitutionProfile.findOne({ user: req.user.id });
-    if (!institution)
-      return res.status(404).json({ message: "Institution not found." });
-
-    const scholarship = await Scholarship.findOne({
-      _id: req.params.id,
-      institutionId: institution._id,
-      isDeleted: { $ne: true },
+    await scholarshipService.deleteScholarship({
+      userId: req.user.id,
+      id: req.params.id,
     });
-
-    if (!scholarship)
-      return res.status(404).json({ message: "Scholarship not found." });
-
-    scholarship.isDeleted = true;
-    scholarship.deletedAt = new Date();
-    scholarship.isActive = false;
-    await scholarship.save();
-
     res.json({ message: "Scholarship deleted." });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("deleteScholarship error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }

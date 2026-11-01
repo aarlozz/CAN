@@ -1,672 +1,108 @@
-import mongoose from "mongoose";
-import ScholarshipApplication from "../models/ScholarshipApplication.js";
-import Scholarship from "../models/Scholarship.js";
-import StudentProfile from "../models/StudentProfile.js";
-import InstitutionProfile from "../models/InstitutionProfile.js";
-import User from "../models/User.js";
-import { createNotification } from "../utils/notificationHelper.js";
+import * as applicationService from "../services/applicationService.js";
 
-// Escapes regex special characters so free-text filter values (location
-// names, search terms) can't break — or unintentionally act as — a regex.
-const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// Helper — builds the student snapshot frozen at apply time
-//
-// StudentProfile.address stores location TWO ways: flat strings
-// (province/district/municipality — required) and parallel Ref objects
-// (provinceRef.provinceName / districtRef.districtName /
-// municipalityRef.municipalityName) presumably populated by a cascading
-// dropdown. If the dropdown component only writes the Ref shape and doesn't
-// keep the flat string in sync, buildSnapshot would previously capture
-// nothing. Falling back to the Ref name covers both cases.
-const buildSnapshot = (student, user) => ({
-  fullName: user.name,
-  gender: student.personal_info?.gender || "",
-  dateOfBirth: student.personal_info?.dob || null,
-  phone: student.personal_info?.phone || "",
-  email: user.email,
-  location: {
-    province:
-      student.address?.province ||
-      student.address?.provinceRef?.provinceName ||
-      "",
-    district:
-      student.address?.district ||
-      student.address?.districtRef?.districtName ||
-      "",
-    municipality:
-      student.address?.municipality ||
-      student.address?.municipalityRef?.municipalityName ||
-      "",
-    addressLine: student.address?.street || "",
-  },
-
-  educationInfo: {
-    schoolName: student.educationInfo?.schoolName || "",
-    schoolType: student.educationInfo?.schoolType || "",
-    currentEducationLevel: student.educationInfo?.currentEducationLevel || "",
-  },
-  reservationInfo: {
-    caste: student.reservationInfo?.caste || "",
-    hasDisability: student.reservationInfo?.hasDisability || false,
-    disabilityType: student.reservationInfo?.disabilityType || "",
-  },
-  guardianInfo: {
-    name: student.guardian_info?.name || "",
-    phone: student.guardian_info?.phone_number || "",
-    relation: student.guardian_info?.relation || "",
-  },
-  snapshotCreatedAt: new Date(),
-});
-
-// POST /api/application/apply  (student only)
+// ─── POST /api/application/apply (student only) ──────────────────────────────
 export const applyForScholarship = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const {
-      scholarshipId,
-      applicationType,
-      meritDetails,
-      reservationDetails,
-      documents,
-    } = req.body;
-
-    if (!scholarshipId || !applicationType) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: "scholarshipId and applicationType are required.",
-      });
-    }
-
-    const scholarship = await Scholarship.findOne({
-      _id: scholarshipId,
-      isActive: true,
-      isDeleted: false,
-      applicationDeadline: { $gte: new Date() },
-    }).session(session);
-
-    if (!scholarship) {
-      await session.abortTransaction();
-      return res.status(404).json({
-        message: "Scholarship not found or deadline has passed.",
-      });
-    }
-
-    // ── FIX: scholarshipType → coverage.scholarshipType2 ─────────────────────
-    // The old schema had a flat scholarshipType ("merit" | "reservation" | "both").
-    // The new schema stores it as coverage.scholarshipType2 with different enum values.
-    // Type-gating is now based on applicationType vs coverage.scholarshipType2.
-    const schType = scholarship.coverage?.scholarshipType2;
-    const MERIT_TYPES = ["merit_based"];
-    const RESERVATION_TYPES = ["disability", "gender", "ethnic"];
-
-    if (
-      applicationType === "merit" &&
-      schType &&
-      RESERVATION_TYPES.includes(schType)
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: `This scholarship only accepts reservation-type applications.`,
-      });
-    }
-    if (
-      applicationType === "reservation" &&
-      schType &&
-      MERIT_TYPES.includes(schType)
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: `This scholarship only accepts merit-type applications.`,
-      });
-    }
-
-    // ── FIX: financialDetails.availableSlots → remainingSeats (top-level) ────
-    if (
-      scholarship.remainingSeats !== undefined &&
-      scholarship.remainingSeats !== null &&
-      scholarship.remainingSeats <= 0
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: "No available seats remaining." });
-    }
-
-    const student = await StudentProfile.findOne({ user: req.user.id }).session(
-      session,
-    );
-
-    if (!student) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Student profile not found." });
-    }
-
-    const user = await User.findById(req.user.id).session(session);
-
-    const duplicate = await ScholarshipApplication.findOne({
-      scholarshipId,
-      studentId: student._id,
-    }).session(session);
-
-    if (duplicate) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: "You have already applied for this scholarship.",
-      });
-    }
-
-    const [application] = await ScholarshipApplication.create(
-      [
-        {
-          scholarshipId,
-          studentId: student._id,
-          applicationType,
-          studentSnapshot: buildSnapshot(student, user),
-          meritDetails: applicationType === "merit" ? meritDetails : undefined,
-          reservationDetails:
-            applicationType === "reservation" ? reservationDetails : undefined,
-          documents: documents || [],
-        },
-      ],
-      { session },
-    );
-
-    // ── FIX: $inc on remainingSeats (top-level), not financialDetails.availableSlots
-    await Scholarship.findByIdAndUpdate(
-      scholarshipId,
-      {
-        $inc: {
-          "statistics.totalApplications": 1,
-          "statistics.pendingApplications": 1,
-          remainingSeats: -1, // top-level field in new schema
-        },
-      },
-      { session },
-    );
-
-    await session.commitTransaction();
+    const application = await applicationService.applyForScholarship({
+      userId: req.user.id,
+      body: req.body,
+    });
     res.status(201).json({
       message: "Application submitted successfully.",
       application,
     });
   } catch (error) {
-    await session.abortTransaction();
-    if (error.code === 11000) {
-      return res.status(400).json({
-        message: "You have already applied for this scholarship.",
-      });
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
     }
     console.error("applyForScholarship error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
-  } finally {
-    session.endSession();
   }
 };
 
-// GET /api/application/my  (student)
+// ─── GET /api/application/my (student only) ──────────────────────────────────
 export const getMyApplications = async (req, res) => {
   try {
-    const student = await StudentProfile.findOne({ user: req.user.id });
-
-    if (!student) {
-      return res.status(404).json({ message: "Student profile not found." });
-    }
-
-    const applications = await ScholarshipApplication.find({
-      studentId: student._id,
-    })
-      .populate(
-        "scholarshipId",
-        "scholarshipTitle applicationDeadline financialDetails institutionName",
-      )
-      .sort({ appliedAt: -1 });
-
-    res.json({ count: applications.length, applications });
+    const result = await applicationService.getMyApplications(req.user.id);
+    res.json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getMyApplications error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// GET /api/application/institution  (institution)
-//
-// Query params supported:
-//   scholarshipId, status, applicationType, gender, hasDisability,
-//   ethnicCategory, province, district, municipality, scholarshipType,
-//   minAmount, maxAmount, minFee, maxFee, fromDate, toDate, search,
-//   page, limit
+// ─── GET /api/application/institution (institution only) ─────────────────────
 export const getInstitutionApplications = async (req, res) => {
   try {
-    const institution = await InstitutionProfile.findOne({ user: req.user.id });
-
-    if (!institution) {
-      return res.status(404).json({ message: "Institution not found." });
-    }
-
-    const ownScholarships = await Scholarship.find({
-      institutionId: institution._id,
-      isDeleted: false,
-    }).select("_id");
-    const scholarshipIds = ownScholarships.map((s) => s._id);
-
-    const {
-      scholarshipId,
-      status,
-      applicationType,
-      gender,
-      hasDisability,
-      ethnicCategory,
-      province,
-      district,
-      municipality,
-      scholarshipType,
-      minAmount,
-      maxAmount,
-      minFee,
-      maxFee,
-      fromDate,
-      toDate,
-      search,
-      page = 1,
-      limit = 20,
-    } = req.query;
-
-    // ── Application-level match (indexed fields, cheap) ──────────────────────
-    const match = { scholarshipId: { $in: scholarshipIds } };
-    if (scholarshipId)
-      match.scholarshipId = new mongoose.Types.ObjectId(scholarshipId);
-    if (status) match.applicationStatus = status;
-    if (applicationType) match.applicationType = applicationType;
-    // StudentProfile.personal_info.gender is stored capitalized
-    // ("Male"/"Female"/"Other"), so match case-insensitively regardless of
-    // how the frontend sends it.
-    if (gender) {
-      match["studentSnapshot.gender"] = {
-        $regex: `^${escapeRegex(gender)}$`,
-        $options: "i",
-      };
-    }
-    if (hasDisability !== undefined) {
-      match["studentSnapshot.reservationInfo.hasDisability"] =
-        hasDisability === "true";
-    }
-    // caste is free text on StudentProfile (not tied to the Scholarship
-    // ethnicCategory enum), so match case-insensitively rather than exact.
-    if (ethnicCategory) {
-      match["studentSnapshot.reservationInfo.caste"] = {
-        $regex: `^${escapeRegex(ethnicCategory)}$`,
-        $options: "i",
-      };
-    }
-
-    // Province (supports both old: "Bagmati" and new: "Bagmati Province")
-    if (province) {
-      let provinceName = province.trim();
-
-      // Remove " Province" if the frontend sends it
-      provinceName = provinceName.replace(/\s+Province$/i, "");
-
-      match["studentSnapshot.location.province"] = {
-        $regex: `^${escapeRegex(provinceName)}( Province)?$`,
-        $options: "i",
-      };
-    }
-
-    // District (case-insensitive)
-    if (district) {
-      match["studentSnapshot.location.district"] = {
-        $regex: `^${escapeRegex(district.trim())}$`,
-        $options: "i",
-      };
-    }
-
-    // Municipality (case-insensitive)
-    if (municipality) {
-      match["studentSnapshot.location.municipality"] = {
-        $regex: `^${escapeRegex(municipality.trim())}$`,
-        $options: "i",
-      };
-    }
-    if (search) {
-      match["studentSnapshot.fullName"] = {
-        $regex: escapeRegex(search),
-        $options: "i",
-      };
-    }
-    if (fromDate || toDate) {
-      match.appliedAt = {};
-      if (fromDate) match.appliedAt.$gte = new Date(fromDate);
-      if (toDate) match.appliedAt.$lte = new Date(toDate);
-    }
-
-    const pipeline = [
-      { $match: match },
-      {
-        $lookup: {
-          from: "scholarships",
-          localField: "scholarshipId",
-          foreignField: "_id",
-          as: "scholarship",
-        },
-      },
-      { $unwind: "$scholarship" },
-    ];
-
-    // ── Scholarship-level match (requires the $lookup above) ─────────────────
-    const scholarshipMatch = {};
-    if (scholarshipType) {
-      scholarshipMatch["scholarship.coverage.scholarshipType2"] =
-        scholarshipType;
-    }
-    if (minAmount || maxAmount) {
-      scholarshipMatch["scholarship.coverage.amountNpr"] = {};
-      if (minAmount)
-        scholarshipMatch["scholarship.coverage.amountNpr"].$gte =
-          Number(minAmount);
-      if (maxAmount)
-        scholarshipMatch["scholarship.coverage.amountNpr"].$lte =
-          Number(maxAmount);
-    }
-    if (minFee || maxFee) {
-      scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"] = {};
-      if (minFee)
-        scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$gte =
-          Number(minFee);
-      if (maxFee)
-        scholarshipMatch["scholarship.coverage.totalProgramFeeNpr"].$lte =
-          Number(maxFee);
-    }
-    if (Object.keys(scholarshipMatch).length) {
-      pipeline.push({ $match: scholarshipMatch });
-    }
-
-    pipeline.push({ $sort: { appliedAt: -1 } });
-
-    const countPipeline = [...pipeline, { $count: "total" }];
-
-    const pageNum = Math.max(1, Number(page));
-    const limitNum = Math.max(1, Number(limit));
-    const skip = (pageNum - 1) * limitNum;
-
-    pipeline.push(
-      { $skip: skip },
-      { $limit: limitNum },
-      {
-        $project: {
-          applicationType: 1,
-          applicationStatus: 1,
-          studentSnapshot: 1,
-          appliedAt: 1,
-          review: 1,
-          "scholarship._id": 1,
-          "scholarship.scholarshipTitle": 1,
-          "scholarship.coverage": 1,
-          "scholarship.applicationDeadline": 1,
-        },
-      },
-    );
-
-    const [applications, countResult] = await Promise.all([
-      ScholarshipApplication.aggregate(pipeline),
-      ScholarshipApplication.aggregate(countPipeline),
-    ]);
-
-    const total = countResult[0]?.total || 0;
-
-    res.json({
-      total,
-      page: pageNum,
-      pages: Math.ceil(total / limitNum),
-      applications,
+    const result = await applicationService.getInstitutionApplications({
+      userId: req.user.id,
+      query: req.query,
     });
+    res.json(result);
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getInstitutionApplications error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// GET /api/application/:id  (student or institution)
+// ─── GET /api/application/:id (student or institution) ───────────────────────
 export const getApplicationById = async (req, res) => {
   try {
-    const application = await ScholarshipApplication.findById(
-      req.params.id,
-    ).populate(
-      "scholarshipId",
-      "scholarshipTitle applicationDeadline financialDetails institutionName scholarshipType",
-    );
-
-    if (!application) {
-      return res.status(404).json({ message: "Application not found." });
-    }
-
-    if (req.user.role === "student") {
-      const student = await StudentProfile.findOne({ user: req.user.id });
-      if (
-        !student ||
-        application.studentId.toString() !== student._id.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied." });
-      }
-    }
-
-    if (req.user.role === "institution") {
-      const institution = await InstitutionProfile.findOne({
-        user: req.user.id,
-      });
-      const scholarship = await Scholarship.findById(application.scholarshipId);
-      if (
-        !institution ||
-        !scholarship ||
-        scholarship.institutionId.toString() !== institution._id.toString()
-      ) {
-        return res.status(403).json({ message: "Access denied." });
-      }
-    }
-
+    const application = await applicationService.getApplicationById({
+      userId: req.user.id,
+      role: req.user.role,
+      id: req.params.id,
+    });
     res.json({ application });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("getApplicationById error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// PATCH /api/application/:id/review  (institution)
+// ─── PATCH /api/application/:id/review (institution only) ────────────────────
 export const reviewApplication = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { status, rejectionReason, internalNotes } = req.body;
-    const validTransitions = ["under_review", "approved", "rejected"];
-
-    if (!validTransitions.includes(status)) {
-      await session.abortTransaction();
-      return res
-        .status(400)
-        .json({ message: `status must be: ${validTransitions.join(", ")}` });
-    }
-
-    const institution = await InstitutionProfile.findOne({
-      user: req.user.id,
-    }).session(session);
-
-    if (!institution) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Institution not found." });
-    }
-
-    const application = await ScholarshipApplication.findById(
-      req.params.id,
-    ).session(session);
-
-    if (!application) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Application not found." });
-    }
-
-    const scholarship = await Scholarship.findOne({
-      _id: application.scholarshipId,
-      institutionId: institution._id,
-    }).session(session);
-
-    if (!scholarship) {
-      await session.abortTransaction();
-      return res.status(403).json({ message: "Access denied." });
-    }
-
-    const previousStatus = application.applicationStatus;
-    application.applicationStatus = status;
-    application.review.reviewedBy = req.user.id;
-    application.review.reviewedAt = new Date();
-    application.review.rejectionReason = rejectionReason || null;
-    application.review.internalNotes = internalNotes || null;
-    await application.save({ session });
-
-    const statsUpdate = {};
-    if (previousStatus === "pending" && status === "under_review") {
-      statsUpdate["statistics.pendingApplications"] = -1;
-    }
-    if (status === "approved") {
-      statsUpdate["statistics.approvedApplications"] = 1;
-      if (previousStatus === "pending")
-        statsUpdate["statistics.pendingApplications"] = -1;
-    }
-    if (status === "rejected") {
-      statsUpdate["financialDetails.availableSlots"] = 1;
-      if (previousStatus === "pending")
-        statsUpdate["statistics.pendingApplications"] = -1;
-    }
-
-    if (Object.keys(statsUpdate).length > 0) {
-      await Scholarship.findByIdAndUpdate(
-        scholarship._id,
-        { $inc: statsUpdate },
-        { session },
-      );
-    }
-
-    await session.commitTransaction();
-
-    // ── Notify the student (fire-and-forget — never blocks the response) ────
-    if (
-      status === "approved" ||
-      status === "rejected" ||
-      status === "under_review"
-    ) {
-      StudentProfile.findById(application.studentId)
-        .select("user")
-        .then((studentProfile) => {
-          if (!studentProfile) return;
-
-          const NOTIFY_COPY = {
-            approved: {
-              title: "Your scholarship application was approved! 🎉",
-              message: `Congratulations — your application to "${scholarship.scholarshipTitle}" has been approved.`,
-              priority: "high",
-            },
-            rejected: {
-              title: "Update on your scholarship application",
-              message: `Your application to "${scholarship.scholarshipTitle}" was not approved this time.${
-                rejectionReason ? ` Reason: ${rejectionReason}` : ""
-              }`,
-              priority: "high",
-            },
-            under_review: {
-              title: "Your scholarship application is under review",
-              message: `Your application to "${scholarship.scholarshipTitle}" is now under review.`,
-              priority: "medium",
-            },
-          };
-          const copy = NOTIFY_COPY[status];
-
-          createNotification({
-            userId: studentProfile.user,
-            notificationType: `application_${status}`,
-            title: copy.title,
-            message: copy.message,
-            relatedEntity: {
-              entityType: "Application",
-              entityId: application._id,
-            },
-            priority: copy.priority,
-          });
-        })
-        .catch((err) =>
-          console.warn(
-            "⚠️  Failed to look up student for notification:",
-            err.message,
-          ),
-        );
-    }
-
+    const application = await applicationService.reviewApplication({
+      userId: req.user.id,
+      id: req.params.id,
+      status,
+      rejectionReason,
+      internalNotes,
+    });
     res.json({ message: `Application ${status}.`, application });
   } catch (error) {
-    await session.abortTransaction();
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("reviewApplication error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
-  } finally {
-    session.endSession();
   }
 };
 
-// PATCH /api/application/:id/withdraw  (student)
+// ─── PATCH /api/application/:id/withdraw (student only) ──────────────────────
 export const withdrawApplication = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const student = await StudentProfile.findOne({ user: req.user.id }).session(
-      session,
-    );
-
-    if (!student) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Student profile not found." });
-    }
-
-    const application = await ScholarshipApplication.findOne({
-      _id: req.params.id,
-      studentId: student._id,
-    }).session(session);
-
-    if (!application) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Application not found." });
-    }
-
-    if (
-      ["approved", "rejected", "withdrawn"].includes(
-        application.applicationStatus,
-      )
-    ) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: `Cannot withdraw an application that is already "${application.applicationStatus}".`,
-      });
-    }
-
-    const previousStatus = application.applicationStatus;
-    application.applicationStatus = "withdrawn";
-    await application.save({ session });
-
-    const statsUpdate = { "financialDetails.availableSlots": 1 };
-    if (previousStatus === "pending")
-      statsUpdate["statistics.pendingApplications"] = -1;
-
-    await Scholarship.findByIdAndUpdate(
-      application.scholarshipId,
-      { $inc: statsUpdate },
-      { session },
-    );
-
-    await session.commitTransaction();
+    await applicationService.withdrawApplication({
+      userId: req.user.id,
+      id: req.params.id,
+    });
     res.json({ message: "Application withdrawn successfully." });
   } catch (error) {
-    await session.abortTransaction();
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
     console.error("withdrawApplication error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
-  } finally {
-    session.endSession();
   }
 };

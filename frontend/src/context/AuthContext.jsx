@@ -1,111 +1,120 @@
-// AuthContext.jsx — Global authentication state
-//
-// Provides: { user, token, userType, profile, login, logout, isLoading }
-//
-// Usage anywhere in the app:
-//   import { useAuth } from '../../context/AuthContext';
-//   const { user, userType, logout } = useAuth();
-
+// AuthContext.jsx — Global unified authentication state
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 // ─────────────────────────────────────────────────────────────────
 // DASHBOARD ROUTE MAP
-// Determines where each role lands after login / when redirecting
+// Unified mapping of role to destination route
 // ─────────────────────────────────────────────────────────────────
 export const DASHBOARD_ROUTES = {
-  student:          '/dashboard/student',
-  college:          '/dashboard/college',
-  admin:            '/dashboard/admin',
-  provincial_admin: '/dashboard/admin',   // shares admin dashboard, scoped server-side
+  student: '/dashboard-student',
+  institution: '/dashboard-institution',
+  super_admin: '/dashboard-superadmin',
+  province_admin: '/dashboard-provinceadmin',
 };
 
 export function AuthProvider({ children }) {
-  const [user,      setUser]      = useState(null);    // { id, email, userType }
-  const [profile,   setProfile]   = useState(null);    // role-specific profile data
-  const [token,     setToken]     = useState(null);
-  const [isLoading, setIsLoading] = useState(true);    // true while hydrating from localStorage
+  const [user, setUser] = useState(null); // { id, name, email, role }
+  const [profile, setProfile] = useState(null); // role-specific profile data
+  const [token, setToken] = useState(null);
+  const [role, setRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // true while hydrating from localStorage
+
+  // ── Storage helpers (dual-key compatibility) ──────────────────────────────
+  const _clearStorage = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('can_token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('user');
+    localStorage.removeItem('can_user');
+    localStorage.removeItem('can_profile');
+  };
+
+  const _saveToStorage = (tokenVal, roleVal, userVal, profileVal) => {
+    if (tokenVal) {
+      localStorage.setItem('token', tokenVal);
+      localStorage.setItem('can_token', tokenVal);
+    }
+    if (roleVal) {
+      localStorage.setItem('role', roleVal);
+    }
+    if (userVal) {
+      localStorage.setItem('can_user', JSON.stringify(userVal));
+      localStorage.setItem('user', JSON.stringify(userVal));
+    }
+    if (profileVal) {
+      localStorage.setItem('can_profile', JSON.stringify(profileVal));
+    } else {
+      localStorage.removeItem('can_profile');
+    }
+  };
 
   // ── Hydrate from localStorage on first load ──────────────────────────────
-  // Runs once on mount. Restores session if token + user exist in storage.
   useEffect(() => {
     try {
-      const storedToken   = localStorage.getItem('can_token');
-      const storedUser    = localStorage.getItem('can_user');
-      const storedProfile = localStorage.getItem('can_profile');
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('can_token');
+      const storedRole = localStorage.getItem('role');
+      const storedUserRaw = localStorage.getItem('can_user') || localStorage.getItem('user');
+      const storedProfileRaw = localStorage.getItem('can_profile');
 
-      if (storedToken && storedUser) {
+      if (storedToken) {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        if (storedProfile) setProfile(JSON.parse(storedProfile));
+        const parsedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null;
+        setUser(parsedUser);
+
+        const activeRole = storedRole || parsedUser?.role || null;
+        setRole(activeRole);
+
+        if (storedProfileRaw) {
+          setProfile(JSON.parse(storedProfileRaw));
+        }
       }
     } catch {
-      // Corrupted localStorage — clear it and start fresh
       _clearStorage();
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // ── Storage helpers ───────────────────────────────────────────────────────
-  const _clearStorage = () => {
-    localStorage.removeItem('can_token');
-    localStorage.removeItem('can_user');
-    localStorage.removeItem('can_profile');
-  };
-
-  const _saveToStorage = (token, user, profile) => {
-    localStorage.setItem('can_token', token);
-    localStorage.setItem('can_user',  JSON.stringify(user));
-    if (profile) localStorage.setItem('can_profile', JSON.stringify(profile));
-    else         localStorage.removeItem('can_profile');
-  };
-
-  // ── login(token, user, profile) ───────────────────────────────────────────
-  // Called by login.jsx after a successful API response.
-  // Stores everything in state + localStorage.
-  const login = useCallback((token, user, profile) => {
-    setToken(token);
-    setUser(user);
-    setProfile(profile);
-    _saveToStorage(token, user, profile);
+  // ── login(token, role, user, profile) ────────────────────────────────────
+  const login = useCallback((tokenVal, roleVal, userVal, profileVal) => {
+    const resolvedRole = roleVal || userVal?.role;
+    setToken(tokenVal);
+    setRole(resolvedRole);
+    setUser(userVal || null);
+    setProfile(profileVal || null);
+    _saveToStorage(tokenVal, resolvedRole, userVal, profileVal);
   }, []);
 
   // ── logout() ─────────────────────────────────────────────────────────────
-  // Calls backend to clear refresh tokens, then clears local state.
-  // Silent-fails on API error (expired token still lets you log out locally).
-  const logout = useCallback(async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch {
-      // ignore — clear local state regardless
-    }
+  const logout = useCallback(() => {
     setToken(null);
+    setRole(null);
     setUser(null);
     setProfile(null);
     _clearStorage();
   }, []);
 
   // ── refreshProfile(newProfile) ───────────────────────────────────────────
-  // Called when a role-specific dashboard fetches fresh data.
-  // Updates the profile in context + localStorage without re-login.
   const refreshProfile = useCallback((newProfile) => {
     setProfile(newProfile);
-    localStorage.setItem('can_profile', JSON.stringify(newProfile));
+    if (newProfile) {
+      localStorage.setItem('can_profile', JSON.stringify(newProfile));
+    }
   }, []);
 
   const value = {
     user,
     token,
+    role,
     profile,
-    userType:  user?.userType ?? null,
     isLoggedIn: !!token,
     isLoading,
     login,
     logout,
     refreshProfile,
+    DASHBOARD_ROUTES,
   };
 
   return (
@@ -116,7 +125,6 @@ export function AuthProvider({ children }) {
 }
 
 // ── useAuth hook ──────────────────────────────────────────────────────────
-// Throws clearly if used outside <AuthProvider>
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');

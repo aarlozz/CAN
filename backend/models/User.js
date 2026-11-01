@@ -63,6 +63,4 @@ const finaluserSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-finaluserSchema.index({ email: 1 });
-
 export default mongoose.model("User", finaluserSchema);

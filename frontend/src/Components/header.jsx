@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import CANlogo from "../assets/images/logo/CAN_logo.png";
 import NotificationBell from "./NotificationBell";
+import { useAuth } from "../context/AuthContext";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -10,12 +11,10 @@ export default function Header() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
 
-  const token = localStorage.getItem("token");
-  const role = localStorage.getItem("role");
+  const { isLoggedIn, role, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
+    logout();
     navigate("/");
   };
 
@@ -64,16 +63,16 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {!token && navLink("/", "Home")}
+          {!isLoggedIn && navLink("/", "Home")}
           {navLink("/scholarships", "Scholarships")}
-          {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
-          {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
-          {token && navLink("/institutions", "Institutions")}
+          {isLoggedIn && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
+          {isLoggedIn && role === "student"      && navLink("/dashboard-student", "Dashboard")}
+          {isLoggedIn && navLink("/institutions", "Institutions")}
         </nav>
 
         {/* Auth Actions */}
         <div className="hidden md:flex items-center gap-3">
-          {!token ? (
+          {!isLoggedIn ? (
             <>
               <Link to="/login"
                 className="text-sm font-medium text-gray-700 hover:text-red-500 transition-colors">
@@ -165,12 +164,12 @@ export default function Header() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
-          {!token && navLink("/", "Home")}
+          {!isLoggedIn && navLink("/", "Home")}
           {navLink("/scholarships", "Scholarships")}
-          {token && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
-          {token && role === "student"      && navLink("/dashboard-student", "Dashboard")}
-          {token && navLink("/institutions", "Institutions")}
-          {!token ? (
+          {isLoggedIn && role === "institution" && navLink("/dashboard-institution", "Dashboard")}
+          {isLoggedIn && role === "student"      && navLink("/dashboard-student", "Dashboard")}
+          {isLoggedIn && navLink("/institutions", "Institutions")}
+          {!isLoggedIn ? (
             <>{navLink("/login", "Login")}{navLink("/signup-institution", "Register Institution")}</>
           ) : (
             <>

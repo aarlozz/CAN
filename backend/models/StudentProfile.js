@@ -117,7 +117,6 @@ const studentSchema = new mongoose.Schema(
 );
 
 // ── Indexes ───────────────────────────────────────────────────────────────
-studentSchema.index({ user: 1 });
 studentSchema.index({ "address.province": 1 });
 studentSchema.index({ "address.district": 1 });
 studentSchema.index({ "address.provinceRef.provinceId": 1 });

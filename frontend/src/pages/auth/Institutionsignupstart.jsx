@@ -14,6 +14,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import { UNIVERSITIES } from "../../constants/educationTaxonomy"; // adjust path
+import { useAuth } from "../../context/AuthContext";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -21,6 +22,7 @@ const INSTITUTION_TYPES = ["School", "College", "University"];
 
 export default function InstitutionSignupStart() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [institutionType, setInstitutionType] = useState("");
   const [affiliatedUniversity, setAffiliatedUniversity] = useState("");
   const [error, setError] = useState("");
@@ -39,8 +41,7 @@ export default function InstitutionSignupStart() {
         affiliatedUniversity,
       });
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      login(res.data.token, res.data.role, res.data.user, res.data.profile);
 
       if (!res.data.profile?.profileCompleted) {
         navigate("/complete-institution-profile");

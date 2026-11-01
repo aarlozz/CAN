@@ -6,10 +6,14 @@ import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import CANlogo from "../../assets/images/logo/CAN_logo.png";
 
+import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
+
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login, DASHBOARD_ROUTES } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,22 +22,21 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/api/authbuild/google-login`, {
+      const res = await api.post("/authbuild/google-login", {
         token: credentialResponse.credential,
       });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+
+      login(res.data.token, res.data.role, res.data.user, res.data.profile);
 
       if (
-    res.data.role === "student" &&
-    !res.data.profile.profileCompleted
-) {
-    navigate("/complete-profile");
-} else if (res.data.role === "student") {
-    navigate("/dashboard-student");
-} else {
-    navigate("/dashboard-institution");
-}
+        res.data.role === "student" &&
+        !res.data.profile?.profileCompleted
+      ) {
+        navigate("/complete-profile");
+      } else {
+        const dest = DASHBOARD_ROUTES[res.data.role] || "/";
+        navigate(dest);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Google Login failed.");
     } finally {
@@ -53,22 +56,13 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      // General login route — handles both student and institution
-      const res = await axios.post(`${API}/api/authbuild/login`, form);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      // General login route — handles all roles
+      const res = await api.post("/authbuild/login", form);
 
-      if (res.data.role === "institution") {
-        navigate("/dashboard-institution");
-      } else if (res.data.role === "student") {
-        navigate("/dashboard-student");
-      } else if (res.data.role === "super_admin") {
-        navigate("/dashboard-superadmin");
-      } else if (res.data.role === "province_admin") {
-        navigate("/dashboard-provinceadmin");
-      } else {
-        navigate("/");
-      }
+      login(res.data.token, res.data.role, res.data.user, res.data.profile);
+
+      const dest = DASHBOARD_ROUTES[res.data.role] || "/";
+      navigate(dest);
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {

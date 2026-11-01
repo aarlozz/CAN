@@ -1,21 +1,29 @@
-// Axios API instance — central place for all backend calls
-
+// api.js — Central Axios client with URL normalization and auto-auth
 import axios from 'axios';
 
+// Resolve base URL safely, ensuring clean /api mounting without duplicate prefixes
+const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const cleanBase = rawBase.replace(/\/+$/, '').replace(/\/api$/, '');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  baseURL: `${cleanBase}/api`,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// ─────────────────────────────────────────
-// REQUEST interceptor — attach JWT automatically
-// ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// REQUEST interceptor — attach JWT & prevent double /api/ prefix
+// ─────────────────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token'); // matches what login/signup pages actually store
+    // If a caller passes '/api/something', strip leading '/api' so it doesn't duplicate to '/api/api/something'
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.replace(/^\/api/, '');
+    }
+
+    const token = localStorage.getItem('token') || localStorage.getItem('can_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,16 +32,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ─────────────────────────────────────────
-// RESPONSE interceptor — handle expired token globally
-// ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// RESPONSE interceptor — global 401 session expiration handling
+// ─────────────────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('can_token');
       localStorage.removeItem('role');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      localStorage.removeItem('can_user');
+      localStorage.removeItem('can_profile');
+
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -1,26 +1,32 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * ProtectedRoute — wraps any page that requires authentication.
- * Reads token + role from localStorage (set on login).
+ * Consumes global AuthContext state with seamless hydration protection.
  * @param {string[]} allowedRoles - optional list of roles permitted to access the route.
  */
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
-  const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
+  const { isLoggedIn, role, isLoading, DASHBOARD_ROUTES } = useAuth();
 
-  // Not logged in at all → send to general login
-  if (!token) {
+  // Prevent flash redirect while context is hydrating from localStorage
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Not logged in → redirect to login
+  if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
 
-  // Role restriction — redirect to their dashboard or home
+  // Role restriction check
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    if (role === "super_admin") return <Navigate to="/dashboard-superadmin" replace />;
-    if (role === "province_admin") return <Navigate to="/dashboard-provinceadmin" replace />;
-    if (role === "institution") return <Navigate to="/dashboard-institution" replace />;
-    if (role === "student") return <Navigate to="/dashboard-student" replace />;
-    return <Navigate to="/" replace />;
+    const destination = DASHBOARD_ROUTES?.[role] || "/";
+    return <Navigate to={destination} replace />;
   }
 
   return children;

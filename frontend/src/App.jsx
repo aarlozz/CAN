@@ -1,32 +1,35 @@
 import { Routes, Route } from "react-router-dom";
+import Layout from "./Components/Layout";
+import ProtectedRoute from "./Components/ProtectedRoute";
+
+// Public & General Pages
 import Home from "./pages/home";
 import Login from "./pages/auth/login";
 import Signup from "./pages/auth/signup";
-import InstitutionSignup from "./pages/auth/institutionsignup";
-import InstitutionLogin from "./pages/auth/institutionallogin";
+import CompleteProfile from "./pages/auth/CompleteProfile";
+import InstitutionSignupStart from "./pages/auth/InstitutionSignupStart";
+import CompleteInstitutionProfile from "./pages/auth/CompleteInstitutionProfile";
 import InstitutionList from "./pages/auth/InstitutionList";
 import InstitutionDetail from "./pages/auth/InstitutionDetail";
-import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
-import StudentDashboard from "./pages/Dashboard/studentdashboard";
+
+// Scholarship Pages
 import ScholarshipList from "./pages/scholarships/scholarshipList";
 import ScholarshipDetail from "./pages/scholarships/scholarshipDetail";
-import ProtectedRoute from "./Components/ProtectedRoute";
-import CompleteProfile from "./pages/auth/CompleteProfile";
+import BookmarksPage from "./pages/BookmarksPage";
+
+// Profile View
+import ProfileView from "./pages/ProfileView";
+
+// Dashboards
+import StudentDashboard from "./pages/Dashboard/studentdashboard";
+import InstitutionalDashboard from "./pages/Dashboard/institutionaldashbaord";
 import SuperAdminDashboard from "./pages/Dashboard/SuperAdminDashboard";
 import ProvinceAdminDashboard from "./pages/Dashboard/ProvinceAdminDashboard";
-import Layout from "./Components/Layout";
-import ProfileView from "./pages/ProfileView";
-import BookmarksPage from "./pages/BookmarksPage";
-import ScholarshipBrowse from "./pages/scholarships/scholarshipbrowse";
-import InstitutionSignupStart from "./pages/Auth/InstitutionSignupStart";
-import CompleteInstitutionProfile from "./pages/Auth/CompleteInstitutionProfile";
-// ...
-
 
 function App() {
   return (
     <Routes>
-      {/* Routes that share the Header/Footer + profile dropdown */}
+      {/* Routes that share the Header/Footer Layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/scholarships" element={<ScholarshipList />} />
@@ -34,7 +37,7 @@ function App() {
         <Route path="/institutions" element={<InstitutionList />} />
         <Route path="/institutions/:id" element={<InstitutionDetail />} />
 
-        {/* Protected — any logged-in user (student or institution) */}
+        {/* Protected Profile (Student or Institution) */}
         <Route
           path="/profile"
           element={
@@ -44,9 +47,7 @@ function App() {
           }
         />
 
-        <Route path="/scholarships" element={<ScholarshipBrowse />} />
-
-        {/* Protected — students only */}
+        {/* Protected Bookmarks (Students only) */}
         <Route
           path="/bookmarks"
           element={
@@ -56,24 +57,15 @@ function App() {
           }
         />
       </Route>
-      <Route path="/signup/institution" element={<InstitutionSignupStart />} />
-<Route path="/complete-institution-profile" element={<CompleteInstitutionProfile />} />
 
-      {/* Auth pages — no shared header needed */}
+      {/* Auth & Onboarding Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/signup/institution" element={<InstitutionSignupStart />} />
+      <Route path="/complete-institution-profile" element={<CompleteInstitutionProfile />} />
+      <Route path="/complete-profile" element={<CompleteProfile />} />
 
-      {/* Protected — Institution (manages its own Header internally) */}
-      <Route
-        path="/dashboard-institution"
-        element={
-          <ProtectedRoute allowedRoles={["institution"]}>
-            <InstitutionalDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Protected — Student */}
+      {/* Protected Dashboards */}
       <Route
         path="/dashboard-student"
         element={
@@ -82,8 +74,14 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      {/* Protected — Super Admin */}
+      <Route
+        path="/dashboard-institution"
+        element={
+          <ProtectedRoute allowedRoles={["institution"]}>
+            <InstitutionalDashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard-superadmin"
         element={
@@ -92,9 +90,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-      
-
-      {/* Protected — Province Admin */}
       <Route
         path="/dashboard-provinceadmin"
         element={
@@ -103,8 +98,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-
-      <Route path="/complete-profile" element={<CompleteProfile />} />
     </Routes>
   );
 }

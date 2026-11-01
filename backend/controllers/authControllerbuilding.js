@@ -155,7 +155,13 @@ export const login = async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ message: "Login successful", token, role: user.role, profile });
+    res.json({
+      message: "Login successful",
+      token,
+      role: user.role,
+      profile,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
   } catch (error) {
     console.error(error);
     return res.status(400).json({ message: "Server error" });
@@ -253,7 +259,13 @@ export const googleLogin = async (req, res) => {
       { expiresIn: "1d" } 
     );
 
-    res.json({ message: "Google login successful", token: jwtToken, role: user.role, profile });
+    res.json({
+      message: "Google login successful",
+      token: jwtToken,
+      role: user.role,
+      profile,
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    });
   } catch (error) {
   console.error("========== GOOGLE LOGIN ERROR ==========");
   console.error(error);

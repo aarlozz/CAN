@@ -5,11 +5,13 @@ import { GoogleLogin } from '@react-oauth/google';
 import Header from "../../Components/header";
 import Footer from "../../Components/footer";
 import LocationCascade from "../../Components/LocationCascade";
+import { useAuth } from "../../context/AuthContext";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { login, DASHBOARD_ROUTES } = useAuth();
   const [searchParams] = useSearchParams();
   const [role, setRole] = useState(
     searchParams.get("role") === "institution" ? "institution" : "student"
@@ -24,19 +26,18 @@ export default function Signup() {
       const res = await axios.post(`${API}/api/authbuild/google-login`, {
         token: credentialResponse.credential,
       });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+
+      login(res.data.token, res.data.role, res.data.user, res.data.profile);
 
       if (
-    res.data.role === "student" &&
-    !res.data.profile.profileCompleted
-) {
-    navigate("/complete-profile");
-} else if (res.data.role === "student") {
-    navigate("/dashboard-student");
-} else {
-    navigate("/dashboard-institution");
-}
+        res.data.role === "student" &&
+        !res.data.profile?.profileCompleted
+      ) {
+        navigate("/complete-profile");
+      } else {
+        const dest = DASHBOARD_ROUTES[res.data.role] || "/";
+        navigate(dest);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Google Signup failed.");
     } finally {
